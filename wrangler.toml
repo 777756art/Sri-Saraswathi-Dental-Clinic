@@ -1,0 +1,37 @@
+# Cloudflare Wrangler Configuration
+# Sri Saraswathi Dental Clinic - Cloudflare D1 + R2 Storage Architecture
+
+name = "sri-saraswathi-dental-clinic"
+main = "server/index.mjs"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+CLINIC_NAME = "Sri Saraswathi Dental Clinic"
+CLINIC_PHONE = "0424 427 2494"
+CLINIC_WHATSAPP = "919345743409"
+NODE_ENV = "production"
+
+# Cloudflare D1 Relational Database Binding
+[[d1_databases]]
+binding = "DB"
+database_name = "sri-saraswathi-dental-db"
+database_id = "18ca74b8-9a39-4cb8-9fb1-e8e387603f23"
+migrations_dir = "migrations"
+
+# Cloudflare R2 Object Storage Bucket Binding
+[[r2_buckets]]
+binding = "MEDIA_BUCKET"
+bucket_name = "sri-saraswathi-dental-media"
+preview_bucket_name = "sri-saraswathi-dental-media-preview"
+
+[env.preview]
+[[env.preview.d1_databases]]
+binding = "DB"
+database_name = "sri-saraswathi-dental-db-preview"
+database_id = "d1-sri-saraswathi-dental-preview-001"
+migrations_dir = "migrations"
+
+[[env.preview.r2_buckets]]
+binding = "MEDIA_BUCKET"
+bucket_name = "sri-saraswathi-dental-media-preview"

@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: sri-saraswathi-clinic-api
+    runtime: node
+    plan: starter
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    disk:
+      name: clinic-data
+      mountPath: /opt/render/project/src/server/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_VERSION
+        value: 24.22.1
+      - key: NODE_ENV
+        value: production
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: MONGODB_URI
+        sync: false
+      - key: SITE_ORIGIN
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
