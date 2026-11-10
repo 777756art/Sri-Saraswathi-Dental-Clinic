@@ -13,12 +13,41 @@ app.use(express.json({ limit: "25mb" }));
 app.use(express.urlencoded({ extended: true, limit: "25mb" }));
 
 // Normalize URL path across Netlify rewrite scenarios
-app.use((req, res, next) => {
+app.use((req, _res, next) => {
   if (req.url.startsWith("/.netlify/functions/api")) {
     req.url = req.url.replace("/.netlify/functions/api", "/api");
   }
   if (!req.url.startsWith("/api")) {
     req.url = "/api" + req.url;
+  }
+  next();
+});
+
+// Lazy initialize Cloudflare D1
+const d1 = getD1Database();
+let initialized = false;
+let initPromise = null;
+
+function ensureD1Ready() {
+  if (initialized) return Promise.resolve();
+  if (!initPromise) {
+    initPromise = initD1Schema(d1)
+      .then(() => {
+        initialized = true;
+      })
+      .catch((err) => {
+        console.warn("Netlify function D1 init notice:", err?.message || err);
+        initialized = true;
+      });
+  }
+  return initPromise;
+}
+
+app.use(async (_req, _res, next) => {
+  try {
+    await ensureD1Ready();
+  } catch (err) {
+    console.warn("D1 initialization warning:", err?.message || err);
   }
   next();
 });
@@ -30,19 +59,12 @@ app.get("/api/health", (_req, res) => {
     platform: "Netlify Serverless",
     database: "Cloudflare D1",
     storage: "Cloudflare R2",
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 });
-
-// Initialize Cloudflare D1
-const d1 = getD1Database();
-try {
-  await initD1Schema(d1);
-} catch (err) {
-  console.warn("Netlify function D1 init notice:", err.message);
-}
 
 const SESSION_SECRET = process.env.SESSION_SECRET || "clinic-d1-secure-secret-key-2026";
 registerD1Routes(app, d1, SESSION_SECRET);
 
 export const handler = serverless(app);
+export default handler;

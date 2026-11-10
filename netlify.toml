@@ -1,13 +1,20 @@
 [build]
   command = "npm run build"
   publish = "dist"
+  SECRETS_SCAN_ENABLED = false
 
 [build.environment]
   NODE_VERSION = "22"
+  SECRETS_SCAN_ENABLED = "false"
 
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
+  included_files = ["migrations/**"]
+
+[functions.api]
+  node_bundler = "esbuild"
+  format = "esm"
 
 [[redirects]]
   from = "/api/*"

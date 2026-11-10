@@ -14,7 +14,8 @@ import {
   ListObjectsV2Command,
 } from "@aws-sdk/client-s3";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const __filename = typeof import.meta !== "undefined" && import.meta.url ? fileURLToPath(import.meta.url) : "";
+const __dirname = __filename ? path.dirname(__filename) : process.cwd();
 const ROOT_DIR = path.resolve(__dirname, "..");
 const isServerless = Boolean(process.env.NETLIFY || process.env.AWS_LAMBDA_FUNCTION_NAME);
 const WRANGLER_R2_DIR = isServerless ? "/tmp/r2/sri-saraswathi-dental-media" : path.join(ROOT_DIR, ".wrangler", "state", "v3", "r2", "sri-saraswathi-dental-media");

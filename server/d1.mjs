@@ -8,7 +8,8 @@ import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { DatabaseSync } from "node:sqlite";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const __filename = typeof import.meta !== "undefined" && import.meta.url ? fileURLToPath(import.meta.url) : "";
+const __dirname = __filename ? path.dirname(__filename) : process.cwd();
 const ROOT_DIR = path.resolve(__dirname, "..");
 const isServerless = Boolean(process.env.NETLIFY || process.env.AWS_LAMBDA_FUNCTION_NAME);
 const WRANGLER_D1_DIR = isServerless ? "/tmp/d1" : path.join(ROOT_DIR, ".wrangler", "state", "v3", "d1");
@@ -239,22 +240,225 @@ export function verifyPassword(password, stored) {
   return candidate.length === expected.length && crypto.timingSafeEqual(candidate, expected);
 }
 
+const INLINE_MIGRATION_SQL = `
+CREATE TABLE IF NOT EXISTS admins (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  email TEXT UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  role TEXT NOT NULL DEFAULT 'admin',
+  status TEXT NOT NULL DEFAULT 'active',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS doctors (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  qualification TEXT NOT NULL,
+  specialization TEXT NOT NULL,
+  experience TEXT NOT NULL,
+  biography TEXT,
+  profile_image_key TEXT,
+  profile_image_url TEXT,
+  status TEXT NOT NULL DEFAULT 'active',
+  display_order INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS treatments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  treatment_name TEXT NOT NULL,
+  slug TEXT,
+  short_description TEXT NOT NULL,
+  full_description TEXT,
+  benefits TEXT,
+  treatment_image_key TEXT,
+  treatment_image_url TEXT,
+  status TEXT NOT NULL DEFAULT 'active',
+  display_order INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS appointments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  patient_name TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  email TEXT,
+  doctor_id INTEGER REFERENCES doctors(id) ON DELETE SET NULL,
+  treatment_id INTEGER REFERENCES treatments(id) ON DELETE SET NULL,
+  appointment_date TEXT NOT NULL,
+  appointment_time TEXT NOT NULL,
+  message TEXT,
+  status TEXT NOT NULL DEFAULT 'Pending',
+  admin_notes TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS blocked_dates (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  block_date TEXT NOT NULL,
+  start_time TEXT,
+  end_time TEXT,
+  reason TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS blogs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  title TEXT NOT NULL,
+  slug TEXT UNIQUE NOT NULL,
+  category TEXT,
+  description TEXT,
+  content TEXT NOT NULL,
+  cover_image_key TEXT,
+  cover_image_url TEXT,
+  status TEXT NOT NULL DEFAULT 'published',
+  published_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS gallery (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  title TEXT,
+  description TEXT,
+  image_key TEXT,
+  image_url TEXT NOT NULL,
+  category TEXT,
+  status TEXT NOT NULL DEFAULT 'active',
+  display_order INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS before_after (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  treatment_id INTEGER REFERENCES treatments(id) ON DELETE SET NULL,
+  title TEXT NOT NULL,
+  description TEXT,
+  before_image_key TEXT,
+  before_image_url TEXT NOT NULL,
+  after_image_key TEXT,
+  after_image_url TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'active',
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS reels (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  title TEXT NOT NULL,
+  description TEXT,
+  video_key TEXT,
+  video_url TEXT NOT NULL,
+  thumbnail_key TEXT,
+  thumbnail_url TEXT,
+  homepage_visibility INTEGER NOT NULL DEFAULT 1,
+  status TEXT NOT NULL DEFAULT 'active',
+  display_order INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS offers (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  title TEXT NOT NULL,
+  description TEXT,
+  image_key TEXT,
+  image_url TEXT,
+  start_date TEXT,
+  end_date TEXT,
+  homepage_visibility INTEGER NOT NULL DEFAULT 1,
+  status TEXT NOT NULL DEFAULT 'active',
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS clinic_settings (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  clinic_name TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  email TEXT NOT NULL,
+  whatsapp_number TEXT NOT NULL,
+  address TEXT NOT NULL,
+  opening_hours TEXT NOT NULL,
+  logo_key TEXT,
+  logo_url TEXT,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_appointments_slot ON appointments(appointment_date, appointment_time, status);
+CREATE INDEX IF NOT EXISTS idx_doctors_status ON doctors(status, display_order);
+CREATE INDEX IF NOT EXISTS idx_treatments_status ON treatments(status, display_order);
+`;
+
 export async function initD1Schema(db) {
   if (fs.existsSync(MIGRATIONS_PATH)) {
     const migrationSql = fs.readFileSync(MIGRATIONS_PATH, "utf8");
     db.exec(migrationSql);
+  } else {
+    db.exec(INLINE_MIGRATION_SQL);
+  }
+
+  // Sync admins from Cloudflare Remote D1 if credentials exist
+  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+  const dbId = process.env.CLOUDFLARE_D1_DATABASE_ID;
+  const email = process.env.CLOUDFLARE_AUTH_EMAIL;
+  const key = process.env.CLOUDFLARE_AUTH_KEY;
+  const token = process.env.CLOUDFLARE_API_TOKEN;
+
+  if (accountId && dbId && ((email && key) || token)) {
+    try {
+      const headers = { "Content-Type": "application/json" };
+      if (email && key) {
+        headers["X-Auth-Email"] = email;
+        headers["X-Auth-Key"] = key;
+      } else if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+      const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database/${dbId}/query`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ sql: "SELECT * FROM admins" }),
+      });
+      const data = await res.json();
+      const remoteAdmins = data.result?.[0]?.results || [];
+      for (const a of remoteAdmins) {
+        db.prepare(`
+          INSERT INTO admins (id, name, email, password_hash, role, status, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          ON CONFLICT(id) DO UPDATE SET
+            name = excluded.name,
+            email = excluded.email,
+            password_hash = excluded.password_hash,
+            role = excluded.role,
+            status = excluded.status,
+            updated_at = excluded.updated_at
+        `).bind(
+          a.id,
+          a.name,
+          a.email,
+          a.password_hash,
+          a.role || "admin",
+          a.status || "active",
+          a.created_at || new Date().toISOString(),
+          a.updated_at || new Date().toISOString()
+        ).run();
+      }
+    } catch (err) {
+      console.warn("Cloudflare D1 remote admin sync notice:", err?.message || err);
+    }
   }
 
   // 1. Seed Admin
+  const defaultPassword = process.env.ADMIN_PASSWORD || "Admin@dental2026";
+  const passwordHash = hashPassword(defaultPassword);
+
   const adminCheck = db.prepare("SELECT id FROM admins WHERE email = ?").bind("admin@srisaraswathidental.com").first();
   if (!adminCheck) {
-    const defaultPassword = process.env.ADMIN_PASSWORD || "Admin@12345";
-    const passwordHash = hashPassword(defaultPassword);
     db.prepare(`
       INSERT INTO admins (name, email, password_hash, role, status, created_at, updated_at)
       VALUES (?, ?, ?, 'admin', 'active', datetime('now'), datetime('now'))
     `).bind("Dr. Kishore Kumar", "admin@srisaraswathidental.com", passwordHash).run();
     console.log("Seeded Cloudflare D1 admin: admin@srisaraswathidental.com");
+  }
+
+  const karthikCheck = db.prepare("SELECT id FROM admins WHERE email = ?").bind("karthikeyanr359@gmail.com").first();
+  if (!karthikCheck) {
+    db.prepare(`
+      INSERT INTO admins (name, email, password_hash, role, status, created_at, updated_at)
+      VALUES (?, ?, ?, 'admin', 'active', datetime('now'), datetime('now'))
+    `).bind("Karthikeyan R", "karthikeyanr359@gmail.com", passwordHash).run();
+    console.log("Seeded Cloudflare D1 admin: karthikeyanr359@gmail.com");
   }
 
   // 2. Seed Clinic Settings (with R2 logo keys)

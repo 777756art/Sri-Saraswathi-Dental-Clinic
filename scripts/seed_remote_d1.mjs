@@ -42,7 +42,7 @@ async function seed() {
   // 1. Seed Admin
   const admins = await queryD1("SELECT id FROM admins WHERE email = ?", ["admin@srisaraswathidental.com"]);
   if (admins.length === 0) {
-    const passwordHash = hashPassword("Admin@12345");
+    const passwordHash = hashPassword(process.env.ADMIN_PASSWORD || "Admin@dental2026");
     await queryD1(
       "INSERT INTO admins (name, email, password_hash, role, status, created_at, updated_at) VALUES (?, ?, ?, 'admin', 'active', datetime('now'), datetime('now'))",
       ["Dr. Kishore Kumar", "admin@srisaraswathidental.com", passwordHash]

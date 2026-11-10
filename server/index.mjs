@@ -2187,7 +2187,7 @@ async function seed() {
     }
     return;
   }
-  const password = process.env.ADMIN_PASSWORD || (process.env.NODE_ENV === "production" ? "" : "Admin@12345");
+  const password = process.env.ADMIN_PASSWORD || (process.env.NODE_ENV === "production" ? "" : "Admin@dental2026");
   if (!password) {
     console.warn("No admin account was created. Set ADMIN_PASSWORD before the first production start.");
     return;

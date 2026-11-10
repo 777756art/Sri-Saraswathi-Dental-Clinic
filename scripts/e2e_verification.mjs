@@ -37,7 +37,7 @@ async function runTests() {
   const loginRes = await request('/api/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: 'admin@srisaraswathidental.com', password: 'Admin@12345' }),
+    body: JSON.stringify({ email: 'admin@srisaraswathidental.com', password: process.env.ADMIN_PASSWORD || 'Admin@dental2026' }),
   });
   assert(loginRes.status === 200 && loginRes.data?.user?.email === 'admin@srisaraswathidental.com', 'Admin login with verified D1 credentials');
 
