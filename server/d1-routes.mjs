@@ -525,12 +525,12 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
         return res.json({ date, closed: true, reason: blocked.reason || "Clinic closed on this date", slots: [] });
       }
 
-      const counts = await d1.prepare(`
+      const counts = (await d1.prepare(`
         SELECT appointment_time, COUNT(*) as count
         FROM appointments
         WHERE appointment_date = ? AND status NOT IN ('Cancelled', 'cancelled', 'Rejected', 'rejected')
         GROUP BY appointment_time
-      `).bind(date).all().results;
+      `).bind(date).all()).results || [];
 
       const countMap = Object.fromEntries(counts.map((c) => [c.appointment_time, c.count]));
 
@@ -649,7 +649,7 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
 
   const handleListAppointments = async (_req, res) => {
     try {
-      const rows = await d1.prepare(`
+      const rows = (await d1.prepare(`
         SELECT
           a.*,
           d.name as doctor_name,
@@ -658,7 +658,7 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
         LEFT JOIN doctors d ON a.doctor_id = d.id
         LEFT JOIN treatments t ON a.treatment_id = t.id
         ORDER BY a.appointment_date DESC, a.id DESC
-      `).all().results;
+      `).all()).results || [];
 
       const formatted = rows.map((r) => {
         const ref = formatRef(r.id, r.appointment_date);
@@ -985,13 +985,16 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
 
   app.get("/api/before-after", async (_req, res) => {
     try {
-      const rows = await d1.prepare(`
-        SELECT ba.*, t.treatment_name
-        FROM before_after ba
-        LEFT JOIN treatments t ON ba.treatment_id = t.id
-        WHERE ba.status = 'active'
-        ORDER BY ba.id DESC
-      `).all().results;
+      const rows = (await d1.prepare(`
+        SELECT
+          a.*,
+          d.name as doctor_name,
+          t.treatment_name as treatment_label
+        FROM appointments a
+        LEFT JOIN doctors d ON a.doctor_id = d.id
+        LEFT JOIN treatments t ON a.treatment_id = t.id
+        ORDER BY a.appointment_date DESC, a.id DESC
+      `).all()).results || [];
       res.json({ showcases: rows });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -1000,12 +1003,16 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
 
   app.get("/api/admin/before-after", requireAdmin, async (_req, res) => {
     try {
-      const rows = await d1.prepare(`
-        SELECT ba.*, t.treatment_name
-        FROM before_after ba
-        LEFT JOIN treatments t ON ba.treatment_id = t.id
-        ORDER BY ba.id DESC
-      `).all().results;
+      const rows = (await d1.prepare(`
+        SELECT
+          a.*,
+          d.name as doctor_name,
+          t.treatment_name as treatment_label
+        FROM appointments a
+        LEFT JOIN doctors d ON a.doctor_id = d.id
+        LEFT JOIN treatments t ON a.treatment_id = t.id
+        ORDER BY a.appointment_date DESC, a.id DESC
+      `).all()).results || [];
       res.json({ showcases: rows });
     } catch (err) {
       res.status(500).json({ error: err.message });
