@@ -9,11 +9,6 @@
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
-  format = "esm"
-
-[functions.api]
-  node_bundler = "esbuild"
-  format = "esm"
 
 [[redirects]]
   from = "/api/*"
