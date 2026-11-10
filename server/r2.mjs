@@ -16,7 +16,8 @@ import {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "..");
-const WRANGLER_R2_DIR = path.join(ROOT_DIR, ".wrangler", "state", "v3", "r2", "sri-saraswathi-dental-media");
+const isServerless = Boolean(process.env.NETLIFY || process.env.AWS_LAMBDA_FUNCTION_NAME);
+const WRANGLER_R2_DIR = isServerless ? "/tmp/r2/sri-saraswathi-dental-media" : path.join(ROOT_DIR, ".wrangler", "state", "v3", "r2", "sri-saraswathi-dental-media");
 
 export const R2_FOLDERS = [
   "doctors",

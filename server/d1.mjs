@@ -10,13 +10,18 @@ import { DatabaseSync } from "node:sqlite";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "..");
-const WRANGLER_D1_DIR = path.join(ROOT_DIR, ".wrangler", "state", "v3", "d1");
+const isServerless = Boolean(process.env.NETLIFY || process.env.AWS_LAMBDA_FUNCTION_NAME);
+const WRANGLER_D1_DIR = isServerless ? "/tmp/d1" : path.join(ROOT_DIR, ".wrangler", "state", "v3", "d1");
 const LOCAL_DB_PATH = path.join(WRANGLER_D1_DIR, "sri-saraswathi-dental-db.sqlite");
 const MIGRATIONS_PATH = path.join(ROOT_DIR, "migrations", "0001_initial_schema.sql");
 
-// Ensure local wrangler D1 state directory exists
+// Ensure local or serverless D1 directory exists
 if (!fs.existsSync(WRANGLER_D1_DIR)) {
-  fs.mkdirSync(WRANGLER_D1_DIR, { recursive: true });
+  try {
+    fs.mkdirSync(WRANGLER_D1_DIR, { recursive: true });
+  } catch {
+    // Ignore in read-only environments
+  }
 }
 
 // Background replication to Cloudflare Remote D1 database
