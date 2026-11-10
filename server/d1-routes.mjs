@@ -83,13 +83,13 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
   const r2 = getR2Bucket();
 
   // Middleware: Authenticate Admin via D1
-  const requireAdmin = (req, res, next) => {
+  const requireAdmin = async (req, res, next) => {
     const token = parseCookies(req.headers.cookie)[COOKIE_NAME];
     const session = verifySession(token, sessionSecret);
     if (!session || session.role !== "admin") {
       return res.status(401).json({ error: "Unauthorized. Admin access required." });
     }
-    const admin = d1.prepare("SELECT id, name, email, role, status FROM admins WHERE id = ?").bind(session.uid).first();
+    const admin = await d1.prepare("SELECT id, name, email, role, status FROM admins WHERE id = ?").bind(session.uid).first();
     if (!admin || admin.status === "inactive") {
       return res.status(401).json({ error: "Session invalid or admin account inactive." });
     }
@@ -187,13 +187,13 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
 
   /* ------------------------------------------------------------- 1. ADMINS & AUTH */
 
-  app.post("/api/auth/login", (req, res) => {
+  app.post("/api/auth/login", async (req, res) => {
     try {
       const { email, password } = req.body || {};
       if (!email || !password) {
         return res.status(400).json({ error: "Email and password are required." });
       }
-      const admin = d1.prepare("SELECT * FROM admins WHERE email = ?").bind(String(email).trim().toLowerCase()).first();
+      const admin = await d1.prepare("SELECT * FROM admins WHERE email = ?").bind(String(email).trim().toLowerCase()).first();
       if (!admin || !verifyPassword(password, admin.password_hash)) {
         return res.status(401).json({ error: "Invalid email or password." });
       }
@@ -219,11 +219,11 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
     }
   });
 
-  app.get("/api/auth/me", (req, res) => {
+  app.get("/api/auth/me", async (req, res) => {
     const token = parseCookies(req.headers.cookie)[COOKIE_NAME];
     const session = verifySession(token, sessionSecret);
     if (!session) return res.status(401).json({ error: "Not authenticated." });
-    const admin = d1.prepare("SELECT id, name, email, role FROM admins WHERE id = ?").bind(session.uid).first();
+    const admin = await d1.prepare("SELECT id, name, email, role FROM admins WHERE id = ?").bind(session.uid).first();
     if (!admin) return res.status(401).json({ error: "User not found." });
     const [firstName, ...rest] = admin.name.split(" ");
     res.json({
@@ -237,32 +237,32 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
     });
   });
 
-  app.post("/api/auth/logout", (_req, res) => {
+  app.post("/api/auth/logout", async (_req, res) => {
     res.setHeader("Set-Cookie", `${COOKIE_NAME}=; HttpOnly; Path=/; Max-Age=0`);
     res.json({ ok: true });
   });
 
   /* ------------------------------------------------------------- 2. DOCTORS (with R2 Profile Photo) */
 
-  app.get("/api/doctors", (_req, res) => {
+  app.get("/api/doctors", async (_req, res) => {
     try {
-      const rows = d1.prepare("SELECT * FROM doctors WHERE status = 'active' ORDER BY display_order ASC, id ASC").all().results;
+      const rows = (await d1.prepare("SELECT * FROM doctors WHERE status = 'active' ORDER BY display_order ASC, id ASC").all()).results;
       res.json({ doctors: rows });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
   });
 
-  app.get("/api/admin/doctors", requireAdmin, (_req, res) => {
+  app.get("/api/admin/doctors", requireAdmin, async (_req, res) => {
     try {
-      const rows = d1.prepare("SELECT * FROM doctors ORDER BY display_order ASC, id ASC").all().results;
+      const rows = (await d1.prepare("SELECT * FROM doctors ORDER BY display_order ASC, id ASC").all()).results;
       res.json({ doctors: rows });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
   });
 
-  app.post("/api/admin/doctors", requireAdmin, (req, res) => {
+  app.post("/api/admin/doctors", requireAdmin, async (req, res) => {
     try {
       const b = req.body || {};
       if (!b.name || !b.specialization) {
@@ -271,7 +271,7 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
       const imageKey = b.profile_image_key || (b.image_key ? String(b.image_key) : null);
       const imageUrl = b.profile_image_url || b.profile_image || (imageKey ? getR2PublicUrl(imageKey) : "");
 
-      const info = d1.prepare(`
+      const info = await d1.prepare(`
         INSERT INTO doctors (name, qualification, specialization, experience, biography, profile_image_key, profile_image_url, status, display_order, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
       `).bind(
@@ -285,7 +285,7 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
         b.status === "inactive" ? "inactive" : "active",
         Number(b.display_order || 0)
       ).run();
-      const created = d1.prepare("SELECT * FROM doctors WHERE id = ?").bind(info.meta.last_row_id).first();
+      const created = await d1.prepare("SELECT * FROM doctors WHERE id = ?").bind(info.meta.last_row_id).first();
       res.status(201).json({ doctor: created });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -295,7 +295,7 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
   app.patch("/api/admin/doctors/:id", requireAdmin, async (req, res) => {
     try {
       const id = Number(req.params.id);
-      const existing = d1.prepare("SELECT * FROM doctors WHERE id = ?").bind(id).first();
+      const existing = await d1.prepare("SELECT * FROM doctors WHERE id = ?").bind(id).first();
       if (!existing) return res.status(404).json({ error: "Doctor not found." });
       const b = req.body || {};
 
@@ -313,7 +313,7 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
         imageUrl = b.profile_image_url || b.profile_image;
       }
 
-      d1.prepare(`
+      await d1.prepare(`
         UPDATE doctors SET
           name = ?, qualification = ?, specialization = ?, experience = ?,
           biography = ?, profile_image_key = ?, profile_image_url = ?, status = ?,
@@ -331,7 +331,7 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
         b.display_order !== undefined ? Number(b.display_order) : existing.display_order,
         id
       ).run();
-      const updated = d1.prepare("SELECT * FROM doctors WHERE id = ?").bind(id).first();
+      const updated = await d1.prepare("SELECT * FROM doctors WHERE id = ?").bind(id).first();
       res.json({ doctor: updated });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -341,11 +341,11 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
   app.delete("/api/admin/doctors/:id", requireAdmin, async (req, res) => {
     try {
       const id = Number(req.params.id);
-      const existing = d1.prepare("SELECT profile_image_key FROM doctors WHERE id = ?").bind(id).first();
+      const existing = await d1.prepare("SELECT profile_image_key FROM doctors WHERE id = ?").bind(id).first();
       if (existing?.profile_image_key) {
         await safeDeleteR2File(r2, existing.profile_image_key);
       }
-      d1.prepare("DELETE FROM doctors WHERE id = ?").bind(id).run();
+      await d1.prepare("DELETE FROM doctors WHERE id = ?").bind(id).run();
       res.json({ ok: true, id });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -354,32 +354,32 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
 
   /* ------------------------------------------------------------- 3. TREATMENTS (with R2 Image) */
 
-  app.get("/api/treatments", (_req, res) => {
+  app.get("/api/treatments", async (_req, res) => {
     try {
-      const rows = d1.prepare("SELECT * FROM treatments WHERE status = 'active' ORDER BY display_order ASC, id ASC").all().results;
+      const rows = (await d1.prepare("SELECT * FROM treatments WHERE status = 'active' ORDER BY display_order ASC, id ASC").all()).results;
       res.json({ treatments: rows });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
   });
 
-  app.get("/api/admin/treatments", requireAdmin, (_req, res) => {
+  app.get("/api/admin/treatments", requireAdmin, async (_req, res) => {
     try {
-      const rows = d1.prepare("SELECT * FROM treatments ORDER BY display_order ASC, id ASC").all().results;
+      const rows = (await d1.prepare("SELECT * FROM treatments ORDER BY display_order ASC, id ASC").all()).results;
       res.json({ treatments: rows });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
   });
 
-  app.post("/api/admin/treatments", requireAdmin, (req, res) => {
+  app.post("/api/admin/treatments", requireAdmin, async (req, res) => {
     try {
       const b = req.body || {};
       if (!b.treatment_name || !b.short_description) {
         return res.status(400).json({ error: "Treatment name and short description are required." });
       }
       let slug = String(b.slug || b.treatment_name).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-      const existingSlug = d1.prepare("SELECT id FROM treatments WHERE slug = ?").bind(slug).first();
+      const existingSlug = await d1.prepare("SELECT id FROM treatments WHERE slug = ?").bind(slug).first();
       if (existingSlug) {
         slug = `${slug}-${Date.now().toString(36)}`;
       }
@@ -387,7 +387,7 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
       const imageKey = b.treatment_image_key || (b.image_key ? String(b.image_key) : null);
       const imageUrl = b.treatment_image_url || b.treatment_image || (imageKey ? getR2PublicUrl(imageKey) : "");
 
-      const info = d1.prepare(`
+      const info = await d1.prepare(`
         INSERT INTO treatments (treatment_name, slug, short_description, full_description, benefits, treatment_image_key, treatment_image_url, status, display_order, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
       `).bind(
@@ -401,7 +401,7 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
         b.status === "inactive" ? "inactive" : "active",
         Number(b.display_order || 0)
       ).run();
-      const created = d1.prepare("SELECT * FROM treatments WHERE id = ?").bind(info.meta.last_row_id).first();
+      const created = await d1.prepare("SELECT * FROM treatments WHERE id = ?").bind(info.meta.last_row_id).first();
       res.status(201).json({ treatment: created });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -411,7 +411,7 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
   app.patch("/api/admin/treatments/:id", requireAdmin, async (req, res) => {
     try {
       const id = Number(req.params.id);
-      const existing = d1.prepare("SELECT * FROM treatments WHERE id = ?").bind(id).first();
+      const existing = await d1.prepare("SELECT * FROM treatments WHERE id = ?").bind(id).first();
       if (!existing) return res.status(404).json({ error: "Treatment not found." });
       const b = req.body || {};
 
@@ -433,7 +433,7 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
         ? (Array.isArray(b.benefits) ? JSON.stringify(b.benefits) : String(b.benefits))
         : existing.benefits;
 
-      d1.prepare(`
+      await d1.prepare(`
         UPDATE treatments SET
           treatment_name = ?, slug = ?, short_description = ?, full_description = ?,
           benefits = ?, treatment_image_key = ?, treatment_image_url = ?, status = ?,
@@ -451,7 +451,7 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
         b.display_order !== undefined ? Number(b.display_order) : existing.display_order,
         id
       ).run();
-      const updated = d1.prepare("SELECT * FROM treatments WHERE id = ?").bind(id).first();
+      const updated = await d1.prepare("SELECT * FROM treatments WHERE id = ?").bind(id).first();
       res.json({ treatment: updated });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -461,11 +461,11 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
   app.delete("/api/admin/treatments/:id", requireAdmin, async (req, res) => {
     try {
       const id = Number(req.params.id);
-      const existing = d1.prepare("SELECT treatment_image_key FROM treatments WHERE id = ?").bind(id).first();
+      const existing = await d1.prepare("SELECT treatment_image_key FROM treatments WHERE id = ?").bind(id).first();
       if (existing?.treatment_image_key) {
         await safeDeleteR2File(r2, existing.treatment_image_key);
       }
-      d1.prepare("DELETE FROM treatments WHERE id = ?").bind(id).run();
+      await d1.prepare("DELETE FROM treatments WHERE id = ?").bind(id).run();
       res.json({ ok: true, id });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -474,20 +474,20 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
 
   /* ------------------------------------------------------------- 4. BLOCKED DATES */
 
-  app.get("/api/admin/blocked-dates", requireAdmin, (_req, res) => {
+  app.get("/api/admin/blocked-dates", requireAdmin, async (_req, res) => {
     try {
-      const rows = d1.prepare("SELECT * FROM blocked_dates ORDER BY block_date DESC, id DESC").all().results;
+      const rows = (await d1.prepare("SELECT * FROM blocked_dates ORDER BY block_date DESC, id DESC").all()).results;
       res.json({ blockedDates: rows });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
   });
 
-  app.post("/api/admin/blocked-dates", requireAdmin, (req, res) => {
+  app.post("/api/admin/blocked-dates", requireAdmin, async (req, res) => {
     try {
       const b = req.body || {};
       if (!b.block_date) return res.status(400).json({ error: "Block date (YYYY-MM-DD) is required." });
-      const info = d1.prepare(`
+      const info = await d1.prepare(`
         INSERT INTO blocked_dates (block_date, start_time, end_time, reason, created_at)
         VALUES (?, ?, ?, ?, datetime('now'))
       `).bind(
@@ -496,17 +496,17 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
         b.end_time ? String(b.end_time).trim() : null,
         String(b.reason || "Doctor unavailable / Holiday").trim()
       ).run();
-      const created = d1.prepare("SELECT * FROM blocked_dates WHERE id = ?").bind(info.meta.last_row_id).first();
+      const created = await d1.prepare("SELECT * FROM blocked_dates WHERE id = ?").bind(info.meta.last_row_id).first();
       res.status(201).json({ blockedDate: created });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
   });
 
-  app.delete("/api/admin/blocked-dates/:id", requireAdmin, (req, res) => {
+  app.delete("/api/admin/blocked-dates/:id", requireAdmin, async (req, res) => {
     try {
       const id = Number(req.params.id);
-      d1.prepare("DELETE FROM blocked_dates WHERE id = ?").bind(id).run();
+      await d1.prepare("DELETE FROM blocked_dates WHERE id = ?").bind(id).run();
       res.json({ ok: true, id });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -515,17 +515,17 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
 
   /* ------------------------------------------------------------- 5. APPOINTMENTS & AVAILABILITY */
 
-  app.get("/api/availability", (req, res) => {
+  app.get("/api/availability", async (req, res) => {
     try {
       const date = String(req.query.date || "").trim();
       if (!date) return res.status(400).json({ error: "Date parameter is required (YYYY-MM-DD)." });
 
-      const blocked = d1.prepare("SELECT * FROM blocked_dates WHERE block_date = ? AND start_time IS NULL").bind(date).first();
+      const blocked = await d1.prepare("SELECT * FROM blocked_dates WHERE block_date = ? AND start_time IS NULL").bind(date).first();
       if (blocked) {
         return res.json({ date, closed: true, reason: blocked.reason || "Clinic closed on this date", slots: [] });
       }
 
-      const counts = d1.prepare(`
+      const counts = await d1.prepare(`
         SELECT appointment_time, COUNT(*) as count
         FROM appointments
         WHERE appointment_date = ? AND status NOT IN ('Cancelled', 'cancelled', 'Rejected', 'rejected')
@@ -548,7 +548,7 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
     }
   });
 
-  const handleCreateAppointment = (req, res) => {
+  const handleCreateAppointment = async (req, res) => {
     try {
       const b = req.body || {};
       const patientName = String(b.patientName || b.patient_name || "").trim();
@@ -563,12 +563,12 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
       if (phone.replace(/\D/g, "").length < 10) return res.status(400).json({ error: "Valid 10-digit phone number is required." });
       if (!date || !time) return res.status(400).json({ error: "Appointment date and time are required." });
 
-      const blocked = d1.prepare("SELECT * FROM blocked_dates WHERE block_date = ? AND start_time IS NULL").bind(date).first();
+      const blocked = await d1.prepare("SELECT * FROM blocked_dates WHERE block_date = ? AND start_time IS NULL").bind(date).first();
       if (blocked) {
         return res.status(400).json({ error: `Selected date is unavailable: ${blocked.reason || "Clinic closed."}` });
       }
 
-      const currentBookings = d1.prepare(`
+      const currentBookings = await d1.prepare(`
         SELECT COUNT(*) as count FROM appointments
         WHERE appointment_date = ? AND appointment_time = ? AND status NOT IN ('Cancelled', 'cancelled', 'Rejected', 'rejected')
       `).bind(date, time).first("count");
@@ -580,17 +580,17 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
       let treatmentId = b.treatmentId || b.treatment_id ? Number(b.treatmentId || b.treatment_id) : null;
       let serviceLabel = "Comprehensive Dental Check-up";
       if (!treatmentId && b.service) {
-        const found = d1.prepare("SELECT id, treatment_name FROM treatments WHERE treatment_name LIKE ?").bind(`%${b.service}%`).first();
+        const found = await d1.prepare("SELECT id, treatment_name FROM treatments WHERE treatment_name LIKE ?").bind(`%${b.service}%`).first();
         if (found) {
           treatmentId = found.id;
           serviceLabel = found.treatment_name;
         }
       } else if (treatmentId) {
-        const found = d1.prepare("SELECT treatment_name FROM treatments WHERE id = ?").bind(treatmentId).first();
+        const found = await d1.prepare("SELECT treatment_name FROM treatments WHERE id = ?").bind(treatmentId).first();
         if (found) serviceLabel = found.treatment_name;
       }
 
-      const info = d1.prepare(`
+      const info = await d1.prepare(`
         INSERT INTO appointments (patient_name, phone, email, doctor_id, treatment_id, appointment_date, appointment_time, message, status, admin_notes, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Pending', '', datetime('now'), datetime('now'))
       `).bind(patientName, phone, email, doctorId, treatmentId, date, time, notes).run();
@@ -647,9 +647,9 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
   app.post("/api/appointments", handleCreateAppointment);
   app.post("/api/bookings", handleCreateAppointment);
 
-  const handleListAppointments = (_req, res) => {
+  const handleListAppointments = async (_req, res) => {
     try {
-      const rows = d1.prepare(`
+      const rows = await d1.prepare(`
         SELECT
           a.*,
           d.name as doctor_name,
@@ -701,10 +701,10 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
   app.get("/api/admin/appointments", requireAdmin, handleListAppointments);
   app.get("/api/admin/bookings", requireAdmin, handleListAppointments);
 
-  const handleUpdateAppointment = (req, res) => {
+  const handleUpdateAppointment = async (req, res) => {
     try {
       const id = Number(req.params.id);
-      const existing = d1.prepare("SELECT * FROM appointments WHERE id = ?").bind(id).first();
+      const existing = await d1.prepare("SELECT * FROM appointments WHERE id = ?").bind(id).first();
       if (!existing) return res.status(404).json({ error: "Appointment not found." });
 
       const b = req.body || {};
@@ -715,14 +715,14 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
       const adminNotes = b.admin_notes !== undefined ? b.admin_notes : (b.adminNotes !== undefined ? b.adminNotes : existing.admin_notes);
       const newDoctorId = b.doctorId || b.doctor_id ? Number(b.doctorId || b.doctor_id) : existing.doctor_id;
 
-      d1.prepare(`
+      await d1.prepare(`
         UPDATE appointments SET
           status = ?, appointment_date = ?, appointment_time = ?,
           doctor_id = ?, message = ?, admin_notes = ?, updated_at = datetime('now')
         WHERE id = ?
       `).bind(newStatus, newDate, newTime, newDoctorId, newNotes, adminNotes, id).run();
 
-      const updated = d1.prepare(`
+      const updated = await d1.prepare(`
         SELECT a.*, d.name as doctor_name, t.treatment_name as treatment_label
         FROM appointments a
         LEFT JOIN doctors d ON a.doctor_id = d.id
@@ -769,10 +769,10 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
   app.patch("/api/admin/appointments/:id", requireAdmin, handleUpdateAppointment);
   app.patch("/api/admin/bookings/:id", requireAdmin, handleUpdateAppointment);
 
-  app.delete("/api/admin/appointments/:id", requireAdmin, (req, res) => {
+  app.delete("/api/admin/appointments/:id", requireAdmin, async (req, res) => {
     try {
       const id = Number(req.params.id);
-      d1.prepare("DELETE FROM appointments WHERE id = ?").bind(id).run();
+      await d1.prepare("DELETE FROM appointments WHERE id = ?").bind(id).run();
       res.json({ ok: true, id });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -781,9 +781,9 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
 
   /* ------------------------------------------------------------- 6. BLOGS (with R2 Cover Image) */
 
-  const handleGetBlogs = (_req, res) => {
+  const handleGetBlogs = async (_req, res) => {
     try {
-      const rows = d1.prepare("SELECT * FROM blogs WHERE status = 'published' ORDER BY published_at DESC, id DESC").all().results;
+      const rows = (await d1.prepare("SELECT * FROM blogs WHERE status = 'published' ORDER BY published_at DESC, id DESC").all()).results;
       const formatted = rows.map(b => ({
         ...b,
         coverImage: b.cover_image_url || (b.cover_image_key ? getR2PublicUrl(b.cover_image_key) : ""),
@@ -800,10 +800,10 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
   app.get("/api/blogs", handleGetBlogs);
   app.get("/api/blog", handleGetBlogs);
 
-  const handleGetBlogBySlug = (req, res) => {
+  const handleGetBlogBySlug = async (req, res) => {
     try {
       const slug = String(req.params.slug).trim();
-      const blog = d1.prepare("SELECT * FROM blogs WHERE slug = ?").bind(slug).first();
+      const blog = await d1.prepare("SELECT * FROM blogs WHERE slug = ?").bind(slug).first();
       if (!blog) return res.status(404).json({ error: "Blog not found." });
       const formatted = {
         ...blog,
@@ -812,7 +812,7 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
         cover_image: blog.cover_image_url || (blog.cover_image_key ? getR2PublicUrl(blog.cover_image_key) : ""),
         readTime: blog.read_time || "4 min read",
       };
-      const related = d1.prepare("SELECT * FROM blogs WHERE status = 'published' AND id != ? ORDER BY id DESC LIMIT 3").bind(blog.id).all().results;
+      const related = (await d1.prepare("SELECT * FROM blogs WHERE status = 'published' AND id != ? ORDER BY id DESC LIMIT 3").bind(blog.id).all()).results;
       res.json({ blog: formatted, item: formatted, related });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -822,28 +822,28 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
   app.get("/api/blogs/:slug", handleGetBlogBySlug);
   app.get("/api/blog/:slug", handleGetBlogBySlug);
 
-  app.get("/api/admin/blogs", requireAdmin, (_req, res) => {
+  app.get("/api/admin/blogs", requireAdmin, async (_req, res) => {
     try {
-      const rows = d1.prepare("SELECT * FROM blogs ORDER BY id DESC").all().results;
+      const rows = (await d1.prepare("SELECT * FROM blogs ORDER BY id DESC").all()).results;
       res.json({ blogs: rows });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
   });
 
-  app.post("/api/admin/blogs", requireAdmin, (req, res) => {
+  app.post("/api/admin/blogs", requireAdmin, async (req, res) => {
     try {
       const b = req.body || {};
       if (!b.title || !b.content) return res.status(400).json({ error: "Title and content are required." });
       let slug = String(b.slug || b.title).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-      const existingSlug = d1.prepare("SELECT id FROM blogs WHERE slug = ?").bind(slug).first();
+      const existingSlug = await d1.prepare("SELECT id FROM blogs WHERE slug = ?").bind(slug).first();
       if (existingSlug) {
         slug = `${slug}-${Date.now().toString(36)}`;
       }
       const imageKey = b.cover_image_key || (b.image_key ? String(b.image_key) : null);
       const imageUrl = b.cover_image_url || b.cover_image || (imageKey ? getR2PublicUrl(imageKey) : "");
 
-      const info = d1.prepare(`
+      const info = await d1.prepare(`
         INSERT INTO blogs (title, slug, category, description, content, cover_image_key, cover_image_url, status, published_at, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'), datetime('now'))
       `).bind(
@@ -856,7 +856,7 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
         imageUrl,
         b.status === "draft" ? "draft" : "published"
       ).run();
-      const created = d1.prepare("SELECT * FROM blogs WHERE id = ?").bind(info.meta.last_row_id).first();
+      const created = await d1.prepare("SELECT * FROM blogs WHERE id = ?").bind(info.meta.last_row_id).first();
       res.status(201).json({ blog: created });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -866,7 +866,7 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
   app.patch("/api/admin/blogs/:id", requireAdmin, async (req, res) => {
     try {
       const id = Number(req.params.id);
-      const existing = d1.prepare("SELECT * FROM blogs WHERE id = ?").bind(id).first();
+      const existing = await d1.prepare("SELECT * FROM blogs WHERE id = ?").bind(id).first();
       if (!existing) return res.status(404).json({ error: "Blog not found." });
       const b = req.body || {};
 
@@ -884,7 +884,7 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
         imageUrl = b.cover_image_url || b.cover_image;
       }
 
-      d1.prepare(`
+      await d1.prepare(`
         UPDATE blogs SET
           title = ?, slug = ?, category = ?, description = ?, content = ?,
           cover_image_key = ?, cover_image_url = ?, status = ?, updated_at = datetime('now')
@@ -900,7 +900,7 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
         b.status !== undefined ? b.status : existing.status,
         id
       ).run();
-      const updated = d1.prepare("SELECT * FROM blogs WHERE id = ?").bind(id).first();
+      const updated = await d1.prepare("SELECT * FROM blogs WHERE id = ?").bind(id).first();
       res.json({ blog: updated });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -910,11 +910,11 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
   app.delete("/api/admin/blogs/:id", requireAdmin, async (req, res) => {
     try {
       const id = Number(req.params.id);
-      const existing = d1.prepare("SELECT cover_image_key FROM blogs WHERE id = ?").bind(id).first();
+      const existing = await d1.prepare("SELECT cover_image_key FROM blogs WHERE id = ?").bind(id).first();
       if (existing?.cover_image_key) {
         await safeDeleteR2File(r2, existing.cover_image_key);
       }
-      d1.prepare("DELETE FROM blogs WHERE id = ?").bind(id).run();
+      await d1.prepare("DELETE FROM blogs WHERE id = ?").bind(id).run();
       res.json({ ok: true, id });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -923,32 +923,32 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
 
   /* ------------------------------------------------------------- 7. GALLERY (with R2 Photo) */
 
-  app.get("/api/gallery", (_req, res) => {
+  app.get("/api/gallery", async (_req, res) => {
     try {
-      const rows = d1.prepare("SELECT * FROM gallery WHERE status = 'active' ORDER BY display_order ASC, id DESC").all().results;
+      const rows = (await d1.prepare("SELECT * FROM gallery WHERE status = 'active' ORDER BY display_order ASC, id DESC").all()).results;
       res.json({ gallery: rows });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
   });
 
-  app.get("/api/admin/gallery", requireAdmin, (_req, res) => {
+  app.get("/api/admin/gallery", requireAdmin, async (_req, res) => {
     try {
-      const rows = d1.prepare("SELECT * FROM gallery ORDER BY display_order ASC, id DESC").all().results;
+      const rows = (await d1.prepare("SELECT * FROM gallery ORDER BY display_order ASC, id DESC").all()).results;
       res.json({ gallery: rows });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
   });
 
-  app.post("/api/admin/gallery", requireAdmin, (req, res) => {
+  app.post("/api/admin/gallery", requireAdmin, async (req, res) => {
     try {
       const b = req.body || {};
       const imageKey = b.image_key ? String(b.image_key).trim() : null;
       const imageUrl = b.image_url ? String(b.image_url).trim() : (imageKey ? getR2PublicUrl(imageKey) : "");
       if (!imageUrl && !imageKey) return res.status(400).json({ error: "Image URL or image key is required." });
 
-      const info = d1.prepare(`
+      const info = await d1.prepare(`
         INSERT INTO gallery (title, description, image_key, image_url, category, status, display_order, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
       `).bind(
@@ -960,7 +960,7 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
         b.status === "inactive" ? "inactive" : "active",
         Number(b.display_order || 0)
       ).run();
-      const created = d1.prepare("SELECT * FROM gallery WHERE id = ?").bind(info.meta.last_row_id).first();
+      const created = await d1.prepare("SELECT * FROM gallery WHERE id = ?").bind(info.meta.last_row_id).first();
       res.status(201).json({ gallery: created });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -970,11 +970,11 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
   app.delete("/api/admin/gallery/:id", requireAdmin, async (req, res) => {
     try {
       const id = Number(req.params.id);
-      const existing = d1.prepare("SELECT image_key FROM gallery WHERE id = ?").bind(id).first();
+      const existing = await d1.prepare("SELECT image_key FROM gallery WHERE id = ?").bind(id).first();
       if (existing?.image_key) {
         await safeDeleteR2File(r2, existing.image_key);
       }
-      d1.prepare("DELETE FROM gallery WHERE id = ?").bind(id).run();
+      await d1.prepare("DELETE FROM gallery WHERE id = ?").bind(id).run();
       res.json({ ok: true, id });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -983,9 +983,9 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
 
   /* ------------------------------------------------------------- 8. BEFORE & AFTER (with R2 Before/After Images) */
 
-  app.get("/api/before-after", (_req, res) => {
+  app.get("/api/before-after", async (_req, res) => {
     try {
-      const rows = d1.prepare(`
+      const rows = await d1.prepare(`
         SELECT ba.*, t.treatment_name
         FROM before_after ba
         LEFT JOIN treatments t ON ba.treatment_id = t.id
@@ -998,9 +998,9 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
     }
   });
 
-  app.get("/api/admin/before-after", requireAdmin, (_req, res) => {
+  app.get("/api/admin/before-after", requireAdmin, async (_req, res) => {
     try {
-      const rows = d1.prepare(`
+      const rows = await d1.prepare(`
         SELECT ba.*, t.treatment_name
         FROM before_after ba
         LEFT JOIN treatments t ON ba.treatment_id = t.id
@@ -1012,7 +1012,7 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
     }
   });
 
-  app.post("/api/admin/before-after", requireAdmin, (req, res) => {
+  app.post("/api/admin/before-after", requireAdmin, async (req, res) => {
     try {
       const b = req.body || {};
       const beforeKey = b.before_image_key || null;
@@ -1024,7 +1024,7 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
         return res.status(400).json({ error: "Title, before image, and after image are required." });
       }
       const treatmentId = b.treatment_id ? Number(b.treatment_id) : null;
-      const info = d1.prepare(`
+      const info = await d1.prepare(`
         INSERT INTO before_after (treatment_id, title, description, before_image_key, before_image_url, after_image_key, after_image_url, status, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
       `).bind(
@@ -1037,7 +1037,7 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
         afterUrl,
         b.status === "inactive" ? "inactive" : "active"
       ).run();
-      const created = d1.prepare("SELECT * FROM before_after WHERE id = ?").bind(info.meta.last_row_id).first();
+      const created = await d1.prepare("SELECT * FROM before_after WHERE id = ?").bind(info.meta.last_row_id).first();
       res.status(201).json({ showcase: created });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -1047,10 +1047,10 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
   app.delete("/api/admin/before-after/:id", requireAdmin, async (req, res) => {
     try {
       const id = Number(req.params.id);
-      const existing = d1.prepare("SELECT before_image_key, after_image_key FROM before_after WHERE id = ?").bind(id).first();
+      const existing = await d1.prepare("SELECT before_image_key, after_image_key FROM before_after WHERE id = ?").bind(id).first();
       if (existing?.before_image_key) await safeDeleteR2File(r2, existing.before_image_key);
       if (existing?.after_image_key) await safeDeleteR2File(r2, existing.after_image_key);
-      d1.prepare("DELETE FROM before_after WHERE id = ?").bind(id).run();
+      await d1.prepare("DELETE FROM before_after WHERE id = ?").bind(id).run();
       res.json({ ok: true, id });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -1059,25 +1059,25 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
 
   /* ------------------------------------------------------------- 9. REELS (with R2 Video & Thumbnail) */
 
-  app.get("/api/reels", (_req, res) => {
+  app.get("/api/reels", async (_req, res) => {
     try {
-      const rows = d1.prepare("SELECT * FROM reels WHERE status = 'active' AND homepage_visibility = 1 ORDER BY display_order ASC, id DESC").all().results;
+      const rows = (await d1.prepare("SELECT * FROM reels WHERE status = 'active' AND homepage_visibility = 1 ORDER BY display_order ASC, id DESC").all()).results;
       res.json({ reels: rows });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
   });
 
-  app.get("/api/admin/reels", requireAdmin, (_req, res) => {
+  app.get("/api/admin/reels", requireAdmin, async (_req, res) => {
     try {
-      const rows = d1.prepare("SELECT * FROM reels ORDER BY display_order ASC, id DESC").all().results;
+      const rows = (await d1.prepare("SELECT * FROM reels ORDER BY display_order ASC, id DESC").all()).results;
       res.json({ reels: rows });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
   });
 
-  app.post("/api/admin/reels", requireAdmin, (req, res) => {
+  app.post("/api/admin/reels", requireAdmin, async (req, res) => {
     try {
       const b = req.body || {};
       const videoKey = b.video_key || null;
@@ -1086,7 +1086,7 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
       const thumbUrl = b.thumbnail_url || b.thumbnail || (thumbKey ? getR2PublicUrl(thumbKey) : "");
 
       if (!b.title || !videoUrl) return res.status(400).json({ error: "Title and video URL are required." });
-      const info = d1.prepare(`
+      const info = await d1.prepare(`
         INSERT INTO reels (title, description, video_key, video_url, thumbnail_key, thumbnail_url, homepage_visibility, status, display_order, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
       `).bind(
@@ -1100,7 +1100,7 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
         b.status === "inactive" ? "inactive" : "active",
         Number(b.display_order || 0)
       ).run();
-      const created = d1.prepare("SELECT * FROM reels WHERE id = ?").bind(info.meta.last_row_id).first();
+      const created = await d1.prepare("SELECT * FROM reels WHERE id = ?").bind(info.meta.last_row_id).first();
       res.status(201).json({ reel: created });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -1110,7 +1110,7 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
   app.patch("/api/admin/reels/:id", requireAdmin, async (req, res) => {
     try {
       const id = Number(req.params.id);
-      const existing = d1.prepare("SELECT * FROM reels WHERE id = ?").bind(id).first();
+      const existing = await d1.prepare("SELECT * FROM reels WHERE id = ?").bind(id).first();
       if (!existing) return res.status(404).json({ error: "Reel not found." });
       const b = req.body || {};
 
@@ -1139,7 +1139,7 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
         thumbUrl = b.thumbnail_url || b.thumbnail;
       }
 
-      d1.prepare(`
+      await d1.prepare(`
         UPDATE reels SET
           title = ?, description = ?, video_key = ?, video_url = ?,
           thumbnail_key = ?, thumbnail_url = ?, homepage_visibility = ?,
@@ -1157,7 +1157,7 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
         b.display_order !== undefined ? Number(b.display_order) : existing.display_order,
         id
       ).run();
-      const updated = d1.prepare("SELECT * FROM reels WHERE id = ?").bind(id).first();
+      const updated = await d1.prepare("SELECT * FROM reels WHERE id = ?").bind(id).first();
       res.json({ reel: updated });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -1167,10 +1167,10 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
   app.delete("/api/admin/reels/:id", requireAdmin, async (req, res) => {
     try {
       const id = Number(req.params.id);
-      const existing = d1.prepare("SELECT video_key, thumbnail_key FROM reels WHERE id = ?").bind(id).first();
+      const existing = await d1.prepare("SELECT video_key, thumbnail_key FROM reels WHERE id = ?").bind(id).first();
       if (existing?.video_key) await safeDeleteR2File(r2, existing.video_key);
       if (existing?.thumbnail_key) await safeDeleteR2File(r2, existing.thumbnail_key);
-      d1.prepare("DELETE FROM reels WHERE id = ?").bind(id).run();
+      await d1.prepare("DELETE FROM reels WHERE id = ?").bind(id).run();
       res.json({ ok: true, id });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -1179,32 +1179,32 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
 
   /* ------------------------------------------------------------- 10. OFFERS (with R2 Promo Image) */
 
-  app.get("/api/offers", (_req, res) => {
+  app.get("/api/offers", async (_req, res) => {
     try {
-      const rows = d1.prepare("SELECT * FROM offers WHERE status = 'active' AND homepage_visibility = 1 ORDER BY id DESC").all().results;
+      const rows = (await d1.prepare("SELECT * FROM offers WHERE status = 'active' AND homepage_visibility = 1 ORDER BY id DESC").all()).results;
       res.json({ offers: rows });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
   });
 
-  app.get("/api/admin/offers", requireAdmin, (_req, res) => {
+  app.get("/api/admin/offers", requireAdmin, async (_req, res) => {
     try {
-      const rows = d1.prepare("SELECT * FROM offers ORDER BY id DESC").all().results;
+      const rows = (await d1.prepare("SELECT * FROM offers ORDER BY id DESC").all()).results;
       res.json({ offers: rows });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
   });
 
-  app.post("/api/admin/offers", requireAdmin, (req, res) => {
+  app.post("/api/admin/offers", requireAdmin, async (req, res) => {
     try {
       const b = req.body || {};
       if (!b.title) return res.status(400).json({ error: "Offer title is required." });
       const imageKey = b.image_key || null;
       const imageUrl = b.image_url || (imageKey ? getR2PublicUrl(imageKey) : "");
 
-      const info = d1.prepare(`
+      const info = await d1.prepare(`
         INSERT INTO offers (title, description, image_key, image_url, start_date, end_date, homepage_visibility, status, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
       `).bind(
@@ -1217,7 +1217,7 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
         b.homepage_visibility !== undefined ? (b.homepage_visibility ? 1 : 0) : 1,
         b.status === "inactive" ? "inactive" : "active"
       ).run();
-      const created = d1.prepare("SELECT * FROM offers WHERE id = ?").bind(info.meta.last_row_id).first();
+      const created = await d1.prepare("SELECT * FROM offers WHERE id = ?").bind(info.meta.last_row_id).first();
       res.status(201).json({ offer: created });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -1227,9 +1227,9 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
   app.delete("/api/admin/offers/:id", requireAdmin, async (req, res) => {
     try {
       const id = Number(req.params.id);
-      const existing = d1.prepare("SELECT image_key FROM offers WHERE id = ?").bind(id).first();
+      const existing = await d1.prepare("SELECT image_key FROM offers WHERE id = ?").bind(id).first();
       if (existing?.image_key) await safeDeleteR2File(r2, existing.image_key);
-      d1.prepare("DELETE FROM offers WHERE id = ?").bind(id).run();
+      await d1.prepare("DELETE FROM offers WHERE id = ?").bind(id).run();
       res.json({ ok: true, id });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -1238,29 +1238,29 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
 
   /* ------------------------------------------------------------- 11. CLINIC SETTINGS (with R2 Logo) */
 
-  const getSettings = () => {
-    let s = d1.prepare("SELECT * FROM clinic_settings WHERE id = 1").first();
+  const getSettings = async () => {
+    let s = await d1.prepare("SELECT * FROM clinic_settings WHERE id = 1").first();
     if (!s) {
-      d1.prepare(`
+      await d1.prepare(`
         INSERT INTO clinic_settings (id, clinic_name, phone, email, whatsapp_number, address, opening_hours, logo_key, logo_url, updated_at)
         VALUES (1, 'Sri Saraswathi Dental Clinic', '0424 427 2494', 'info@srisaraswathidental.com', '919345743409', '866, Soli Complex, Surampatti Four Rd, Erode, Tamil Nadu 638009', 'Mon–Sat: 9:00 AM – 8:45 PM', 'clinic/logo.webp', '/api/media/clinic/logo.webp', datetime('now'))
       `).run();
-      s = d1.prepare("SELECT * FROM clinic_settings WHERE id = 1").first();
+      s = await d1.prepare("SELECT * FROM clinic_settings WHERE id = 1").first();
     }
     return s;
   };
 
-  app.get("/api/clinic-settings", (_req, res) => {
+  app.get("/api/clinic-settings", async (_req, res) => {
     try {
-      res.json({ settings: getSettings() });
+      res.json({ settings: await getSettings() });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
   });
 
-  app.get("/api/admin/clinic-settings", requireAdmin, (_req, res) => {
+  app.get("/api/admin/clinic-settings", requireAdmin, async (_req, res) => {
     try {
-      res.json({ settings: getSettings() });
+      res.json({ settings: await getSettings() });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -1269,7 +1269,7 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
   app.patch("/api/admin/clinic-settings", requireAdmin, async (req, res) => {
     try {
       const b = req.body || {};
-      const existing = getSettings();
+      const existing = await getSettings();
 
       let logoKey = existing.logo_key;
       let logoUrl = existing.logo_url;
@@ -1284,7 +1284,7 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
         logoUrl = b.logo_url;
       }
 
-      d1.prepare(`
+      await d1.prepare(`
         UPDATE clinic_settings SET
           clinic_name = ?, phone = ?, email = ?, whatsapp_number = ?,
           address = ?, opening_hours = ?, logo_key = ?, logo_url = ?, updated_at = datetime('now')
@@ -1299,21 +1299,21 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
         logoKey,
         logoUrl
       ).run();
-      res.json({ settings: getSettings() });
+      res.json({ settings: await getSettings() });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
   });
 
   /* ------------------------------------------------------------- COMPATIBILITY BRIDGE: /api/content */
-  app.get("/api/content", (req, res) => {
+  app.get("/api/content", async (req, res) => {
     try {
       const type = req.query.type;
       const all = [];
 
       // 1. Doctors
       if (!type || type === "doctor") {
-        const docs = d1.prepare("SELECT * FROM doctors WHERE status = 'active' ORDER BY display_order ASC").all().results;
+        const docs = (await d1.prepare("SELECT * FROM doctors WHERE status = 'active' ORDER BY display_order ASC").all()).results;
         all.push(...docs.map(d => {
           const img = d.profile_image_url || (d.profile_image_key ? getR2PublicUrl(d.profile_image_key) : "");
           return {
@@ -1341,7 +1341,7 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
 
       // 2. Treatments
       if (!type || type === "treatment") {
-        const trts = d1.prepare("SELECT * FROM treatments WHERE status = 'active' ORDER BY display_order ASC").all().results;
+        const trts = (await d1.prepare("SELECT * FROM treatments WHERE status = 'active' ORDER BY display_order ASC").all()).results;
         all.push(...trts.map(t => {
           const img = t.treatment_image_url || (t.treatment_image_key ? getR2PublicUrl(t.treatment_image_key) : "");
           return {
@@ -1367,7 +1367,7 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
 
       // 3. Blogs
       if (!type || type === "blog") {
-        const blogs = d1.prepare("SELECT * FROM blogs WHERE status = 'published' ORDER BY id DESC").all().results;
+        const blogs = (await d1.prepare("SELECT * FROM blogs WHERE status = 'published' ORDER BY id DESC").all()).results;
         all.push(...blogs.map(b => {
           const img = b.cover_image_url || (b.cover_image_key ? getR2PublicUrl(b.cover_image_key) : "");
           return {
@@ -1391,7 +1391,7 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
 
       // 4. Gallery & Images
       if (!type || type === "gallery" || type === "image") {
-        const items = d1.prepare("SELECT * FROM gallery WHERE status = 'active' ORDER BY display_order ASC").all().results;
+        const items = (await d1.prepare("SELECT * FROM gallery WHERE status = 'active' ORDER BY display_order ASC").all()).results;
         all.push(...items.map(g => {
           const img = g.image_url || (g.image_key ? getR2PublicUrl(g.image_key) : "");
           return {
@@ -1412,7 +1412,7 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
 
       // 5. Before & After Transformations
       if (!type || type === "before_after" || type === "before-after" || type === "transformation") {
-        const bas = d1.prepare("SELECT * FROM before_after WHERE status = 'active' ORDER BY id DESC").all().results;
+        const bas = (await d1.prepare("SELECT * FROM before_after WHERE status = 'active' ORDER BY id DESC").all()).results;
         all.push(...bas.map(ba => {
           const bImg = ba.before_image_url || (ba.before_image_key ? getR2PublicUrl(ba.before_image_key) : "");
           const aImg = ba.after_image_url || (ba.after_image_key ? getR2PublicUrl(ba.after_image_key) : "");
@@ -1437,7 +1437,7 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
 
       // 6. Reels & Videos
       if (!type || type === "reel" || type === "video") {
-        const reels = d1.prepare("SELECT * FROM reels WHERE status = 'active' AND homepage_visibility = 1 ORDER BY display_order ASC").all().results;
+        const reels = (await d1.prepare("SELECT * FROM reels WHERE status = 'active' AND homepage_visibility = 1 ORDER BY display_order ASC").all()).results;
         all.push(...reels.map(r => {
           const vid = r.video_url || (r.video_key ? getR2PublicUrl(r.video_key) : "");
           const thumb = r.thumbnail_url || (r.thumbnail_key ? getR2PublicUrl(r.thumbnail_key) : "");
@@ -1459,7 +1459,7 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
 
       // 7. Offers
       if (!type || type === "offer") {
-        const offers = d1.prepare("SELECT * FROM offers WHERE status = 'active' AND homepage_visibility = 1 ORDER BY id DESC").all().results;
+        const offers = (await d1.prepare("SELECT * FROM offers WHERE status = 'active' AND homepage_visibility = 1 ORDER BY id DESC").all()).results;
         all.push(...offers.map(o => {
           const img = o.image_url || (o.image_key ? getR2PublicUrl(o.image_key) : "");
           return {
