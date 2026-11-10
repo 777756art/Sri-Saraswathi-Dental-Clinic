@@ -14,9 +14,7 @@ import {
   ListObjectsV2Command,
 } from "@aws-sdk/client-s3";
 
-const __filename = typeof import.meta !== "undefined" && import.meta.url ? fileURLToPath(import.meta.url) : "";
-const __dirname = __filename ? path.dirname(__filename) : process.cwd();
-const ROOT_DIR = path.resolve(__dirname, "..");
+const ROOT_DIR = process.cwd();
 const isServerless = Boolean(process.env.NETLIFY || process.env.AWS_LAMBDA_FUNCTION_NAME);
 const WRANGLER_R2_DIR = isServerless ? "/tmp/r2/sri-saraswathi-dental-media" : path.join(ROOT_DIR, ".wrangler", "state", "v3", "r2", "sri-saraswathi-dental-media");
 
@@ -32,11 +30,15 @@ export const R2_FOLDERS = [
   "clinic",
 ];
 
-// Ensure local wrangler R2 folder hierarchy exists
-for (const folder of R2_FOLDERS) {
-  const dir = path.join(WRANGLER_R2_DIR, folder);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
+// Ensure local wrangler R2 folder hierarchy exists when not in serverless
+if (!isServerless && fs.existsSync(ROOT_DIR)) {
+  for (const folder of R2_FOLDERS) {
+    const dir = path.join(WRANGLER_R2_DIR, folder);
+    if (!fs.existsSync(dir)) {
+      try {
+        fs.mkdirSync(dir, { recursive: true });
+      } catch {}
+    }
   }
 }
 

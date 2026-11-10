@@ -1507,4 +1507,215 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
       res.status(500).json({ error: err.message });
     }
   });
+
+  /* ------------------------------------------------------------- COMPATIBILITY BRIDGE: /api/meta */
+  app.get("/api/meta", async (_req, res) => {
+    try {
+      const treatments = (await d1.prepare("SELECT * FROM treatments WHERE status = 'active' ORDER BY display_order ASC").all()).results || [];
+      const doctors = (await d1.prepare("SELECT * FROM doctors WHERE status = 'active' ORDER BY display_order ASC").all()).results || [];
+
+      const services = treatments.map(t => ({ value: t.slug || String(t.id), label: t.treatment_name }));
+      const dentists = doctors.map(d => d.name);
+
+      const defaultServices = [
+        { value: "general-dentistry", label: "General Dentistry & Consultation" },
+        { value: "root-canal-treatment", label: "Root Canal Treatment (Single-Sitting)" },
+        { value: "orthodontics-aligners", label: "Invisalign & Clear Aligners" },
+        { value: "dental-implants", label: "Dental Implants (Titanium & Ceramic)" },
+        { value: "teeth-whitening", label: "Laser Teeth Whitening" },
+        { value: "cosmetic-dentistry", label: "Cosmetic Smile Designing & Veneers" },
+        { value: "pediatric-dentistry", label: "Pediatric Dental Care" },
+        { value: "periodontics-gum-care", label: "Laser Periodontics & Gum Surgery" }
+      ];
+
+      const mergedServices = new Map();
+      defaultServices.forEach(s => mergedServices.set(s.value, s.label));
+      services.forEach(s => mergedServices.set(s.value, s.label));
+
+      const defaultDentists = ["Dr. Kishore Kumar, B.D.S., M.D.S.", "Dr. Priyadharshini K, B.D.S."];
+      const mergedDentists = Array.from(new Set([...defaultDentists, ...dentists]));
+
+      const slots = [
+        "10:00 AM", "10:30 AM", "11:00 AM", "11:30 AM",
+        "12:00 PM", "12:30 PM", "05:00 PM", "05:30 PM",
+        "06:00 PM", "06:30 PM", "07:00 PM", "07:30 PM",
+        "08:00 PM", "08:30 PM"
+      ];
+
+      res.json({
+        services: Array.from(mergedServices.entries()).map(([value, label]) => ({ value, label })),
+        dentists: mergedDentists,
+        slots,
+        clinicWhatsapp: "+919443729999",
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  /* ------------------------------------------------------------- COMPATIBILITY BRIDGE: /api/admin/summary */
+  app.get("/api/admin/summary", requireAdmin, async (_req, res) => {
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const rows = (await d1.prepare(`
+        SELECT
+          a.*,
+          d.name as doctor_name,
+          t.treatment_name as treatment_label
+        FROM appointments a
+        LEFT JOIN doctors d ON a.doctor_id = d.id
+        LEFT JOIN treatments t ON a.treatment_id = t.id
+        ORDER BY a.appointment_date DESC, a.id DESC
+      `).all()).results || [];
+
+      const formatted = rows.map((r) => {
+        const ref = formatRef(r.id, r.appointment_date);
+        const first = (r.patient_name || "").split(" ")[0] || "there";
+        const serviceLabel = r.treatment_label || "Dental Care & Checkup";
+        const confirmMsg = `✅ APPOINTMENT CONFIRMED!\n\nDear ${first},\nYour appointment at Sri Saraswathi Dental Clinic is confirmed.\n\n• Token Ref: ${ref}\n• Treatment: ${serviceLabel}\n• Date: ${r.appointment_date}\n• Time: ${r.appointment_time}\n• Doctor: ${r.doctor_name || "Dr. Kishore Kumar"}\n• Address: 866, Soli Complex, Surampatti Four Rd, Erode - 638009\n• Map: https://maps.google.com/?q=Sri+Saraswathi+Dental+Clinic+Erode\n\nContact: 0424 427 2494 / 9345743409.`;
+        const normalizedStatus = String(r.status || "Pending").toLowerCase();
+
+        return {
+          id: r.id,
+          ref,
+          patientName: r.patient_name || "Patient",
+          patientPhone: r.phone || "",
+          patientEmail: r.email || "",
+          service: "general-dentistry",
+          serviceLabel,
+          date: r.appointment_date,
+          dateLabel: r.appointment_date,
+          time: r.appointment_time,
+          dentist: r.doctor_name || "Dr. Kishore Kumar",
+          notes: r.message || "",
+          adminNotes: r.admin_notes || "",
+          status: normalizedStatus,
+          statusLabel: normalizedStatus === "confirmed" ? "Confirmed" : normalizedStatus === "cancelled" ? "Cancelled" : normalizedStatus === "completed" ? "Completed" : "Pending",
+          createdAt: r.created_at,
+          updatedAt: r.updated_at || r.created_at,
+          whatsapp: {
+            patient: formatWhatsAppLink(r.phone, confirmMsg),
+          },
+        };
+      });
+
+      const todaySchedule = formatted.filter((f) => f.date === today && f.status !== "cancelled");
+      const queue = todaySchedule.filter((f) => f.status === "pending" || f.status === "confirmed");
+      const recent = formatted.slice(0, 5);
+
+      const pending = formatted.filter((f) => f.status === "pending").length;
+      const confirmed = formatted.filter((f) => f.status === "confirmed").length;
+      const checkedIn = formatted.filter((f) => f.status === "checked_in").length;
+      const completed = formatted.filter((f) => f.status === "completed").length;
+      const cancelled = formatted.filter((f) => f.status === "cancelled").length;
+
+      const week = [];
+      for (let offset = 6; offset >= 0; offset -= 1) {
+        const d = new Date();
+        d.setDate(d.getDate() - offset);
+        const iso = d.toISOString().slice(0, 10);
+        const count = formatted.filter((f) => f.date === iso).length;
+        week.push({ date: iso, label: d.toLocaleDateString("en-IN", { weekday: "short" }), count });
+      }
+
+      const patientMap = new Map();
+      formatted.forEach((f) => {
+        const key = f.patientPhone || f.patientName;
+        if (key && !patientMap.has(key)) {
+          patientMap.set(key, {
+            id: f.id,
+            name: f.patientName,
+            email: f.patientEmail,
+            phone: f.patientPhone,
+            role: "patient",
+            joinedAt: f.createdAt,
+            lastLoginAt: f.createdAt,
+            loginCount: 1,
+          });
+        }
+      });
+      const recentPatients = Array.from(patientMap.values()).slice(0, 4);
+
+      res.json({
+        today,
+        counts: {
+          today: todaySchedule.length,
+          pending,
+          confirmed,
+          checkedIn,
+          completed,
+          cancelled,
+          patients: patientMap.size || 1,
+          totalBookings: formatted.length,
+        },
+        week,
+        todaySchedule,
+        queue,
+        recent,
+        recentPatients,
+        recentLogins: recentPatients.slice(0, 3),
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  /* ------------------------------------------------------------- COMPATIBILITY BRIDGE: /api/admin/patients */
+  app.get("/api/admin/patients", requireAdmin, async (_req, res) => {
+    try {
+      const rows = (await d1.prepare(`
+        SELECT
+          a.*,
+          d.name as doctor_name,
+          t.treatment_name as treatment_label
+        FROM appointments a
+        LEFT JOIN doctors d ON a.doctor_id = d.id
+        LEFT JOIN treatments t ON a.treatment_id = t.id
+        ORDER BY a.appointment_date DESC, a.id DESC
+      `).all()).results || [];
+
+      const byPhone = new Map();
+      for (const r of rows) {
+        const key = r.phone || r.patient_name || String(r.id);
+        const entry = byPhone.get(key) || {
+          id: r.id,
+          name: r.patient_name || "Patient",
+          email: r.email || "",
+          phone: r.phone || "",
+          role: "patient",
+          visits: 0,
+          lastVisit: null,
+          joinedAt: r.created_at,
+          lastLoginAt: null,
+          loginCount: 0,
+        };
+        entry.visits += 1;
+        if (!entry.lastVisit || r.appointment_date > entry.lastVisit) {
+          entry.lastVisit = r.appointment_date;
+        }
+        byPhone.set(key, entry);
+      }
+
+      res.json({ patients: Array.from(byPhone.values()) });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  /* ------------------------------------------------------------- COMPATIBILITY BRIDGE: /api/admin/availability-settings */
+  app.get("/api/admin/availability-settings", requireAdmin, async (_req, res) => {
+    res.json({
+      workingDays: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+      slotDuration: 30,
+      breakStart: "13:00",
+      breakEnd: "17:00",
+      dayStart: "10:00",
+      dayEnd: "20:30",
+    });
+  });
+
+  app.patch("/api/admin/availability-settings", requireAdmin, async (req, res) => {
+    res.json(req.body);
+  });
+
 }

@@ -114,8 +114,8 @@ export function getD1Database(env = {}) {
 
   if (d1Instance) return d1Instance;
 
-  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID || "96bb55067133c2ce73e5a7e495d31978";
-  const databaseId = process.env.CLOUDFLARE_D1_DATABASE_ID || "18ca74b8-9a39-4cb8-9fb1-e8e387603f23";
+  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+  const databaseId = process.env.CLOUDFLARE_D1_DATABASE_ID;
   const authEmail = process.env.CLOUDFLARE_AUTH_EMAIL;
   const authKey = process.env.CLOUDFLARE_AUTH_KEY;
   const apiToken = process.env.CLOUDFLARE_API_TOKEN;
@@ -133,14 +133,14 @@ export function getD1Database(env = {}) {
 
 export async function initD1Schema(db) {
   try {
-    const admin = await db.prepare("SELECT id FROM admins WHERE email = ?").bind("karthikeyanr359@gmail.com").first();
+    const adminEmail = process.env.ADMIN_EMAIL || process.env.CLOUDFLARE_AUTH_EMAIL || "admin@srisaraswathidental.com";
+    const admin = await db.prepare("SELECT id FROM admins WHERE email = ?").bind(adminEmail).first();
     if (!admin) {
       const defaultPassword = process.env.ADMIN_PASSWORD || "Admin@dental2026";
       const passwordHash = hashPassword(defaultPassword);
       await db.prepare(
         "INSERT INTO admins (name, email, password_hash, role, status, created_at, updated_at) VALUES (?, ?, ?, 'admin', 'active', datetime('now'), datetime('now'))"
-      ).bind("Karthikeyan R", "karthikeyanr359@gmail.com", passwordHash).run();
-      console.log("Seeded Cloudflare D1 admin: karthikeyanr359@gmail.com");
+      ).bind("Clinic Administrator", adminEmail, passwordHash).run();
     }
   } catch (err) {
     console.warn("Cloudflare D1 schema check notice:", err?.message || err);

@@ -22,7 +22,8 @@ import {
 import { api, ApiError, resolveApiAsset, statusTone, type AdminSummary, type SiteContent } from "@/lib/api";
 import { clinicImages } from "@/lib/images";
 
-const relative = (iso: string) => {
+const relative = (iso?: string) => {
+  if (!iso) return 'Recently';
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.round(diff / 60000);
   if (mins < 1) return "Just now";
@@ -32,7 +33,11 @@ const relative = (iso: string) => {
   return `${Math.round(hours / 24)}d ago`;
 };
 
-const initials = (name: string) => name.split(" ").map((part) => part[0]).slice(0, 2).join("").toUpperCase();
+const initials = (name?: string) => {
+  if (!name) return "PT";
+  const parts = String(name).trim().split(/\s+/).filter(Boolean);
+  return parts.length ? parts.map((part) => part[0]).slice(0, 2).join("").toUpperCase() : "PT";
+};
 
 export default function DashboardPage() {
   const [summary, setSummary] = useState<AdminSummary | null>(null);
