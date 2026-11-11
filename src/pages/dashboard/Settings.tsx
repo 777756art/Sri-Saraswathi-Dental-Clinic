@@ -99,7 +99,7 @@ export default function SettingsPage() {
     <DashboardLayout>
       <div className="mb-6">
         <span className="eyebrow"><span className="eyebrow-dot" /> Clinic workspace</span>
-        <h1 className="mt-3 text-display-3 text-foreground">Settings</h1>
+        <h1 className="mt-3 text-display-3 text-[#1F6878]">Settings</h1>
         <p className="mt-1.5 text-[13px] text-muted-foreground">Manage clinic settings, permissions, and preferences.</p>
       </div>
 
@@ -116,7 +116,7 @@ export default function SettingsPage() {
           <Card>
             {activeTab === "general" && (
               <div className="space-y-4">
-                <h2 className="text-lg font-semibold text-foreground">Clinic Information</h2>
+                <h2 className="text-lg font-semibold text-[#1F6878]">Clinic Information</h2>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Input label="Clinic Name" required value={clinic.name} onChange={(e) => setClinic({ ...clinic, name: e.target.value })} />
                   <Input label="Phone" required value={clinic.phone} onChange={(e) => setClinic({ ...clinic, phone: e.target.value })} />
@@ -147,7 +147,7 @@ export default function SettingsPage() {
             )}
             {activeTab === "notifications" && (
               <div className="space-y-4">
-                <h2 className="text-lg font-semibold text-foreground">Notification Preferences</h2>
+                <h2 className="text-lg font-semibold text-[#1F6878]">Notification Preferences</h2>
                 {notificationPrefs.map((item) => (
                   <div key={item} className="flex items-center justify-between rounded-lg border border-secondary-100 p-3">
                     <span className="text-sm text-foreground/75">{item}</span>
@@ -158,7 +158,7 @@ export default function SettingsPage() {
                         checked={prefs[item]}
                         onChange={() => setPrefs((prev) => ({ ...prev, [item]: !prev[item] }))}
                       />
-                      <div className="h-6 w-11 rounded-full bg-secondary-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-card after:transition-all peer-checked:bg-primary-600 peer-checked:after:translate-x-full" />
+                      <div className="h-6 w-11 rounded-full bg-secondary-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-card after:transition-all peer-checked:bg-[#1F6878] peer-checked:after:translate-x-full" />
                     </label>
                   </div>
                 ))}
@@ -167,7 +167,7 @@ export default function SettingsPage() {
             )}
             {activeTab === "security" && (
               <div className="space-y-4">
-                <h2 className="text-lg font-semibold text-foreground">Security Settings</h2>
+                <h2 className="text-lg font-semibold text-[#1F6878]">Security Settings</h2>
                 <div className="space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-secondary-100 p-3">
                     <div>
@@ -235,7 +235,7 @@ export default function SettingsPage() {
             )}
             {activeTab === "integrations" && (
               <div className="space-y-4">
-                <h2 className="text-lg font-semibold text-foreground">Integrations</h2>
+                <h2 className="text-lg font-semibold text-[#1F6878]">Integrations</h2>
                 {integrations.map((int) => (
                   <div key={int.name} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-secondary-100 p-3">
                     <div>
@@ -244,7 +244,7 @@ export default function SettingsPage() {
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="flex items-center gap-2">
-                        <span className={`h-2 w-2 rounded-full ${int.connected ? "bg-green-500" : "bg-secondary-300"}`} />
+                        <span className={`h-2 w-2 rounded-full ${int.connected ? "bg-[#1F6878]" : "bg-secondary-300"}`} />
                         <span className="text-sm text-muted-foreground">{int.connected ? "Connected" : "Not Connected"}</span>
                       </div>
                       <Button variant="outline" size="sm" onClick={() => toggleIntegration(int.name)}>

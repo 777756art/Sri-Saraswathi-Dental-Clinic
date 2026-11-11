@@ -96,7 +96,7 @@ export default function AIAssistantPage() {
     <DashboardLayout>
       <div className="mb-6">
         <span className="eyebrow"><span className="eyebrow-dot" /> Clinic workspace</span>
-        <h1 className="mt-3 text-display-3 text-foreground">AI Assistant</h1>
+        <h1 className="mt-3 text-display-3 text-[#1F6878]">AI Assistant</h1>
         <p className="mt-1.5 text-[13px] text-muted-foreground">
           AI-powered tools for dental diagnosis, documentation, and patient communication.
         </p>
@@ -124,7 +124,7 @@ export default function AIAssistantPage() {
               >
                 <feature.icon className="h-5 w-5" />
               </div>
-              <h3 className="mb-1 text-sm font-semibold text-foreground">{feature.label}</h3>
+              <h3 className="mb-1 text-sm font-semibold text-[#1F6878]">{feature.label}</h3>
               <p className="text-xs leading-relaxed text-muted-foreground">{feature.desc}</p>
             </button>
           );
@@ -139,7 +139,7 @@ export default function AIAssistantPage() {
               <Bot className="h-5 w-5 text-primary-700" />
             </div>
             <div>
-              <h2 className="font-semibold text-foreground">AI Dental Assistant</h2>
+              <h2 className="font-semibold text-[#1F6878]">AI Dental Assistant</h2>
               <p className="text-xs text-muted-foreground">Powered by advanced LLM</p>
             </div>
             <Badge variant="success" className="ml-auto">Online</Badge>
@@ -203,7 +203,7 @@ export default function AIAssistantPage() {
         {/* Triage Tool */}
         {activeFeature === "triage" && (
           <Card>
-            <h2 className="mb-1 flex items-center gap-2 text-lg font-semibold text-foreground">
+            <h2 className="mb-1 flex items-center gap-2 text-lg font-semibold text-[#1F6878]">
               <AlertTriangle className="h-5 w-5 text-primary-600" /> Appointment Triage
             </h2>
             <p className="mb-4 text-sm text-muted-foreground">Capture symptoms and flag urgent cases for same-day care.</p>
@@ -272,7 +272,7 @@ export default function AIAssistantPage() {
         {/* Documentation */}
         {activeFeature === "documentation" && (
           <Card>
-            <h2 className="mb-1 flex items-center gap-2 text-lg font-semibold text-foreground">
+            <h2 className="mb-1 flex items-center gap-2 text-lg font-semibold text-[#1F6878]">
               <FileText className="h-5 w-5 text-primary-600" /> Clinical Documentation
             </h2>
             <p className="mb-4 text-sm text-muted-foreground">Turn rough notes into structured, chart-ready records.</p>
@@ -320,7 +320,7 @@ export default function AIAssistantPage() {
               <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary-50 text-primary-700">
                 <active.icon className="h-8 w-8" />
               </div>
-              <h3 className="mb-2 text-lg font-semibold text-foreground">{active.label}</h3>
+              <h3 className="mb-2 text-lg font-semibold text-[#1F6878]">{active.label}</h3>
               <p className="mb-4 max-w-sm text-sm text-muted-foreground">{active.desc}</p>
               <Badge variant="info">Coming soon</Badge>
             </div>

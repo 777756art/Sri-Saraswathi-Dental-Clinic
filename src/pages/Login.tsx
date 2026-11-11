@@ -45,10 +45,10 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-gradient-to-b from-secondary-50/80 via-background to-background pb-20 pt-32 md:pt-36">
+    <main className="relative min-h-screen overflow-hidden bg-[#F5F2EB] pb-20 pt-32 md:pt-36">
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -left-32 top-0 h-[420px] w-[420px] rounded-full bg-primary-200/35 blur-[120px]" />
-        <div className="absolute -right-24 top-24 h-[360px] w-[360px] rounded-full bg-accent-200/25 blur-[110px]" />
+        <div className="absolute -left-32 top-0 h-[420px] w-[420px] rounded-full bg-[#E4F0F2]/80 blur-[120px]" />
+        <div className="absolute -right-24 top-24 h-[360px] w-[360px] rounded-full bg-[#E4F0F2]/60 blur-[110px]" />
         <div className="absolute inset-0 bg-grid opacity-[0.35] mask-fade-b" />
       </div>
 
@@ -72,7 +72,7 @@ export default function LoginPage() {
           </div>
 
           <div className="rounded-3xl border border-border/70 bg-card p-7 shadow-lift md:p-9">
-            <h1 className="font-display text-3xl font-medium tracking-tight text-foreground">
+            <h1 className="font-display text-3xl font-medium tracking-tight text-[#1F6878]">
               Welcome back.
             </h1>
             <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">

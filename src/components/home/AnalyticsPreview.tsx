@@ -70,8 +70,8 @@ export function AnalyticsPreview() {
         <ScrollReveal>
           <div className="mx-auto mb-12 max-w-2xl text-center md:mb-16">
             <p className="eyebrow justify-center"><span className="eyebrow-dot" />Live analytics</p>
-            <h2 className="mt-4 text-display-2 text-balance text-foreground">
-              A practice that <span className="italic text-primary-700">knows its numbers</span>.
+            <h2 className="mt-4 text-display-2 text-balance text-[#1F6878]">
+              A practice that <span className="italic text-[#1F6878]">knows its numbers</span>.
             </h2>
             <p className="mt-4 text-pretty text-[16px] leading-relaxed text-muted-foreground">
               Revenue, retention and recall — surfaced in real time, so decisions happen in the
@@ -84,7 +84,7 @@ export function AnalyticsPreview() {
           <div className="rounded-3xl border border-border/80 bg-card p-6 shadow-soft lg:col-span-2">
             <div className="mb-6 flex items-end justify-between">
               <div>
-                <h3 className="font-display text-xl leading-tight text-foreground">Revenue trend</h3>
+                <h3 className="font-display text-xl leading-tight text-[#1F6878]">Revenue trend</h3>
                 <p className="mt-1 text-xs text-muted-foreground">Last 12 months · all locations</p>
               </div>
               <span className="rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-semibold text-emerald-700">+23.5%</span>

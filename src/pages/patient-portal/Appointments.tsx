@@ -216,7 +216,7 @@ export default function PatientAppointmentsPage() {
                     <div className="flex items-center gap-4">
                       <DateTile date={apt.dateLabel} />
                       <div>
-                        <h3 className="text-[15px] font-semibold text-foreground">{apt.serviceLabel}</h3>
+                        <h3 className="text-[15px] font-semibold text-[#1F6878]">{apt.serviceLabel}</h3>
                         <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-muted-foreground">
                           <span className="flex items-center gap-1.5">
                             <Calendar className="h-3.5 w-3.5" />
@@ -256,7 +256,7 @@ export default function PatientAppointmentsPage() {
                           target="_blank"
                           rel="noopener noreferrer"
                           aria-label={`Message the clinic about ${apt.ref}`}
-                          className="rounded-full border border-emerald-200 p-2 text-emerald-600 transition-colors hover:bg-emerald-50"
+                          className="rounded-full border border-[#19B987] bg-[#19B987] p-2 text-white transition-colors hover:bg-[#139A70]"
                         >
                           <MessageCircle className="h-3.5 w-3.5" />
                         </a>

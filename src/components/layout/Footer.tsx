@@ -49,10 +49,10 @@ const socials = [
 export function Footer() {
   const { settings } = useClinicSettings();
   return (
-    <footer className="relative overflow-hidden bg-[#073e42] text-white/65">
+    <footer className="relative overflow-hidden bg-[#1F6878] text-white/75">
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -left-32 top-0 h-[420px] w-[420px] rounded-full bg-[#159a8a]/15 blur-3xl" />
-        <div className="absolute -right-24 bottom-10 h-[360px] w-[360px] rounded-full bg-[#ed2f79]/10 blur-3xl" />
+        <div className="absolute -left-32 top-0 h-[420px] w-[420px] rounded-full bg-[#1F6878]/20 blur-3xl" />
+        <div className="absolute -right-24 bottom-10 h-[360px] w-[360px] rounded-full bg-[#E95A35]/10 blur-3xl" />
       </div>
 
       <div className="container-x relative py-16 md:py-20">
@@ -84,7 +84,7 @@ export function Footer() {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={s.name}
-                  className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 text-white/45 transition-all hover:-translate-y-0.5 hover:border-white/25 hover:text-white"
+                  className="flex h-9 w-9 items-center justify-center rounded-full border border-[#1F6878]/35 text-white/60 transition-all hover:-translate-y-0.5 hover:border-[#E4F0F2] hover:bg-[#1F6878] hover:text-white"
                 >
                   <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className="h-3.5 w-3.5">
                     <path d={s.path} />
@@ -95,11 +95,11 @@ export function Footer() {
           </div>
 
           <div>
-            <h3 className="mb-4 text-eyebrow uppercase text-white/80">Services</h3>
+            <h3 className="mb-4 text-eyebrow uppercase text-[#E4F0F2]">Services</h3>
             <ul className="space-y-2.5">
               {services.map((s) => (
                 <li key={s.label}>
-                  <Link to={s.href} className="text-sm transition-colors hover:text-white">
+                  <Link to={s.href} className="text-sm transition-colors hover:text-[#E4F0F2]">
                     {s.label}
                   </Link>
                 </li>
@@ -108,11 +108,11 @@ export function Footer() {
           </div>
 
           <div>
-            <h3 className="mb-4 text-eyebrow uppercase text-white/80">Explore</h3>
+            <h3 className="mb-4 text-eyebrow uppercase text-[#E4F0F2]">Explore</h3>
             <ul className="space-y-2.5">
               {quickLinks.map((l) => (
                 <li key={l.label}>
-                  <Link to={l.href} className="text-sm transition-colors hover:text-white">
+                  <Link to={l.href} className="text-sm transition-colors hover:text-[#E4F0F2]">
                     {l.label}
                   </Link>
                 </li>
@@ -121,28 +121,28 @@ export function Footer() {
           </div>
 
           <div>
-            <h3 className="mb-4 text-eyebrow uppercase text-white/80">Visit the clinic</h3>
+            <h3 className="mb-4 text-eyebrow uppercase text-[#E4F0F2]">Visit the clinic</h3>
             <ul className="space-y-4">
               <li className="flex items-start gap-3">
-                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary-300" />
+                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#E4F0F2]" />
                 <span className="text-sm leading-relaxed">
                   {settings.address || "866, Soli Complex, Surampatti Four Rd, Erode, Tamil Nadu 638009"}
                 </span>
               </li>
               <li className="flex items-center gap-3">
-                <Phone className="h-4 w-4 shrink-0 text-primary-300" />
+                <Phone className="h-4 w-4 shrink-0 text-[#E4F0F2]" />
                 <a href={`tel:${(settings.phone || "04244272494").replace(/\s+/g, "")}`} className="text-sm transition-colors hover:text-white">
                   {settings.phone || "0424 427 2494"}
                 </a>
               </li>
               <li className="flex items-center gap-3">
-                <Mail className="h-4 w-4 shrink-0 text-primary-300" />
+                <Mail className="h-4 w-4 shrink-0 text-[#E4F0F2]" />
                 <a href={`mailto:${settings.email || "info@srisaraswathidental.com"}`} className="text-sm transition-colors hover:text-white">
                   {settings.email || "info@srisaraswathidental.com"}
                 </a>
               </li>
               <li className="flex items-start gap-3">
-                <Clock className="mt-0.5 h-4 w-4 shrink-0 text-primary-300" />
+                <Clock className="mt-0.5 h-4 w-4 shrink-0 text-[#E4F0F2]" />
                 <span className="text-sm leading-relaxed">
                   {settings.opening_hours || "Mon–Sat: 9:00 AM – 8:45 PM | Sunday: Emergency only"}
                 </span>
@@ -150,23 +150,23 @@ export function Footer() {
             </ul>
             <Link
               to="/booking"
-              className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#ed2f79] px-5 py-3 text-[12px] font-bold uppercase tracking-[0.08em] text-white shadow-[0_10px_24px_-14px_rgba(237,47,121,0.95)] transition-transform hover:-translate-y-0.5 hover:bg-[#d91d68]"
+              className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#E95A35] px-5 py-3 text-[12px] font-bold uppercase tracking-[0.08em] text-white shadow-[0_10px_24px_-12px_rgba(233,90,53,0.85)] transition-all hover:-translate-y-0.5 hover:bg-[#D14824]"
             >
               Book a visit
               <ArrowUpRight className="h-3.5 w-3.5" />
             </Link>
-            <div className="mt-5 flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] p-3">
-              <Sparkles className="h-4 w-4 shrink-0 text-primary-300" />
-              <p className="text-xs text-white/60">Questions before booking? Call the clinic team.</p>
+            <div className="mt-5 flex items-center gap-2 rounded-xl border border-[#1F6878]/35 bg-[#1F6878]/25 p-3">
+              <Sparkles className="h-4 w-4 shrink-0 text-[#E4F0F2]" />
+              <p className="text-xs text-[#E4F0F2]/85">Questions before booking? Call the clinic team.</p>
             </div>
           </div>
         </div>
 
-        <div className="mt-14 flex flex-col items-center justify-between gap-4 border-t border-white/10 pt-6 md:flex-row">
-          <p className="text-xs text-white/40">
+        <div className="mt-14 flex flex-col items-center justify-between gap-4 border-t border-white/15 pt-6 md:flex-row">
+          <p className="text-xs text-white/55">
             &copy; {new Date().getFullYear()} Sri Saraswathi Dental Clinic. All rights reserved.
           </p>
-          <Link to="/contact" className="text-xs text-white/40 transition-colors hover:text-white">Contact the clinic</Link>
+          <Link to="/contact" className="text-xs text-white/60 transition-colors hover:text-[#E4F0F2]">Contact the clinic</Link>
         </div>
       </div>
     </footer>

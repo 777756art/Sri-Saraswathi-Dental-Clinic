@@ -37,8 +37,8 @@ export function LocationSection() {
           <ScrollReveal direction="left">
             <div>
               <p className="eyebrow"><span className="eyebrow-dot" />Visit the clinic</p>
-              <h2 className="mt-4 text-display-2 text-balance text-foreground">
-                Right where you <span className="italic text-primary-700">need us</span>.
+              <h2 className="mt-4 text-display-2 text-balance text-[#1F6878]">
+                Right where you <span className="italic text-[#1F6878]">need us</span>.
               </h2>
               <p className="mt-4 max-w-md text-pretty text-[16px] leading-relaxed text-muted-foreground">
                 A calm, daylight-filled clinic in Surampatti, Erode — easy to reach and easy to
@@ -81,7 +81,7 @@ export function LocationSection() {
               <div className="mt-9 flex flex-wrap items-center gap-3">
                 <Link
                   to="/booking"
-                  className="group inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-[0_18px_36px_-20px_rgba(18,56,72,0.85)] transition-all hover:-translate-y-0.5 hover:bg-primary-800"
+                  className="group inline-flex items-center gap-2 rounded-full bg-[#E95A35] px-6 py-3 text-sm font-semibold text-white shadow-[0_14px_28px_-12px_rgba(233,90,53,0.6)] transition-all hover:-translate-y-0.5 hover:bg-[#D14824]"
                 >
                   <CalendarCheck className="h-4 w-4" />
                   Book your visit

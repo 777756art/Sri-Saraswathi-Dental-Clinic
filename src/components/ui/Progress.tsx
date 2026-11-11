@@ -12,10 +12,10 @@ interface ProgressProps {
 }
 
 const variantStyles = {
-  default: "bg-primary-600",
-  success: "bg-green-600",
-  warning: "bg-yellow-500",
-  danger: "bg-red-600",
+  default: "bg-[#1F6878]",
+  success: "bg-[#1F6878]",
+  warning: "bg-[#E95A35]",
+  danger: "bg-rose-600",
 };
 
 const sizes = {

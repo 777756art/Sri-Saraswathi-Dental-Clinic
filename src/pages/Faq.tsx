@@ -63,7 +63,7 @@ export default function FaqPage() {
         align="center"
         title={
           <>
-            Questions, answered <span className="italic text-primary-700">plainly.</span>
+            Questions, answered <span className="italic text-[#1F6878]">plainly.</span>
           </>
         }
         description="Appointments, insurance, treatment and the technology behind your care. If it isn't here, our team is one message away."
@@ -86,7 +86,7 @@ export default function FaqPage() {
           <div className="mx-auto max-w-3xl">
             {filtered.length === 0 && (
               <div className="rounded-3xl border border-border/70 bg-card p-10 text-center shadow-soft">
-                <p className="font-display text-2xl font-medium text-foreground">No matches found</p>
+                <p className="font-display text-2xl font-medium text-[#1F6878]">No matches found</p>
                 <p className="mt-2 text-[14px] text-muted-foreground">
                   Try a different phrase, or ask us directly.
                 </p>
@@ -100,7 +100,7 @@ export default function FaqPage() {
               {filtered.map((cat) => (
                 <div key={cat.category}>
                   <div className="flex items-center gap-3">
-                    <h2 className="font-display text-2xl font-medium text-foreground">
+                    <h2 className="font-display text-2xl font-semibold text-[#1F6878]">
                       {cat.category}
                     </h2>
                     <span className="rounded-full border border-border/80 bg-secondary-50 px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">

@@ -74,7 +74,7 @@ export default function PatientPortalPage() {
         eyebrow="Patient dashboard"
         title={
           <>
-            Welcome back, <span className="italic text-primary-700">{user?.firstName ?? "there"}.</span>
+            Welcome back, <span className="italic text-[#1F6878]">{user?.firstName ?? "there"}.</span>
           </>
         }
         description="Your appointments and messages in one calm place."
@@ -89,7 +89,7 @@ export default function PatientPortalPage() {
 
       <section className="container-x space-y-10 py-10 md:py-12">
         <div>
-          <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#1F6878]">
             Quick actions
           </h2>
           <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -111,7 +111,7 @@ export default function PatientPortalPage() {
         <div className="grid gap-6 lg:grid-cols-[1.5fr_0.5fr]">
           <div>
             <div className="flex items-center justify-between">
-              <h2 className="font-display text-xl font-medium text-foreground">Upcoming appointments</h2>
+              <h2 className="font-display text-xl font-semibold text-[#1F6878]">Upcoming appointments</h2>
               <Link
                 to="/patient-portal/appointments"
                 className="inline-flex items-center gap-1 text-[12px] font-medium text-primary-700 hover:text-primary-800"
@@ -167,16 +167,16 @@ export default function PatientPortalPage() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-border/70 bg-ink-950 p-6 text-white shadow-card">
-            <span className="inline-flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-[0.16em] text-white/45">
-              <MessageCircle className="h-3 w-3 text-accent-300" /> Need to change something?
+          <div className="rounded-2xl border border-[#1F6878]/15 bg-[#1F6878] p-6 text-white shadow-card">
+            <span className="inline-flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-[0.16em] text-[#E4F0F2]/70">
+              <MessageCircle className="h-3 w-3 text-[#E4F0F2]" /> Need to change something?
             </span>
-            <p className="mt-3 font-display text-2xl font-medium tracking-tight">We&apos;re a message away.</p>
-            <p className="mt-1 text-[12px] leading-relaxed text-white/45">
+            <p className="mt-3 font-display text-2xl font-bold tracking-tight">We&apos;re a message away.</p>
+            <p className="mt-1 text-[12px] leading-relaxed text-[#E4F0F2]/75">
               Reschedule, cancel or ask a question — the clinic replies on WhatsApp within minutes.
             </p>
 
-            <Button asChild fullWidth size="sm" className="mt-6 bg-white text-ink-950 hover:bg-primary-50">
+            <Button asChild fullWidth size="sm" className="mt-6 bg-[#19B987] text-white hover:bg-[#139A70]">
               <a
                 href={`https://wa.me/919345743409?text=${encodeURIComponent("Hi Sri Saraswathi Dental Clinic, I need help with my appointment.")}`}
                 target="_blank"

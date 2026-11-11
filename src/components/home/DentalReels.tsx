@@ -70,17 +70,17 @@ export function DentalReels() {
   const allReels: ReelItem[] = dynamicReels.length >= 4 ? dynamicReels : [...dynamicReels, ...fallbackReels.slice(dynamicReels.length)];
 
   return (
-    <section className="bg-[#FAF8F4] px-4 py-16 sm:py-20 lg:py-24" aria-label="Dental Reels Showcase">
+    <section className="bg-[#F5F2EB] px-4 py-16 sm:py-20 lg:py-24" aria-label="Dental Reels Showcase">
       <div className="container-x">
         {/* Centred Heading */}
         <div className="mx-auto max-w-2xl text-center">
-          <span className="inline-flex items-center gap-2 rounded-full border border-[#f0d4df] bg-white px-3.5 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[#ed2f79]">
-            <Video className="h-3.5 w-3.5" /> Watch Our Dental Reels
+          <span className="inline-flex items-center gap-2 rounded-full border border-[#1F6878]/20 bg-[#E4F0F2] px-3.5 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[#1F6878]">
+            <Video className="h-3.5 w-3.5 text-[#1F6878]" /> Watch Our Dental Reels
           </span>
-          <h2 className="mt-3 font-sans text-[32px] font-bold leading-tight tracking-[-0.035em] text-[#073b43] sm:text-[42px]">
-            Smile Stories, <span className="text-[#ed2f79]">In Motion.</span>
+          <h2 className="mt-3 font-sans text-[32px] font-bold leading-tight tracking-[-0.035em] text-[#1F6878] sm:text-[42px]">
+            Smile Stories, <span className="text-[#1F6878]">In Motion.</span>
           </h2>
-          <p className="mx-auto mt-3 max-w-xl text-[14px] leading-relaxed text-[#687680] sm:text-[15px]">
+          <p className="mx-auto mt-3 max-w-xl text-[14px] leading-relaxed text-[#707574] sm:text-[15px]">
             Short clinical stories, expert dental tips, and patient education directly from our clinicians in Erode.
           </p>
         </div>
@@ -93,7 +93,7 @@ export function DentalReels() {
               type="button"
               onClick={() => setSelected(reel)}
               aria-label={`Watch ${reel.title}`}
-              className="group relative aspect-[9/16] w-[220px] flex-none snap-center overflow-hidden rounded-[24px] border border-[#ebe4de] bg-[#0c181d] text-left shadow-[0_14px_35px_-20px_rgba(7,59,67,0.45)] transition duration-300 hover:-translate-y-1.5 hover:shadow-[0_20px_45px_-20px_rgba(237,47,121,0.35)] sm:w-[240px]"
+              className="group relative aspect-[9/16] w-[220px] flex-none snap-center overflow-hidden rounded-[24px] border border-[#dce4e5] bg-[#1F6878] text-left shadow-[0_14px_35px_-20px_rgba(31,104,120,0.4)] transition duration-300 hover:-translate-y-1.5 hover:shadow-[0_20px_45px_-20px_rgba(31,104,120,0.35)] sm:w-[240px]"
             >
               <img
                 src={reel.thumbnail}
@@ -102,16 +102,16 @@ export function DentalReels() {
                 decoding="async"
                 className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-[1.05]"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#073b43]/90 via-[#073b43]/30 to-black/25" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#1F6878]/90 via-[#1F6878]/30 to-black/25" />
 
               {/* Category pill */}
-              <span className="absolute left-3.5 top-3.5 inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-black/40 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.14em] text-white backdrop-blur-md">
-                <Video className="h-3 w-3 text-[#f090b7]" /> {reel.category}
+              <span className="absolute left-3.5 top-3.5 inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-[#1F6878]/65 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.14em] text-[#E4F0F2] backdrop-blur-md">
+                <Video className="h-3 w-3 text-[#E4F0F2]" /> {reel.category}
               </span>
 
               {/* Play Button Overlay */}
               <div className="absolute inset-0 grid place-items-center">
-                <span className="grid h-13 w-13 place-items-center rounded-full border border-white/40 bg-white/25 text-white shadow-xl backdrop-blur-md transition duration-300 group-hover:scale-110 group-hover:bg-[#ed2f79] group-hover:border-[#ed2f79]">
+                <span className="grid h-13 w-13 place-items-center rounded-full border border-white/40 bg-white/25 text-white shadow-xl backdrop-blur-md transition duration-300 group-hover:scale-110 group-hover:bg-[#E95A35] group-hover:border-[#E95A35]">
                   <Play className="ml-0.5 h-5 w-5 fill-current" />
                 </span>
               </div>
@@ -137,7 +137,7 @@ export function DentalReels() {
             href="https://www.instagram.com/srisaraswathidental"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex h-[46px] items-center gap-2 rounded-full border border-[#f0c8d8] bg-white px-6 text-[12px] font-bold text-[#ed2f79] shadow-sm transition hover:bg-[#fff0f5] hover:border-[#ed2f79]"
+            className="inline-flex h-[46px] items-center gap-2 rounded-full border border-[#1F6878]/30 bg-white px-6 text-[12px] font-bold text-[#1F6878] shadow-sm transition hover:border-[#1F6878] hover:bg-[#E4F0F2]"
           >
             View All Reels on Instagram <ExternalLink className="h-3.5 w-3.5" />
           </a>
@@ -171,7 +171,7 @@ export function DentalReels() {
             <motion.div
               initial={{ scale: 0.95, y: 10 }}
               animate={{ scale: 1, y: 0 }}
-              className="w-full max-w-md overflow-hidden rounded-[26px] border border-white/15 bg-[#0e171b] shadow-2xl"
+              className="w-full max-w-md overflow-hidden rounded-[26px] border border-white/15 bg-[#0F3841] shadow-2xl"
             >
               <div className="relative aspect-[9/16] max-h-[70vh] w-full overflow-hidden bg-black">
                 {selected.videoUrl ? (
@@ -191,14 +191,14 @@ export function DentalReels() {
                     />
                     <div className="absolute inset-0 grid place-items-center bg-black/40">
                       <div className="text-center p-6 text-white">
-                        <Play className="mx-auto h-12 w-12 text-[#ed2f79]" />
+                        <Play className="mx-auto h-12 w-12 text-[#E95A35]" />
                         <p className="mt-3 font-bold text-lg">{selected.title}</p>
                         <p className="mt-1 text-xs text-white/70">{selected.subtitle}</p>
                         <a
                           href="https://www.instagram.com/srisaraswathidental"
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-[#ed2f79] px-4 py-2 text-xs font-bold text-white"
+                          className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-[#E95A35] px-4 py-2 text-xs font-bold text-white hover:bg-[#D14824]"
                         >
                           Watch on Instagram <ExternalLink className="h-3 w-3" />
                         </a>
@@ -208,7 +208,7 @@ export function DentalReels() {
                 )}
               </div>
               <div className="p-4 sm:p-5 text-white">
-                <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#f090b7]">
+                <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#E4F0F2]">
                   {selected.category}
                 </span>
                 <h3 className="mt-1 text-[18px] font-bold">{selected.title}</h3>

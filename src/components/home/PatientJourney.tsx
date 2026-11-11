@@ -53,8 +53,8 @@ export function PatientJourney() {
         <ScrollReveal>
           <div className="max-w-2xl">
             <p className="eyebrow"><span className="eyebrow-dot" />How a visit works</p>
-            <h2 className="mt-4 text-display-2 text-balance text-foreground">
-              From first click to your <span className="italic text-primary-700">best smile</span>.
+            <h2 className="mt-4 text-display-2 text-balance text-[#1F6878]">
+              From first click to your <span className="italic text-[#1F6878]">best smile</span>.
             </h2>
             <p className="mt-4 text-pretty text-[16px] leading-relaxed text-muted-foreground">
               Seven simple steps to help make your dental visit comfortable, clear, and convenient.
@@ -126,7 +126,7 @@ export function PatientJourney() {
               <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                 Step {activeStep + 1} of {steps.length}
               </p>
-              <h3 className="mt-1 font-display text-[22px] leading-tight text-foreground">{active.title}</h3>
+              <h3 className="mt-1 font-display text-[22px] leading-tight text-[#1F6878]">{active.title}</h3>
               <p className="mt-1.5 max-w-3xl text-[14.5px] leading-relaxed text-muted-foreground">{active.description}</p>
             </div>
           </div>
@@ -147,7 +147,7 @@ export function PatientJourney() {
                     <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                       Step {index + 1}
                     </p>
-                    <h3 className="mt-0.5 font-display text-[17px] leading-snug text-foreground">{step.title}</h3>
+                    <h3 className="mt-0.5 font-display text-[17px] leading-snug text-[#1F6878]">{step.title}</h3>
                     <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">{step.description}</p>
                   </div>
                 </div>

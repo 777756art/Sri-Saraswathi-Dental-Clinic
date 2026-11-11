@@ -36,7 +36,7 @@ export default function AnalyticsPage() {
     <DashboardLayout>
       <div className="mb-6">
         <span className="eyebrow"><span className="eyebrow-dot" /> Clinic workspace</span>
-        <h1 className="mt-3 text-display-3 text-foreground">Analytics</h1>
+        <h1 className="mt-3 text-display-3 text-[#1F6878]">Analytics</h1>
         <p className="mt-1.5 text-[13px] text-muted-foreground">Track performance metrics and business insights.</p>
       </div>
 
@@ -49,7 +49,7 @@ export default function AnalyticsPage() {
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Revenue by Procedure */}
         <Card>
-          <h2 className="mb-4 text-lg font-semibold text-foreground">Revenue by Procedure</h2>
+          <h2 className="mb-4 text-lg font-semibold text-[#1F6878]">Revenue by Procedure</h2>
           <div className="space-y-3">
             {revenueData.map((item) => (
               <div key={item.procedure}>
@@ -71,7 +71,7 @@ export default function AnalyticsPage() {
 
         {/* Top Procedures */}
         <Card>
-          <h2 className="mb-4 text-lg font-semibold text-foreground">Top Procedures This Month</h2>
+          <h2 className="mb-4 text-lg font-semibold text-[#1F6878]">Top Procedures This Month</h2>
           <div className="space-y-4">
             {topProcedures.map((proc, idx) => (
               <div key={proc.name} className="flex items-center justify-between border-b border-secondary-100 pb-3 last:border-0">

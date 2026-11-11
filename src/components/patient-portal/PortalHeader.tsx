@@ -24,10 +24,10 @@ export function PortalHeader({
   const { pathname } = useLocation();
 
   return (
-    <header className="relative overflow-hidden border-b border-border/60 bg-gradient-to-b from-secondary-50/80 via-background to-background pb-6 pt-28 md:pb-8 md:pt-32">
+    <header className="relative overflow-hidden border-b border-border/60 bg-[#F5F2EB] pb-6 pt-28 md:pb-8 md:pt-32">
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -left-32 -top-32 h-[380px] w-[380px] rounded-full bg-primary-200/35 blur-[110px]" />
-        <div className="absolute right-0 top-0 h-[300px] w-[300px] rounded-full bg-accent-200/20 blur-[100px]" />
+        <div className="absolute -left-32 -top-32 h-[380px] w-[380px] rounded-full bg-[#E4F0F2]/80 blur-[110px]" />
+        <div className="absolute right-0 top-0 h-[300px] w-[300px] rounded-full bg-[#E4F0F2]/60 blur-[100px]" />
         <div className="absolute inset-0 bg-grid opacity-[0.35] mask-fade-b" />
       </div>
 
@@ -36,7 +36,7 @@ export function PortalHeader({
           <span className="eyebrow">
             <span className="eyebrow-dot" /> {eyebrow}
           </span>
-          <h1 className="mt-3 text-display-2 text-balance">{title}</h1>
+          <h1 className="mt-3 text-display-2 text-balance text-[#1F6878]">{title}</h1>
           {description && (
             <p className="mt-2.5 max-w-xl text-[14px] leading-relaxed text-muted-foreground">
               {description}

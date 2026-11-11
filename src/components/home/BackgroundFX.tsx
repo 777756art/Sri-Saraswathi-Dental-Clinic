@@ -18,10 +18,10 @@ export function BackgroundFX({ sectionIndex = 0 }: { sectionIndex?: number }) {
   return (
     <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden select-none">
       <div
-        className="absolute h-[380px] w-[380px] rounded-full bg-primary-100/50 blur-[120px]"
+        className="absolute h-[380px] w-[380px] rounded-full bg-[#E4F0F2]/70 blur-[120px]"
         style={{ left: spot.left, top: spot.top }}
       />
-      <div className="absolute -right-32 top-10 h-[300px] w-[300px] rounded-full bg-accent-100/40 blur-[110px]" />
+      <div className="absolute -right-32 top-10 h-[300px] w-[300px] rounded-full bg-[#E4F0F2]/60 blur-[110px]" />
       <div className="absolute inset-0 bg-dots opacity-[0.18] mask-fade-b" />
     </div>
   );

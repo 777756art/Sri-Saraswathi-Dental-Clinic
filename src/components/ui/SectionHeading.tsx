@@ -36,7 +36,7 @@ export function SectionHeading({
             {eyebrow}
           </p>
         )}
-        <h2 className="mt-4 text-display-2 text-balance text-foreground">{title}</h2>
+        <h2 className="mt-4 text-display-2 text-balance text-[#1F6878]">{title}</h2>
         {description && (
           <p className="mt-4 text-pretty text-[16px] leading-relaxed text-muted-foreground">
             {description}

@@ -21,13 +21,13 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variants = {
   primary:
-    "bg-primary text-primary-foreground shadow-[0_12px_28px_-14px_rgba(18,56,72,0.75)] hover:bg-primary-800 hover:-translate-y-0.5 active:translate-y-0",
-  secondary: "bg-secondary text-secondary-foreground hover:bg-secondary-200",
+    "bg-[#E95A35] text-white shadow-[0_12px_28px_-12px_rgba(233,90,53,0.55)] hover:bg-[#D14824] active:bg-[#D14824] hover:-translate-y-0.5 active:translate-y-0",
+  secondary: "bg-[#E4F0F2] text-[#1F6878] hover:bg-[#d1e4e8]",
   outline:
-    "border border-primary/25 text-primary-800 hover:border-primary/50 hover:bg-primary-50",
-  ghost: "text-secondary-700 hover:bg-secondary-100 hover:text-secondary-900",
+    "border border-[#1F6878] text-[#1F6878] hover:bg-[#E4F0F2]",
+  ghost: "text-[#15191B]/80 hover:bg-[#E4F0F2]/70 hover:text-[#1F6878]",
   danger: "bg-destructive text-destructive-foreground hover:brightness-110",
-  success: "bg-emerald-600 text-white hover:bg-emerald-700",
+  success: "bg-[#19B987] text-white hover:bg-[#139A70]",
 };
 
 const sizes = {

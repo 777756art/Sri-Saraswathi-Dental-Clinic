@@ -123,7 +123,7 @@ export function LivePlatformPreview() {
             eyebrow="Live platform preview"
             title={
               <>
-                One system for the whole <span className="italic text-primary-700">clinic</span>.
+                One system for the whole <span className="italic text-[#1F6878]">clinic</span>.
               </>
             }
             description="Reception, clinicians, patients and analytics — connected by the same AI layer. Click through the modules below."

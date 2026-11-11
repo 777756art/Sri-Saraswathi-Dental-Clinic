@@ -68,7 +68,7 @@ export function LiveChat() {
           href="https://wa.me/919345743409"
           target="_blank"
           rel="noopener noreferrer"
-          className="group flex h-11 w-11 items-center justify-center rounded-full bg-emerald-500 text-white shadow-card transition-all hover:-translate-y-0.5 hover:shadow-lift"
+          className="group flex h-11 w-11 items-center justify-center rounded-full bg-[#19B987] text-white shadow-card transition-all hover:-translate-y-0.5 hover:bg-[#139A70] hover:shadow-lift"
           title="WhatsApp"
         >
           <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
@@ -77,7 +77,7 @@ export function LiveChat() {
         </a>
         <button
           onClick={() => setOpen(!open)}
-          className="flex h-11 w-11 items-center justify-center rounded-full bg-ink-950 text-white shadow-card transition-all hover:-translate-y-0.5 hover:shadow-lift"
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-[#1F6878] text-white shadow-card transition-all hover:-translate-y-0.5 hover:bg-[#1F6878] hover:shadow-lift"
           title="Live Chat"
         >
           {open ? <X className="h-6 w-6" /> : <MessageCircle className="h-6 w-6" />}
@@ -92,23 +92,23 @@ export function LiveChat() {
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             className="fixed bottom-[11.5rem] right-6 z-40 min-w-0 w-[calc(100dvw-3rem)] overflow-hidden rounded-3xl border border-border/70 bg-card shadow-lift sm:w-96"
           >
-            <div className="flex items-center gap-3 bg-ink-950 px-5 py-4 text-white">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10">
+            <div className="flex items-center gap-3 bg-[#1F6878] px-5 py-4 text-white">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#1F6878]/30 text-[#E4F0F2]">
                 <Bot className="h-5 w-5" />
               </div>
               <div>
                 <p className="text-sm font-semibold">Clinic information</p>
-                <p className="text-[11px] text-white/55">Automated helper · not live monitored</p>
+                <p className="text-[11px] text-[#E4F0F2]/70">Automated helper · not live monitored</p>
               </div>
             </div>
-            <div ref={scrollRef} className="h-72 space-y-3 overflow-y-auto bg-secondary-50/60 p-4">
+            <div ref={scrollRef} className="h-72 space-y-3 overflow-y-auto bg-[#F5F2EB] p-4">
               {messages.map((msg, index) => (
                 <div
                   key={index}
                   className={`max-w-[85%] rounded-2xl px-4 py-3 text-[13px] leading-relaxed ${
                     msg.role === "user"
-                      ? "ml-auto rounded-br-md bg-primary text-primary-foreground"
-                      : "rounded-bl-md border border-border/70 bg-card text-card-foreground"
+                      ? "ml-auto rounded-br-md bg-[#1F6878] text-white"
+                      : "rounded-bl-md border border-[#dce4e5] bg-white text-[#1F6878]"
                   }`}
                 >
                   {msg.text}
@@ -129,12 +129,12 @@ export function LiveChat() {
                   onChange={(event) => setDraft(event.target.value)}
                   aria-label="Ask about clinic information"
                   placeholder="Type your message..."
-                  className="flex-1 rounded-full border border-input bg-background px-4 py-2.5 text-sm focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10"
+                  className="flex-1 rounded-full border border-input bg-[#F5F2EB] px-4 py-2.5 text-sm text-[#1F6878] focus:border-[#1F6878] focus:outline-none focus:ring-4 focus:ring-[#1F6878]/15"
                 />
                 <button
                   type="submit"
                   aria-label="Send message"
-                  className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary-800"
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-[#E95A35] text-white transition-colors hover:bg-[#D14824]"
                 >
                   <Send className="h-4 w-4" />
                 </button>

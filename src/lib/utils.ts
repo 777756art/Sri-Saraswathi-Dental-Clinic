@@ -72,21 +72,21 @@ export function validatePhone(phone: string) {
 
 export function getStatusColor(status: string) {
   const colors: Record<string, string> = {
-    SCHEDULED: "bg-blue-100 text-blue-800",
-    CONFIRMED: "bg-green-100 text-green-800",
-    CHECKED_IN: "bg-yellow-100 text-yellow-800",
-    IN_PROGRESS: "bg-purple-100 text-purple-800",
-    COMPLETED: "bg-green-100 text-green-800",
-    CANCELLED: "bg-red-100 text-red-800",
-    NO_SHOW: "bg-gray-100 text-gray-800",
-    PENDING: "bg-yellow-100 text-yellow-800",
-    PAID: "bg-green-100 text-green-800",
-    PARTIAL: "bg-blue-100 text-blue-800",
-    REFUNDED: "bg-purple-100 text-purple-800",
-    PLANNED: "bg-blue-100 text-blue-800",
-    ON_HOLD: "bg-orange-100 text-orange-800",
+    SCHEDULED: "bg-[#E4F0F2] text-[#1F6878]",
+    CONFIRMED: "bg-[#E4F0F2] text-[#1F6878]",
+    CHECKED_IN: "bg-[#E4F0F2] text-[#E95A35]",
+    IN_PROGRESS: "bg-[#E4F0F2] text-[#1F6878]",
+    COMPLETED: "bg-[#E4F0F2] text-[#1F6878]",
+    CANCELLED: "bg-rose-100 text-rose-800",
+    NO_SHOW: "bg-slate-100 text-[#707574]",
+    PENDING: "bg-[#E4F0F2] text-[#E95A35]",
+    PAID: "bg-[#E4F0F2] text-[#1F6878]",
+    PARTIAL: "bg-[#E4F0F2] text-[#1F6878]",
+    REFUNDED: "bg-[#E4F0F2] text-[#D14824]",
+    PLANNED: "bg-[#E4F0F2] text-[#1F6878]",
+    ON_HOLD: "bg-amber-50 text-amber-800",
   };
-  return colors[status] || "bg-gray-100 text-gray-800";
+  return colors[status] || "bg-slate-100 text-[#707574]";
 }
 
 export function getDayName(day: number) {

@@ -51,10 +51,10 @@ export function ClinicOverview() {
       <div className="relative mx-auto max-w-7xl px-4">
         <ScrollReveal>
           <div className="text-center mb-16">
-            <span className="inline-flex items-center gap-2 rounded-md bg-primary-50 px-4 py-1.5 text-sm font-medium text-primary">
+            <span className="inline-flex items-center gap-2 rounded-md bg-[#E4F0F2] px-4 py-1.5 text-sm font-medium text-[#1F6878]">
               The AI Advantage
             </span>
-            <h2 className="mt-6 font-display text-display-2 text-foreground">
+            <h2 className="mt-6 font-display text-display-2 text-[#1F6878]">
               Technology Meets Tenderness
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground">
@@ -73,10 +73,10 @@ export function ClinicOverview() {
                   className="group relative rounded-2xl border border-border bg-card p-8 transition-all hover:shadow-xl hover:-translate-y-1"
                   whileHover={{ scale: 1.02 }}
                 >
-                  <div className={`mb-5 inline-flex h-14 w-14 items-center justify-center rounded-2xl ${feature.gradient} shadow-sm transition-transform group-hover:scale-110`}>
+                  <div className="mb-5 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-[#1F6878] shadow-sm transition-transform group-hover:scale-110">
                     <Icon className="h-7 w-7 text-white" />
                   </div>
-                  <h3 className="font-display text-xl font-semibold text-card-foreground mb-3">{feature.title}</h3>
+                  <h3 className="font-display text-xl font-semibold text-[#1F6878] mb-3">{feature.title}</h3>
                   <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
                 </motion.div>
               </ScrollReveal>

@@ -82,14 +82,14 @@ export function Gallery({ standalone = false }: { standalone?: boolean }) {
   const filtered = activeFilter === "all" ? allItems : allItems.filter((item) => item.treatment === activeFilter);
 
   return (
-    <section id={standalone ? undefined : "gallery"} className={cn("relative overflow-hidden bg-[#f7f7f3]", standalone ? "pb-24 pt-[126px] sm:pb-28 sm:pt-[150px]" : "section-pad")}>
+    <section id={standalone ? undefined : "gallery"} className={cn("relative overflow-hidden bg-[#F5F2EB]", standalone ? "pb-24 pt-[126px] sm:pb-28 sm:pt-[150px]" : "section-pad")}>
       <div className="pointer-events-none absolute -right-24 top-0 h-96 w-96 rounded-full bg-primary-100/60 blur-3xl" />
       <div className="container-x relative">
         <ScrollReveal>
           <div className="mx-auto mb-8 max-w-2xl text-center md:mb-10">
             <p className="eyebrow justify-center"><span className="eyebrow-dot" />Our clinic, up close</p>
-            <h2 className="mt-4 text-display-2 text-balance text-foreground">
-              A glimpse into our <span className="italic text-[#ed2f79]">world of care.</span>
+            <h2 className="mt-4 text-display-2 text-balance text-[#1F6878]">
+              A glimpse into our <span className="italic text-[#1F6878]">world of care.</span>
             </h2>
             <p className="mt-4 text-pretty text-[16px] leading-relaxed text-muted-foreground">
               A glimpse of the spaces, people and moments that make a visit feel easy.
@@ -107,8 +107,8 @@ export function Gallery({ standalone = false }: { standalone?: boolean }) {
                 className={cn(
                   "rounded-full px-5 py-2 text-[13px] font-medium transition-all",
                   activeFilter === treatment.id
-                    ? "bg-[#ed2f79] text-white shadow-soft"
-                    : "border border-border/80 bg-white text-muted-foreground hover:border-[#ed2f79]/50 hover:text-[#bd245e]"
+                    ? "bg-[#E95A35] text-white shadow-soft"
+                    : "border border-border/80 bg-white text-muted-foreground hover:border-[#E95A35]/50 hover:text-[#D14824]"
                 )}
               >
                 {treatment.label}
@@ -159,7 +159,7 @@ export function Gallery({ standalone = false }: { standalone?: boolean }) {
                 <span className="absolute right-3 top-3 rounded-full bg-ink-950/60 p-2 text-white backdrop-blur"><Play className="h-3 w-3 fill-current" /></span>
               )}
               {item.id.startsWith("uploaded-") && (
-                <span className="absolute left-3 top-3 flex items-center gap-1 rounded-full bg-[#d9f77e] px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-[#21352e]">
+                <span className="absolute left-3 top-3 flex items-center gap-1 rounded-full bg-[#E4F0F2] px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-[#1F6878]">
                   <Sparkles className="h-3 w-3" /> Added by clinic
                 </span>
               )}

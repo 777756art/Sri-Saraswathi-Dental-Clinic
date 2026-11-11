@@ -83,27 +83,27 @@ export function ManagedContentSection({ type }: { type: "blog" | "offer" | "badg
 
   if (type === "badge") {
     return (
-      <section className="section-pad relative overflow-hidden bg-gradient-to-b from-[#f7f7f2] via-background to-[#f2f5f3]">
+      <section className="section-pad relative overflow-hidden bg-gradient-to-b from-[#F5F2EB] via-background to-[#E4F0F2]">
         <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -left-20 top-8 h-64 w-64 rounded-full bg-accent-100/70 blur-[110px]" />
-          <div className="absolute -right-20 bottom-0 h-72 w-72 rounded-full bg-primary-100/70 blur-[120px]" />
+          <div className="absolute -left-20 top-8 h-64 w-64 rounded-full bg-[#E4F0F2]/75 blur-[110px]" />
+          <div className="absolute -right-20 bottom-0 h-72 w-72 rounded-full bg-[#E4F0F2]/75 blur-[120px]" />
         </div>
         <div className="container-x relative">
           <div className="mx-auto max-w-2xl text-center">
             <p className="eyebrow justify-center"><span className="eyebrow-dot" />{info.eyebrow}</p>
-            <h2 className="mt-4 text-display-2 text-balance text-foreground">{info.title}</h2>
+            <h2 className="mt-4 text-display-2 text-balance text-[#1F6878]">{info.title}</h2>
             <p className="mt-4 text-pretty text-[16px] leading-relaxed text-muted-foreground">{info.description}</p>
           </div>
           <div className="mx-auto mt-10 grid max-w-6xl gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {sortedItems.map((item) => (
               <article key={item.id} className="group overflow-hidden rounded-[24px] border border-border/70 bg-white shadow-soft transition duration-300 hover:-translate-y-1 hover:shadow-lift">
-                <div className="relative aspect-[4/3] overflow-hidden bg-[#edf5f3]">
+                <div className="relative aspect-[4/3] overflow-hidden bg-[#E4F0F2]">
                   {item.mediaUrl ? <img src={resolveApiAsset(item.mediaUrl)} alt={item.title} loading="lazy" decoding="async" className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.035]" /> : <div className="grid h-full place-items-center"><BadgeCheck className="h-9 w-9 text-primary-700" strokeWidth={1.5} /></div>}
                   {(() => { const Icon = highlightIconMap[item.badgeText as keyof typeof highlightIconMap] ?? BadgeCheck; return <span className="absolute left-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-white/90 text-primary-800 shadow-sm backdrop-blur"><Icon className="h-4 w-4" /></span>; })()}
                 </div>
                 <div className="p-5">
-                  {item.category && <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-primary-700">{item.category}</p>}
-                  <h3 className="mt-1.5 font-display text-lg font-semibold leading-tight tracking-tight text-foreground">{item.title}</h3>
+                  {item.category && <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-[#1F6878]">{item.category}</p>}
+                  <h3 className="mt-1.5 font-display text-lg font-semibold leading-tight tracking-tight text-[#1F6878]">{item.title}</h3>
                   {item.subtitle && <p className="mt-2 text-xs font-medium text-primary-800">{item.subtitle}</p>}
                   {item.body && <p className="mt-2 line-clamp-3 text-xs leading-relaxed text-muted-foreground">{item.body}</p>}
                 </div>
@@ -116,7 +116,7 @@ export function ManagedContentSection({ type }: { type: "blog" | "offer" | "badg
   }
 
   return (
-    <section className={"relative overflow-hidden " + (type === "offer" ? "bg-[#f4f0e6] px-0 py-10 sm:py-14" : "section-pad bg-background")}>
+    <section className={"relative overflow-hidden " + (type === "offer" ? "bg-[#F5F2EB] px-0 py-10 sm:py-14" : "section-pad bg-background")}>
       <div className="container-x relative">
         {(type === "blog" || type === "offer") && <SectionHeading
           align={type === "blog" ? "left" : "center"}
@@ -145,11 +145,11 @@ export function ManagedContentSection({ type }: { type: "blog" | "offer" | "badg
                   />
                 </Link>
                 <div className="flex flex-1 flex-col p-5 md:p-6">
-                  <p className="text-[9.5px] font-semibold uppercase tracking-[0.16em] text-primary-700">
+                  <p className="text-[9.5px] font-semibold uppercase tracking-[0.16em] text-[#1F6878]">
                     {item.category || "Dental care"}
                   </p>
-                  <h3 className="mt-2 font-display text-[19px] leading-snug tracking-tight text-foreground">
-                    <Link to={`/blog/${item.slug}`} className="transition-colors hover:text-primary-800">{item.title}</Link>
+                  <h3 className="mt-2 font-display text-[19px] leading-snug tracking-tight text-[#1F6878]">
+                    <Link to={`/blog/${item.slug}`} className="transition-colors hover:text-[#1F6878]">{item.title}</Link>
                   </h3>
                   {(item.excerpt || item.body) && (
                     <p className="mt-2 line-clamp-3 text-[13.5px] leading-relaxed text-muted-foreground">{item.excerpt || item.body}</p>
@@ -163,21 +163,21 @@ export function ManagedContentSection({ type }: { type: "blog" | "offer" | "badg
                 </div>
               </article>
             ) : type === "offer" ? (
-              <ContentLink key={item.id} item={item.linkUrl ? item : { ...item, linkUrl: "/booking" }} className="group block overflow-hidden rounded-[26px] bg-[#f8f5ec] shadow-[0_18px_55px_-38px_rgba(30,40,43,.4)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_22px_60px_-36px_rgba(30,40,43,.46)]">
+              <ContentLink key={item.id} item={item.linkUrl ? item : { ...item, linkUrl: "/booking" }} className="group block overflow-hidden rounded-[26px] bg-[#F5F2EB] border border-[#1F6878]/15 shadow-[0_18px_55px_-38px_rgba(31,104,120,.4)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_22px_60px_-36px_rgba(31,104,120,.46)]">
                 <div className="grid min-h-[300px] md:grid-cols-[1fr_.88fr]">
                   <div className="relative z-10 flex flex-col items-start justify-center px-6 py-8 sm:px-10 sm:py-10 lg:px-14">
-                    <span className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.2em] text-[#258574]">
-                      <span className="h-1.5 w-1.5 rounded-full bg-[#ed2f79]" /> {item.badgeText || "A little care goes a long way"}
+                    <span className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.2em] text-[#1F6878]">
+                      <span className="h-1.5 w-1.5 rounded-full bg-[#1F6878]" /> {item.badgeText || "A little care goes a long way"}
                     </span>
-                    <h3 className="mt-4 max-w-lg font-display text-[30px] font-semibold leading-[1.08] tracking-[-.035em] text-[#243445] sm:text-[40px]">{item.title}</h3>
-                    {item.subtitle && <p className="mt-3 text-[15px] font-semibold text-[#258574]">{item.subtitle}</p>}
-                    {item.body && <p className="mt-3 max-w-md text-[13px] leading-6 text-[#68747a]">{item.body}</p>}
-                    {(item.startDate || item.endDate) && <p className="mt-3 text-[10px] font-medium text-[#8b8980]">{item.startDate ? `From ${formatArticleDate(item.startDate)}` : "Available now"}{item.endDate ? ` · Until ${formatArticleDate(item.endDate)}` : ""}</p>}
-                    <span className="mt-6 inline-flex h-11 items-center gap-2 rounded-full bg-[#ed2f79] px-5 text-[12px] font-bold text-white shadow-[0_8px_18px_-10px_rgba(237,47,121,.8)] transition group-hover:bg-[#d92369]">{item.ctaLabel || "Book your visit"}<ArrowUpRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" /></span>
+                    <h3 className="mt-4 max-w-lg font-display text-[30px] font-bold leading-[1.08] tracking-[-.035em] text-[#1F6878] sm:text-[40px]">{item.title}</h3>
+                    {item.subtitle && <p className="mt-3 text-[15px] font-semibold text-[#1F6878]">{item.subtitle}</p>}
+                    {item.body && <p className="mt-3 max-w-md text-[13px] leading-6 text-[#707574]">{item.body}</p>}
+                    {(item.startDate || item.endDate) && <p className="mt-3 text-[10px] font-medium text-[#707574]">{item.startDate ? `From ${formatArticleDate(item.startDate)}` : "Available now"}{item.endDate ? ` · Until ${formatArticleDate(item.endDate)}` : ""}</p>}
+                    <span className="mt-6 inline-flex h-11 items-center gap-2 rounded-full bg-[#E95A35] px-5 text-[12px] font-bold text-white shadow-[0_8px_18px_-10px_rgba(233,90,53,.7)] transition group-hover:bg-[#D14824]">{item.ctaLabel || "Book your visit"}<ArrowUpRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" /></span>
                   </div>
-                  <div className="relative min-h-[230px] overflow-hidden bg-[#e9e4d9] md:min-h-[340px]">
+                  <div className="relative min-h-[230px] overflow-hidden bg-[#dce4e5] md:min-h-[340px]">
                     <img src={item.mediaUrl ? resolveApiAsset(item.mediaUrl) : clinicImages.heroDentalCare} alt={item.mediaUrl ? item.title : "Dentist speaking with a patient"} loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover object-center transition duration-700 group-hover:scale-[1.025]" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#243445]/20 via-transparent to-transparent md:bg-gradient-to-l md:from-transparent md:via-transparent md:to-[#f8f5ec]/15" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#15191B]/20 via-transparent to-transparent md:bg-gradient-to-l md:from-transparent md:via-transparent md:to-[#F5F2EB]/15" />
                   </div>
                 </div>
               </ContentLink>
@@ -194,7 +194,7 @@ export function ManagedContentSection({ type }: { type: "blog" | "offer" | "badg
                       <span className="h-1.5 w-1.5 rounded-full bg-accent-500" /> {item.badgeText}
                     </span>
                   )}
-                  <h3 className="mt-2 font-display text-xl font-medium tracking-tight text-foreground">{item.title}</h3>
+                  <h3 className="mt-2 font-display text-xl font-medium tracking-tight text-[#1F6878]">{item.title}</h3>
                   {item.subtitle && <p className="mt-1.5 text-sm font-medium text-primary-800">{item.subtitle}</p>}
                   {item.body && <p className="mt-3 line-clamp-4 text-sm leading-relaxed text-muted-foreground">{item.body}</p>}
                   {item.linkUrl && (
@@ -221,17 +221,17 @@ export function ManagedMediaSection() {
     <section className="relative overflow-hidden bg-white py-16 sm:py-20 lg:py-24">
       <div className="relative mx-auto max-w-7xl">
         <div className="container-x text-center">
-            <h2 className="font-display text-[32px] font-semibold leading-tight tracking-[-.045em] text-[#151b2e] sm:text-[42px]">
-            Smile Stories, <span className="text-[#ed2f79]">Beyond the Clinic.</span>
+            <h2 className="font-display text-[32px] font-bold leading-tight tracking-[-.045em] text-[#1F6878] sm:text-[42px]">
+            Smile Stories, <span className="text-[#1F6878]">Beyond the Clinic.</span>
           </h2>
-          <p className="mx-auto mt-3 max-w-[720px] text-[14px] leading-7 text-[#64748b] sm:text-[16px]">
+          <p className="mx-auto mt-3 max-w-[720px] text-[14px] leading-7 text-[#707574] sm:text-[16px]">
             Short stories and helpful videos from Sri Saraswathi Dental Clinic.
           </p>
           <a
             href="https://www.instagram.com/srisaraswathidental"
             target="_blank"
             rel="noreferrer"
-            className="mx-auto mt-6 inline-flex h-11 items-center gap-2 rounded-full bg-gradient-to-r from-[#f59e0b] via-[#f43f5e] to-[#db2777] px-6 text-[13px] font-bold text-white shadow-[0_10px_22px_-9px_rgba(225,29,112,.58)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_28px_-9px_rgba(225,29,112,.65)]"
+            className="mx-auto mt-6 inline-flex h-11 items-center gap-2 rounded-full bg-[#E95A35] px-6 text-[13px] font-bold text-white shadow-[0_10px_22px_-9px_rgba(233,90,53,.55)] transition hover:-translate-y-0.5 hover:bg-[#D14824]"
           >
             <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className="h-4 w-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="3" width="18" height="18" rx="5" />
@@ -242,16 +242,16 @@ export function ManagedMediaSection() {
           </a>
         </div>
         {media.length ? <div className="mt-10 flex snap-x snap-mandatory gap-5 overflow-x-auto px-5 pb-4 [scrollbar-width:none] sm:mt-12 sm:gap-6 sm:px-8 lg:px-10 [&::-webkit-scrollbar]:hidden">
-          {media.slice(0, 8).map((item) => <button key={item.id} type="button" onClick={() => setSelected(item)} aria-label={`Play ${item.title}`} className="group relative aspect-[9/16] w-[min(72vw,250px)] flex-none snap-start overflow-hidden rounded-[22px] bg-[#111820] text-left shadow-[0_12px_28px_-16px_rgba(15,23,42,.62)] ring-1 ring-black/[.06] transition duration-300 hover:-translate-y-1">
+          {media.slice(0, 8).map((item) => <button key={item.id} type="button" onClick={() => setSelected(item)} aria-label={`Play ${item.title}`} className="group relative aspect-[9/16] w-[min(72vw,250px)] flex-none snap-start overflow-hidden rounded-[22px] bg-[#15191B] text-left shadow-[0_12px_28px_-16px_rgba(15,23,42,.62)] ring-1 ring-black/[.06] transition duration-300 hover:-translate-y-1">
             {item.mobileMediaUrl ? <img src={resolveApiAsset(item.mobileMediaUrl)} alt={item.title} loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-[1.035]" /> : <video src={resolveApiAsset(item.mediaUrl)} muted playsInline preload="metadata" className="absolute inset-0 h-full w-full object-cover" />}
-            <span className="absolute inset-0 bg-gradient-to-t from-[#091115]/85 via-transparent to-black/10" />
-            <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-[#111820]/65 px-2.5 py-1.5 text-[9px] font-semibold text-white backdrop-blur"><Video className="h-3 w-3" />{item.category || item.badgeText || "Clinic reel"}</span>
-            <span className="absolute inset-0 grid place-items-center"><span className="grid h-12 w-12 place-items-center rounded-full border border-white/30 bg-white/20 text-white shadow-lg backdrop-blur transition group-hover:scale-110 group-hover:bg-[#e83e8c]"><Play className="ml-0.5 h-5 w-5 fill-current" /></span></span>
+            <span className="absolute inset-0 bg-gradient-to-t from-[#0F3841]/85 via-transparent to-black/10" />
+            <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-[#15191B]/65 px-2.5 py-1.5 text-[9px] font-semibold text-white backdrop-blur"><Video className="h-3 w-3" />{item.category || item.badgeText || "Clinic reel"}</span>
+            <span className="absolute inset-0 grid place-items-center"><span className="grid h-12 w-12 place-items-center rounded-full border border-white/30 bg-white/20 text-white shadow-lg backdrop-blur transition group-hover:scale-110 group-hover:bg-[#E95A35]"><Play className="ml-0.5 h-5 w-5 fill-current" /></span></span>
             <span className="absolute bottom-4 left-4 right-4"><span className="block font-display text-[17px] font-semibold leading-snug text-white">{item.title}</span>{item.subtitle && <span className="mt-1 line-clamp-2 block text-[10px] leading-relaxed text-white/75">{item.subtitle}</span>}</span>
           </button>)}
-        </div> : <div className="container-x mt-9"><div className="rounded-[20px] border border-dashed border-[#e5e6e3] bg-[#fafaf8] px-5 py-8 text-center text-[12px] text-[#77818a]">Published clinic reels will appear here.</div></div>}
+        </div> : <div className="container-x mt-9"><div className="rounded-[20px] border border-dashed border-[#dce4e5] bg-[#F5F2EB] px-5 py-8 text-center text-[12px] text-[#707574]">Published clinic reels will appear here.</div></div>}
       </div>
-      <AnimatePresence>{selected && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} role="dialog" aria-modal="true" aria-label={selected.title} onMouseDown={(event) => { if (event.target === event.currentTarget) setSelected(null); }} className="fixed inset-0 z-[95] grid place-items-center bg-[#05090c]/90 p-4 backdrop-blur-sm"><button type="button" onClick={() => setSelected(null)} aria-label="Close reel" className="absolute right-4 top-4 grid h-11 w-11 place-items-center rounded-full border border-white/20 bg-white/10 text-white"><X className="h-5 w-5" /></button><motion.div initial={{ scale: .97, y: 8 }} animate={{ scale: 1, y: 0 }} className="grid max-h-[90vh] w-full max-w-4xl overflow-hidden rounded-[24px] border border-white/10 bg-[#12191e] sm:grid-cols-[minmax(220px,.8fr)_1fr]"><video key={selected.id} src={resolveApiAsset(selected.mediaUrl)} poster={selected.mobileMediaUrl ? resolveApiAsset(selected.mobileMediaUrl) : undefined} controls autoPlay playsInline preload="metadata" className="mx-auto max-h-[72vh] w-auto max-w-full bg-black sm:max-h-[78vh]" /><div className="flex flex-col justify-center p-6 text-white sm:p-8"><p className="text-[9px] font-bold uppercase tracking-[.16em] text-[#f090b7]">{selected.category || selected.badgeText || "Clinic reel"}</p><h3 className="mt-2 font-display text-2xl font-semibold">{selected.title}</h3>{selected.subtitle && <p className="mt-3 text-[13px] leading-6 text-white/65">{selected.subtitle}</p>}</div></motion.div></motion.div>}</AnimatePresence>
+      <AnimatePresence>{selected && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} role="dialog" aria-modal="true" aria-label={selected.title} onMouseDown={(event) => { if (event.target === event.currentTarget) setSelected(null); }} className="fixed inset-0 z-[95] grid place-items-center bg-[#0F3841]/90 p-4 backdrop-blur-sm"><button type="button" onClick={() => setSelected(null)} aria-label="Close reel" className="absolute right-4 top-4 grid h-11 w-11 place-items-center rounded-full border border-white/20 bg-white/10 text-white"><X className="h-5 w-5" /></button><motion.div initial={{ scale: .97, y: 8 }} animate={{ scale: 1, y: 0 }} className="grid max-h-[90vh] w-full max-w-4xl overflow-hidden rounded-[24px] border border-white/10 bg-[#154C58] sm:grid-cols-[minmax(220px,.8fr)_1fr]"><video key={selected.id} src={resolveApiAsset(selected.mediaUrl)} poster={selected.mobileMediaUrl ? resolveApiAsset(selected.mobileMediaUrl) : undefined} controls autoPlay playsInline preload="metadata" className="mx-auto max-h-[72vh] w-auto max-w-full bg-black sm:max-h-[78vh]" /><div className="flex flex-col justify-center p-6 text-white sm:p-8"><p className="text-[9px] font-bold uppercase tracking-[.16em] text-[#E4F0F2]">{selected.category || selected.badgeText || "Clinic reel"}</p><h3 className="mt-2 font-display text-2xl font-semibold">{selected.title}</h3>{selected.subtitle && <p className="mt-3 text-[13px] leading-6 text-white/75">{selected.subtitle}</p>}</div></motion.div></motion.div>}</AnimatePresence>
     </section>
   );
 }

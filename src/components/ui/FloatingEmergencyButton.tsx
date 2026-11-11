@@ -26,14 +26,14 @@ export function FloatingEmergencyButton() {
     >
       <Link
         to="/emergency"
-        className="group relative flex items-center gap-2 rounded-full bg-accent px-5 py-3 text-[13px] font-semibold text-white shadow-[0_16px_34px_-16px_rgba(201,83,44,0.9)] transition-all hover:-translate-y-0.5"
+        className="group relative flex items-center gap-2 rounded-full bg-[#E95A35] px-5 py-3 text-[13px] font-semibold text-white shadow-[0_16px_34px_-14px_rgba(233,90,53,0.8)] transition-all hover:-translate-y-0.5 hover:bg-[#D14824]"
       >
         <motion.span
-          className="absolute inset-0 rounded-full bg-accent"
+          className="absolute inset-0 rounded-full bg-[#E95A35]"
           animate={{
             boxShadow: [
-              "0 0 0 0 rgba(201,83,44,0.45)",
-              "0 0 0 14px rgba(201,83,44,0)",
+              "0 0 0 0 rgba(233,90,53,0.45)",
+              "0 0 0 14px rgba(233,90,53,0)",
             ],
           }}
           transition={{

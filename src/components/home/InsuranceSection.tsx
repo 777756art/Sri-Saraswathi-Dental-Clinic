@@ -20,7 +20,7 @@ export function InsuranceSection() {
               <ShieldCheck className="h-3.5 w-3.5 text-primary-600" />
               Insurance &amp; payment
             </p>
-            <h2 className="mt-4 text-display-3 text-balance text-foreground">
+            <h2 className="mt-4 text-display-3 text-balance text-[#1F6878]">
               We work with all major insurers
             </h2>
             <p className="mt-3 text-pretty text-[15px] leading-relaxed text-muted-foreground">

@@ -95,7 +95,7 @@ export default function PatientsPage() {
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <span className="eyebrow"><span className="eyebrow-dot" /> Clinic workspace</span>
-          <h1 className="mt-3 text-display-3 text-foreground">Patient accounts</h1>
+          <h1 className="mt-3 text-display-3 text-[#1F6878]">Patient accounts</h1>
           <p className="mt-1.5 text-[13px] text-muted-foreground">
             Every account created on the website, with sign-in activity and appointment history.
           </p>

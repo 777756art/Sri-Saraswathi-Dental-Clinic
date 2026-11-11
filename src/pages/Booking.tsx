@@ -201,7 +201,7 @@ export default function BookingPage() {
         align="center"
         title={
           <>
-            Plan your visit <span className="italic text-primary-700">with confidence.</span>
+            Plan your visit <span className="italic text-[#1F6878]">with confidence.</span>
           </>
         }
         description="Choose a treatment and preferred time. The clinic team will review availability and confirm your appointment."
@@ -228,10 +228,10 @@ export default function BookingPage() {
                 <div key={s} className="flex items-center gap-1.5 sm:gap-2">
                   <div
                     className={cn(
-                      "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[13px] font-medium transition-colors",
+                      "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[13px] font-semibold transition-colors",
                       step >= s
-                        ? "bg-primary text-primary-foreground"
-                        : "border border-border bg-card text-muted-foreground",
+                        ? "bg-[#1F6878] text-white"
+                        : "border border-[#1F6878]/15 bg-white text-[#707574]",
                     )}
                   >
                     {step > s ? <CheckCircle className="h-4 w-4" /> : s}
@@ -239,29 +239,29 @@ export default function BookingPage() {
                   <span
                     className={cn(
                       "hidden text-[13px] md:inline",
-                      step >= s ? "font-medium text-foreground" : "text-muted-foreground",
+                      step >= s ? "font-semibold text-[#1F6878]" : "text-[#707574]",
                     )}
                   >
                     {steps[s - 1]}
                   </span>
                   {s < 4 && (
-                    <div className={cn("h-px w-4 shrink-0 sm:w-8", step > s ? "bg-primary-500" : "bg-border")} />
+                    <div className={cn("h-px w-4 shrink-0 sm:w-8", step > s ? "bg-[#1F6878]" : "bg-[#1F6878]/15")} />
                   )}
                 </div>
               ))}
             </div>
 
-            <div className="rounded-3xl border border-border/70 bg-card p-6 shadow-card md:p-9">
+            <div className="rounded-3xl border border-[#1F6878]/15 bg-white p-6 shadow-card md:p-9">
               {step === 1 && (
                 <div className="animate-fade-in">
-                  <h2 className="font-display text-2xl font-medium text-foreground">What brings you in?</h2>
-                  <p className="mt-1.5 text-[13px] text-muted-foreground">
-                    Booking as <span className="font-medium text-foreground">{user.firstName} {user.lastName}</span>. Pick
+                  <h2 className="font-display text-2xl font-bold text-[#1F6878]">What brings you in?</h2>
+                  <p className="mt-1.5 text-[13px] text-[#707574]">
+                    Booking as <span className="font-semibold text-[#1F6878]">{user.firstName} {user.lastName}</span>. Pick
                     the closest option — we can adjust later.
                   </p>
                   {!meta ? (
-                    <div className="mt-8 flex items-center gap-3 text-[13px] text-muted-foreground">
-                      <Loader2 className="h-4 w-4 animate-spin" /> Loading services…
+                    <div className="mt-8 flex items-center gap-3 text-[13px] text-[#707574]">
+                      <Loader2 className="h-4 w-4 animate-spin text-[#1F6878]" /> Loading services…
                     </div>
                   ) : (
                     <div className="mt-6 grid gap-2.5 sm:grid-cols-2">
@@ -276,8 +276,8 @@ export default function BookingPage() {
                           className={cn(
                             "rounded-xl border px-4 py-3.5 text-left text-[13px] font-medium transition-all",
                             service === s.value
-                              ? "border-primary-600 bg-primary-50 text-primary-800"
-                              : "border-border text-foreground/80 hover:-translate-y-0.5 hover:border-primary-300 hover:bg-primary-50/50 hover:shadow-soft",
+                              ? "border-[#1F6878] bg-[#E4F0F2] text-[#1F6878] font-semibold"
+                              : "border-[#1F6878]/12 text-[#1F6878]/85 hover:-translate-y-0.5 hover:border-[#1F6878] hover:bg-[#E4F0F2]/55 hover:shadow-soft",
                           )}
                         >
                           {s.label}
@@ -292,12 +292,12 @@ export default function BookingPage() {
                 <div className="animate-fade-in">
                   <div className="flex flex-wrap items-end justify-between gap-3">
                     <div>
-                      <h2 className="font-display text-2xl font-medium text-foreground">Pick a date & time</h2>
-                      <p className="mt-1.5 text-[13px] text-muted-foreground">
+                      <h2 className="font-display text-2xl font-bold text-[#1F6878]">Pick a date & time</h2>
+                      <p className="mt-1.5 text-[13px] text-[#707574]">
                         Live availability — reserved slots disappear instantly.
                       </p>
                     </div>
-                    <span className="rounded-full bg-secondary-50 px-3 py-1 text-[11px] font-medium text-muted-foreground">
+                    <span className="rounded-full bg-[#E4F0F2] px-3 py-1 text-[11px] font-semibold text-[#1F6878]">
                       {serviceLabel}
                     </span>
                   </div>
@@ -309,16 +309,16 @@ export default function BookingPage() {
                           type="button"
                           onClick={() => shiftMonth(-1)}
                           aria-label="Previous month"
-                          className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-secondary-100 hover:text-foreground"
+                          className="rounded-full p-1.5 text-[#707574] transition-colors hover:bg-[#E4F0F2] hover:text-[#1F6878]"
                         >
                           <ChevronLeft className="h-4 w-4" />
                         </button>
-                        <span className="text-[13px] font-semibold text-foreground">{monthLabel}</span>
+                        <span className="text-[13px] font-semibold text-[#1F6878]">{monthLabel}</span>
                         <button
                           type="button"
                           onClick={() => shiftMonth(1)}
                           aria-label="Next month"
-                          className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-secondary-100 hover:text-foreground"
+                          className="rounded-full p-1.5 text-[#707574] transition-colors hover:bg-[#E4F0F2] hover:text-[#1F6878]"
                         >
                           <ChevronRight className="h-4 w-4" />
                         </button>
@@ -327,7 +327,7 @@ export default function BookingPage() {
                         {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d) => (
                           <div
                             key={d}
-                            className="py-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
+                            className="py-1 text-[10px] font-medium uppercase tracking-wider text-[#707574]"
                           >
                             {d}
                           </div>
@@ -350,10 +350,10 @@ export default function BookingPage() {
                               className={cn(
                                 "flex h-9 items-center justify-center rounded-full text-[13px] transition-colors",
                                 selectedDay === day
-                                  ? "bg-primary font-medium text-primary-foreground"
+                                  ? "bg-[#1F6878] font-semibold text-white"
                                   : isPast || isClosed
-                                    ? "cursor-not-allowed text-muted-foreground/35"
-                                    : "text-foreground/80 hover:bg-primary-50 hover:text-primary-700",
+                                    ? "cursor-not-allowed text-[#707574]/40"
+                                    : "text-[#1F6878] hover:bg-[#E4F0F2] hover:text-[#1F6878]",
                               )}
                             >
                               {day}
@@ -361,23 +361,23 @@ export default function BookingPage() {
                           );
                         })}
                       </div>
-                      <p className="mt-3 text-[11px] text-muted-foreground">
+                      <p className="mt-3 text-[11px] text-[#707574]">
                         Closed on Sundays · slots hold 2 patients each.
                       </p>
                     </div>
 
                     <div>
-                      <p className="mb-3 text-[12px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                      <p className="mb-3 text-[12px] font-medium uppercase tracking-[0.12em] text-[#1F6878]">
                         Available times
                       </p>
                       {!selectedDay && (
-                        <p className="rounded-xl border border-dashed border-border px-4 py-6 text-center text-[12.5px] text-muted-foreground">
+                        <p className="rounded-xl border border-dashed border-[#1F6878]/25 px-4 py-6 text-center text-[12.5px] text-[#707574]">
                           Choose a date to see live slots.
                         </p>
                       )}
                       {selectedDay && slotsLoading && (
-                        <div className="flex items-center gap-2 px-1 py-3 text-[12.5px] text-muted-foreground">
-                          <Loader2 className="h-4 w-4 animate-spin" /> Checking availability…
+                        <div className="flex items-center gap-2 px-1 py-3 text-[12.5px] text-[#707574]">
+                          <Loader2 className="h-4 w-4 animate-spin text-[#1F6878]" /> Checking availability…
                         </div>
                       )}
                       {selectedDay && !slotsLoading && availability && !availability.closed && (
@@ -392,10 +392,10 @@ export default function BookingPage() {
                               className={cn(
                                 "rounded-full border px-2 py-2 text-[12px] transition-colors",
                                 selectedTime === slot.time
-                                  ? "border-primary-600 bg-primary-50 font-medium text-primary-800"
+                                  ? "border-[#1F6878] bg-[#E4F0F2] font-semibold text-[#1F6878]"
                                   : slot.remaining === 0
-                                    ? "cursor-not-allowed border-border/60 text-muted-foreground/40 line-through"
-                                    : "border-border text-foreground/70 hover:border-primary-300 hover:bg-primary-50/60",
+                                    ? "cursor-not-allowed border-[#1F6878]/10 text-[#707574]/45 line-through"
+                                    : "border-[#1F6878]/15 text-[#1F6878]/80 hover:border-[#1F6878] hover:bg-[#E4F0F2]/60",
                               )}
                             >
                               {slot.time}
@@ -424,8 +424,8 @@ export default function BookingPage() {
 
               {step === 3 && (
                 <div className="animate-fade-in">
-                  <h2 className="font-display text-2xl font-medium text-foreground">A few details</h2>
-                  <p className="mt-1.5 text-[13px] text-muted-foreground">
+                  <h2 className="font-display text-2xl font-bold text-[#1F6878]">A few details</h2>
+                  <p className="mt-1.5 text-[13px] text-[#707574]">
                     We use these to confirm your visit and send WhatsApp updates.
                   </p>
                   <div className="mt-6 grid gap-4 sm:grid-cols-2">
@@ -483,8 +483,8 @@ export default function BookingPage() {
                       />
                     </div>
                   </div>
-                  <div className="mt-5 rounded-xl border border-border/70 bg-secondary-50/60 px-4 py-3 text-[12.5px] text-foreground/75">
-                    <span className="font-medium text-foreground">{serviceLabel}</span> ·{" "}
+                  <div className="mt-5 rounded-xl border border-[#1F6878]/15 bg-[#E4F0F2]/60 px-4 py-3 text-[12.5px] text-[#15191B]/80">
+                    <span className="font-semibold text-[#15191B]">{serviceLabel}</span> ·{" "}
                     {selectedISO
                       ? new Date(`${selectedISO}T00:00:00`).toLocaleDateString("en-IN", {
                           weekday: "short",
@@ -500,16 +500,16 @@ export default function BookingPage() {
 
               {step === 4 && confirmed && (
                 <div className="animate-fade-in text-center">
-                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#E4F0F2] text-[#1F6878]">
                     <CheckCircle className="h-8 w-8" />
                   </div>
-                  <h2 className="mt-5 font-display text-2xl font-medium text-foreground">You&apos;re booked</h2>
-                  <p className="mx-auto mt-2 max-w-sm text-[14px] leading-relaxed text-muted-foreground">
-                    Booking <span className="font-semibold text-foreground">{confirmed.ref}</span> is saved. The clinic
+                  <h2 className="mt-5 font-display text-2xl font-bold text-[#1F6878]">You&apos;re booked</h2>
+                  <p className="mx-auto mt-2 max-w-sm text-[14px] leading-relaxed text-[#707574]">
+                    Booking <span className="font-semibold text-[#1F6878]">{confirmed.ref}</span> is saved. The clinic
                     has been notified — send the confirmation on WhatsApp so it&apos;s in your chat too.
                   </p>
 
-                  <div className="mx-auto mt-6 max-w-sm divide-y divide-border/70 rounded-2xl border border-border/70 bg-secondary-50/60 px-5 text-left">
+                  <div className="mx-auto mt-6 max-w-sm divide-y divide-[#1F6878]/15 rounded-2xl border border-[#1F6878]/15 bg-[#E4F0F2]/50 px-5 text-left">
                     {[
                       { label: "Service", value: confirmed.serviceLabel },
                       { label: "Date", value: confirmed.dateLabel },
@@ -519,22 +519,22 @@ export default function BookingPage() {
                       { label: "Status", value: confirmed.statusLabel },
                     ].map((row) => (
                       <div key={row.label} className="flex items-center justify-between gap-4 py-3 text-[13px]">
-                        <span className="text-muted-foreground">{row.label}</span>
-                        <span className="text-right font-medium text-foreground">{row.value}</span>
+                        <span className="text-[#707574]">{row.label}</span>
+                        <span className="text-right font-semibold text-[#1F6878]">{row.value}</span>
                       </div>
                     ))}
                   </div>
 
                   <div className="mx-auto mt-6 flex max-w-sm flex-col gap-2.5">
                     {confirmed.whatsapp?.patient && (
-                      <Button asChild size="lg" className="bg-emerald-600 hover:bg-emerald-700">
+                      <Button asChild variant="success" size="lg">
                         <a href={confirmed.whatsapp.patient} target="_blank" rel="noopener noreferrer">
                           <MessageCircle className="h-4 w-4" /> Send confirmation on WhatsApp
                         </a>
                       </Button>
                     )}
                     {confirmed.whatsapp?.clinic && (
-                      <Button asChild variant="outline" size="lg">
+                      <Button asChild variant="success" size="lg">
                         <a href={confirmed.whatsapp.clinic} target="_blank" rel="noopener noreferrer">
                           <MessageCircle className="h-4 w-4" /> Message the clinic
                         </a>

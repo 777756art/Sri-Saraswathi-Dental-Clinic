@@ -17,7 +17,7 @@ function BlogPreview({ draft }: { draft: ContentDraft }) {
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-primary-700">
             {draft.category || "Dental care"}
           </p>
-          <h3 className="mt-2 font-display text-[21px] leading-snug text-foreground">{draft.title || "Article title"}</h3>
+          <h3 className="mt-2 font-display text-[21px] leading-snug text-[#1F6878]">{draft.title || "Article title"}</h3>
           {draft.excerpt && <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">{draft.excerpt}</p>}
           <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11.5px] text-muted-foreground">
             <span className="inline-flex items-center gap-1.5">

@@ -166,32 +166,32 @@ export function WhatsAppAutomationSettings() {
   return (
     <div className="space-y-6">
       {/* Overview Hero Card */}
-      <div className="relative overflow-hidden rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-white p-6 shadow-sm">
+      <div className="relative overflow-hidden rounded-2xl border border-[#1F6878]/15 bg-gradient-to-br from-[#E4F0F2] via-[#F5F2EB] to-white p-6 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-start gap-4">
-            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-emerald-600 text-white shadow-md shadow-emerald-600/20">
+            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#1F6878] text-[#E4F0F2] shadow-md shadow-[#1F6878]/15">
               <MessageSquare className="h-6 w-6" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="font-display text-xl font-bold text-foreground">
+                <h2 className="font-display text-xl font-bold text-[#1F6878]">
                   Official Meta WhatsApp Cloud API &amp; n8n Automation
                 </h2>
                 <Badge variant={isLiveConfigured ? "success" : "warning"}>
                   {isLiveConfigured ? "Live Dispatch Ready" : "Simulation Mode (Credentials Needed)"}
                 </Badge>
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">
+              <p className="mt-1 text-xs text-[#707574]">
                 Automatic instant alerts for new bookings, admin confirmations, rejections, rescheduling, and 24h reminders.
               </p>
               <div className="mt-3 flex flex-wrap items-center gap-4 text-xs">
-                <span className="inline-flex items-center gap-1.5 font-medium text-emerald-800">
-                  <Smartphone className="h-3.5 w-3.5 text-emerald-600" />
-                  Clinic Recipient: <strong className="font-semibold text-emerald-900">+91 {settings.clinicPhone}</strong>
+                <span className="inline-flex items-center gap-1.5 font-medium text-[#1F6878]">
+                  <Smartphone className="h-3.5 w-3.5 text-[#1F6878]" />
+                  Clinic Recipient: <strong className="font-semibold text-[#1F6878]">+91 {settings.clinicPhone}</strong>
                 </span>
-                <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-                  <Server className="h-3.5 w-3.5 text-secondary-500" />
-                  Active Engine: <strong className="uppercase text-foreground">{settings.provider}</strong>
+                <span className="inline-flex items-center gap-1.5 text-[#707574]">
+                  <Server className="h-3.5 w-3.5 text-[#1F6878]" />
+                  Active Engine: <strong className="uppercase text-[#1F6878]">{settings.provider}</strong>
                 </span>
               </div>
             </div>
@@ -206,16 +206,14 @@ export function WhatsAppAutomationSettings() {
                 setTestResult(null);
                 setTestModalOpen(true);
               }}
-              className="border-emerald-300 text-emerald-800 hover:bg-emerald-50"
             >
-              <Send className="h-3.5 w-3.5 text-emerald-600" /> Send Test Notification
+              <Send className="h-3.5 w-3.5 text-[#1F6878]" /> Send Test Notification
             </Button>
             <Button
               type="button"
               size="sm"
               loading={saving}
               onClick={() => void handleSave()}
-              className="bg-emerald-600 hover:bg-emerald-700"
             >
               Save Configuration
             </Button>
@@ -268,7 +266,7 @@ export function WhatsAppAutomationSettings() {
 
             <div className="grid gap-3 sm:grid-cols-2 pt-1">
               <div className="rounded-xl border border-secondary-200 bg-secondary-50/50 p-3.5">
-                <h4 className="font-semibold text-foreground">Option A: n8n Webhook + Test Sender (Ready Instantly)</h4>
+                <h4 className="font-semibold text-[#1F6878]">Option A: n8n Webhook + Test Sender (Ready Instantly)</h4>
                 <p className="mt-1">
                   1. Deploy your n8n workflow using the template provided at <code className="rounded bg-secondary-200 px-1 py-0.5 text-[11px]">n8n/whatsapp-appointment-automation.json</code>.<br />
                   2. Paste your n8n Webhook URL below.<br />
@@ -277,7 +275,7 @@ export function WhatsAppAutomationSettings() {
               </div>
 
               <div className="rounded-xl border border-secondary-200 bg-secondary-50/50 p-3.5">
-                <h4 className="font-semibold text-foreground">Option B: Official Meta WhatsApp Cloud API</h4>
+                <h4 className="font-semibold text-[#1F6878]">Option B: Official Meta WhatsApp Cloud API</h4>
                 <p className="mt-1">
                   1. Create a Meta Business App at <a href="https://developers.facebook.com" target="_blank" rel="noreferrer" className="text-emerald-700 underline font-medium">developers.facebook.com</a>.<br />
                   2. Add WhatsApp product &amp; complete Meta Business Verification.<br />
@@ -296,7 +294,7 @@ export function WhatsAppAutomationSettings() {
         <div className="space-y-6 lg:col-span-2">
           {/* Automation Switch & Recipient Card */}
           <div className="rounded-2xl border border-secondary-200 bg-card p-5 shadow-soft">
-            <h3 className="text-sm font-semibold text-foreground mb-4">1. Clinic WhatsApp Recipient &amp; Status</h3>
+            <h3 className="text-sm font-semibold text-[#1F6878] mb-4">1. Clinic WhatsApp Recipient &amp; Status</h3>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <Input
@@ -329,7 +327,7 @@ export function WhatsAppAutomationSettings() {
                   checked={settings.enabled}
                   onChange={(e) => setSettings({ ...settings, enabled: e.target.checked })}
                 />
-                <div className="peer h-6 w-11 rounded-full bg-secondary-300 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-secondary-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-emerald-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none" />
+                <div className="peer h-6 w-11 rounded-full bg-secondary-300 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-secondary-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-[#1F6878] peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none" />
               </label>
             </div>
           </div>
@@ -337,7 +335,7 @@ export function WhatsAppAutomationSettings() {
           {/* Engine & Provider Settings */}
           <div className="rounded-2xl border border-secondary-200 bg-card p-5 shadow-soft space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-foreground">2. Automation Engine &amp; Webhook Credentials</h3>
+              <h3 className="text-sm font-semibold text-[#1F6878]">2. Automation Engine &amp; Webhook Credentials</h3>
               <Select
                 value={settings.provider}
                 onChange={(e) => setSettings({ ...settings, provider: e.target.value as WhatsAppSettings["provider"] })}
@@ -354,23 +352,23 @@ export function WhatsAppAutomationSettings() {
 
 
             {settings.provider === "green_api" && (
-              <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-4 space-y-3">
+              <div className="rounded-xl border border-[#1F6878]/20 bg-[#E4F0F2]/55 p-4 space-y-3">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-emerald-950">
-                    <Smartphone className="h-4 w-4 text-emerald-600" />
+                  <div className="flex items-center gap-2 text-xs font-semibold text-[#1F6878]">
+                    <Smartphone className="h-4 w-4 text-[#1F6878]" />
                     Green-API Configuration (Instant QR Scan — Zero Meta Account Needed)
                   </div>
                   <a
                     href="https://console.green-api.com"
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 hover:underline"
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#1F6878] hover:underline"
                   >
                     Open Green-API Console ↗
                   </a>
                 </div>
-                <p className="text-[11px] text-muted-foreground">
-                  1. Go to <a href="https://console.green-api.com" target="_blank" rel="noreferrer" className="text-emerald-700 underline font-medium">console.green-api.com</a> and create a free account.<br />
+                <p className="text-[11px] text-[#707574]">
+                  1. Go to <a href="https://console.green-api.com" target="_blank" rel="noreferrer" className="text-[#1F6878] underline font-medium">console.green-api.com</a> and create a free account.<br />
                   2. Scan the on-screen QR code using your WhatsApp app (<em>Linked Devices &gt; Link a Device</em>).<br />
                   3. Copy your <strong>idInstance</strong> and <strong>apiTokenInstance</strong> and paste them here:
                 </p>
@@ -560,7 +558,7 @@ export function WhatsAppAutomationSettings() {
         {/* Right Column: Event Toggles & Quick Stats */}
         <div className="space-y-6">
           <div className="rounded-2xl border border-secondary-200 bg-card p-5 shadow-soft space-y-4">
-            <h3 className="text-sm font-semibold text-foreground">Automated Event Toggles</h3>
+            <h3 className="text-sm font-semibold text-[#1F6878]">Automated Event Toggles</h3>
             <p className="text-[11px] text-muted-foreground">Select which events trigger automated WhatsApp messages.</p>
 
             <div className="space-y-3">
@@ -589,16 +587,16 @@ export function WhatsAppAutomationSettings() {
           </div>
 
           <div className="rounded-2xl border border-secondary-200 bg-card p-5 shadow-soft space-y-3">
-            <h3 className="text-sm font-semibold text-foreground">Delivery Summary</h3>
+            <h3 className="text-sm font-semibold text-[#1F6878]">Delivery Summary</h3>
             <div className="grid grid-cols-2 gap-2 text-center text-xs">
-              <div className="rounded-xl bg-emerald-50 p-2.5 text-emerald-900 border border-emerald-100">
-                <span className="block text-lg font-bold text-emerald-700">
+              <div className="rounded-xl bg-[#E4F0F2] p-2.5 text-[#1F6878] border border-[#1F6878]/15">
+                <span className="block text-lg font-bold text-[#1F6878]">
                   {logs.filter((l) => l.status === "delivered").length}
                 </span>
                 Delivered
               </div>
-              <div className="rounded-xl bg-sky-50 p-2.5 text-sky-900 border border-sky-100">
-                <span className="block text-lg font-bold text-sky-700">
+              <div className="rounded-xl bg-[#E4F0F2]/75 p-2.5 text-[#1F6878] border border-[#E95A35]/15">
+                <span className="block text-lg font-bold text-[#E95A35]">
                   {logs.filter((l) => l.status === "simulated").length}
                 </span>
                 Simulated / Ready
@@ -615,7 +613,7 @@ export function WhatsAppAutomationSettings() {
       <div className="rounded-2xl border border-secondary-200 bg-card p-5 shadow-soft">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
           <div>
-            <h3 className="text-sm font-semibold text-foreground">Recent WhatsApp Delivery History &amp; Audit Trail</h3>
+            <h3 className="text-sm font-semibold text-[#1F6878]">Recent WhatsApp Delivery History &amp; Audit Trail</h3>
             <p className="text-[11px] text-muted-foreground">Real-time log of automated notifications sent to clinic and patients.</p>
           </div>
           <Button variant="outline" size="sm" onClick={() => void loadData()} loading={loading}>
@@ -650,24 +648,24 @@ export function WhatsAppAutomationSettings() {
                       {log.event}
                     </td>
                     <td className="px-3.5 py-2.5 whitespace-nowrap">
-                      <span className={log.recipientType === "clinic" ? "font-semibold text-emerald-800" : "text-foreground"}>
+                      <span className={log.recipientType === "clinic" ? "font-semibold text-[#1F6878]" : "text-[#1F6878]"}>
                         {log.recipient} {log.recipientType === "clinic" && "⭐ Clinic"}
                       </span>
                     </td>
                     <td className="px-3.5 py-2.5 whitespace-nowrap">
-                      {log.patientName} <span className="text-[10px] text-muted-foreground">({log.ref})</span>
+                      {log.patientName} <span className="text-[10px] text-[#707574]">({log.ref})</span>
                     </td>
-                    <td className="px-3.5 py-2.5 uppercase font-medium text-[10px] text-secondary-600">
+                    <td className="px-3.5 py-2.5 uppercase font-medium text-[10px] text-[#707574]">
                       {log.provider}
                     </td>
                     <td className="px-3.5 py-2.5 whitespace-nowrap">
                       {isDelivered && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-[#E4F0F2] px-2 py-0.5 text-[10px] font-semibold text-[#1F6878]">
                           <CheckCircle2 className="h-3 w-3" /> Delivered
                         </span>
                       )}
                       {isSimulated && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-semibold text-sky-800">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-[#E4F0F2] px-2 py-0.5 text-[10px] font-semibold text-[#E95A35]">
                           <Info className="h-3 w-3" /> Ready / Logged
                         </span>
                       )}
@@ -755,7 +753,7 @@ export function WhatsAppAutomationSettings() {
               Close
             </Button>
             <Button
-              className="bg-emerald-600 hover:bg-emerald-700"
+              variant="success"
               loading={testing}
               onClick={() => void handleTest()}
             >
@@ -775,7 +773,7 @@ export function WhatsAppAutomationSettings() {
       >
         {selectedLog && (
           <div className="space-y-4">
-            <div className="rounded-xl border border-emerald-100 bg-emerald-50/50 p-4 font-sans text-xs whitespace-pre-wrap text-emerald-950 leading-relaxed">
+            <div className="rounded-xl border border-[#1F6878]/15 bg-[#E4F0F2]/55 p-4 font-sans text-xs whitespace-pre-wrap text-[#1F6878] leading-relaxed">
               {selectedLog.message}
             </div>
             <div className="text-[11px] text-muted-foreground flex items-center justify-between">

@@ -196,7 +196,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         >
           <Link to="/dashboard" className="flex min-w-0 items-center justify-center">
             <img
-              src={collapsed ? clinicImages.logoMark : clinicImages.logo}
+              src={collapsed ? clinicImages.logoMark : clinicImages.logoLight}
               alt="Sri Saraswathi Dental Clinic"
               width={176}
               height={76}
@@ -208,7 +208,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             <button
               onClick={() => setCollapsed(true)}
               aria-label="Collapse sidebar"
-              className="hidden rounded-lg p-1.5 text-[#8a9999] transition-colors hover:bg-[#f3f6f5] hover:text-[#17494d] lg:block"
+              className="hidden rounded-lg p-1.5 text-[#E4F0F2]/75 transition-colors hover:bg-white/10 hover:text-white lg:block"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
@@ -219,7 +219,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           <button
             onClick={() => setCollapsed(false)}
             aria-label="Expand sidebar"
-            className="mx-auto mt-3 hidden rounded-lg p-1.5 text-[#8a9999] transition-colors hover:bg-[#f3f6f5] hover:text-[#17494d] lg:block"
+            className="mx-auto mt-3 hidden rounded-lg p-1.5 text-[#E4F0F2]/75 transition-colors hover:bg-white/10 hover:text-white lg:block"
           >
             <ChevronRight className="h-4 w-4" />
           </button>
@@ -245,12 +245,12 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                         className={cn(
                           "dashboard-nav-link group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-colors",
                           collapsed && "justify-center px-0",
-                          isActive ? "bg-white/10 text-white" : "text-white/50 hover:bg-white/[0.06] hover:text-white/85"
+                          isActive ? "bg-[#1F6878] text-white" : "text-white/75 hover:bg-white/10 hover:text-white"
                         )}
                       >
-                        <link.icon className={cn("h-[18px] w-[18px] shrink-0 transition-colors", isActive ? "text-primary-300" : "text-white/40 group-hover:text-white/70")} />
+                        <link.icon className={cn("h-[18px] w-[18px] shrink-0 transition-colors", isActive ? "text-[#E4F0F2]" : "text-white/60 group-hover:text-[#E4F0F2]")} />
                         {!collapsed && <span>{link.label}</span>}
-                        {!collapsed && isActive && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-accent" />}
+                        {!collapsed && isActive && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[#E4F0F2]" />}
                       </Link>
                     </li>
                   );
@@ -268,13 +268,13 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               collapsed && "justify-center px-0"
             )}
           >
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#e9f4f3] text-[12px] font-semibold text-[#17545a]">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#E4F0F2] text-[12px] font-semibold text-[#1F6878]">
               {initials}
             </span>
             {!collapsed && (
               <div className="min-w-0 flex-1">
-                <p className="truncate dashboard-user-name text-[13px] font-medium text-[#213e42]">{displayName}</p>
-                <p className="truncate text-[11px] text-[#839293]">
+                <p className="truncate dashboard-user-name text-[13px] font-medium text-white">{displayName}</p>
+                <p className="truncate text-[11px] text-[#E4F0F2]/70">
                   {user?.role === "admin" ? "Clinic administrator" : "Care team"}
                 </p>
               </div>
@@ -283,7 +283,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           <Link
             to="/"
             className={cn(
-              "mt-1 flex items-center gap-2 rounded-xl px-3 py-2 text-[12px] text-[#657779] transition-colors hover:bg-[#f2f6f5] hover:text-[#17494d]",
+              "mt-1 flex items-center gap-2 rounded-xl px-3 py-2 text-[12px] text-[#E4F0F2]/80 transition-colors hover:bg-white/10 hover:text-white",
               collapsed && "justify-center px-0"
             )}
           >
@@ -311,18 +311,18 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 <button
                   onClick={() => setMobileOpen(true)}
                   aria-label="Open menu"
-                  className="mt-1 rounded-lg p-1.5 text-[#315d61] transition hover:bg-white lg:hidden"
+                  className="mt-1 rounded-lg p-1.5 text-[#1F6878] transition hover:bg-[#E4F0F2] lg:hidden"
                 >
                   <Menu className="h-5 w-5" />
                 </button>
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-accent">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#1F6878]">
                     {new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" })}
                   </p>
-                  <h1 className="mt-2 font-display text-[clamp(1.8rem,3.1vw,2.8rem)] font-medium leading-[1.08] tracking-[-0.035em] text-[#17484d]">
+                  <h1 className="mt-2 font-display text-[clamp(1.8rem,3.1vw,2.8rem)] font-bold leading-[1.08] tracking-[-0.03em] text-[#1F6878]">
                     Welcome back, {user?.firstName || "Admin"}
                   </h1>
-                  <p className="mt-2 text-[13px] text-[#829297] sm:text-[14px]">
+                  <p className="mt-2 text-[13px] text-[#707574] sm:text-[14px]">
                     Manage clinic appointments and website content from one calm workspace.
                   </p>
                 </div>
@@ -334,27 +334,27 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                     onClick={() => { setNotificationsOpen((value) => !value); setProfileOpen(false); }}
                     aria-label="Notifications"
                     aria-expanded={notificationsOpen}
-                    className="relative grid h-10 w-10 place-items-center rounded-full border border-[#eee6df] bg-white text-[#60777a] transition hover:border-[#efb8d0] hover:text-accent"
+                    className="relative grid h-10 w-10 place-items-center rounded-full border border-[#dce4e5] bg-white text-[#1F6878] transition hover:border-[#1F6878] hover:text-[#1F6878]"
                   >
                     <Bell className="h-4 w-4" />
-                    {unreadCount > 0 && <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-accent ring-2 ring-white" />}
+                    {unreadCount > 0 && <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-[#E95A35] ring-2 ring-white" />}
                   </button>
                   {notificationsOpen && (
-                    <div className="absolute right-0 top-full z-50 mt-3 w-[min(340px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-[#ece4db] bg-white shadow-lift">
-                      <div className="flex items-center justify-between border-b border-[#f0ebe5] px-4 py-3">
-                        <p className="text-[13px] font-semibold text-[#24464a]">Notifications</p>
-                        <button onClick={() => setNotifications((items) => items.map((item) => ({ ...item, unread: false })))} className="text-[11px] font-semibold text-[#17545a]">Mark all read</button>
+                    <div className="absolute right-0 top-full z-50 mt-3 w-[min(340px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-[#dce4e5] bg-white shadow-lift">
+                      <div className="flex items-center justify-between border-b border-[#E4F0F2] px-4 py-3">
+                        <p className="text-[13px] font-semibold text-[#1F6878]">Notifications</p>
+                        <button onClick={() => setNotifications((items) => items.map((item) => ({ ...item, unread: false })))} className="text-[11px] font-semibold text-[#1F6878] hover:text-[#1F6878]">Mark all read</button>
                       </div>
                       <ul className="max-h-72 overflow-y-auto">
                         {notifications.map((item) => (
-                          <li key={item.id} className="border-b border-[#f3eee9] px-4 py-3 last:border-0">
-                            <p className="text-[12px] font-semibold text-[#24464a]">{item.title}</p>
-                            <p className="mt-1 text-[11px] leading-relaxed text-[#829297]">{item.detail}</p>
-                            <p className="mt-1 text-[10px] uppercase tracking-[0.08em] text-[#a1abad]">{item.time}</p>
+                          <li key={item.id} className="border-b border-[#E4F0F2] px-4 py-3 last:border-0">
+                            <p className="text-[12px] font-semibold text-[#1F6878]">{item.title}</p>
+                            <p className="mt-1 text-[11px] leading-relaxed text-[#707574]">{item.detail}</p>
+                            <p className="mt-1 text-[10px] uppercase tracking-[0.08em] text-[#707574]/75">{item.time}</p>
                           </li>
                         ))}
                       </ul>
-                      <Link to="/dashboard/appointments" className="block px-4 py-3 text-center text-[11px] font-semibold text-[#17545a] hover:bg-[#f8f7f4]">View appointment requests</Link>
+                      <Link to="/dashboard/appointments" className="block px-4 py-3 text-center text-[11px] font-semibold text-[#1F6878] hover:bg-[#E4F0F2]/50">View appointment requests</Link>
                     </div>
                   )}
                 </div>
@@ -364,23 +364,23 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                     onClick={() => { setProfileOpen((value) => !value); setNotificationsOpen(false); }}
                     aria-label="Account menu"
                     aria-expanded={profileOpen}
-                    className="flex items-center gap-2.5 rounded-full px-1 py-1 text-left transition hover:bg-white/70"
+                    className="flex items-center gap-2.5 rounded-full px-1 py-1 text-left transition hover:bg-[#E4F0F2]/60"
                   >
-                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#e4f2f0] text-[12px] font-bold text-[#17545a]">{initials}</span>
+                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#E4F0F2] text-[12px] font-bold text-[#1F6878]">{initials}</span>
                     <span className="hidden sm:block">
-                      <span className="block max-w-36 truncate text-[12px] font-bold leading-tight text-[#31494c]">{displayName}</span>
-                      <span className="mt-1 block text-[10px] text-[#8a989a]">Admin</span>
+                      <span className="block max-w-36 truncate text-[12px] font-bold leading-tight text-[#1F6878]">{displayName}</span>
+                      <span className="mt-1 block text-[10px] text-[#707574]">Admin</span>
                     </span>
                   </button>
                   {profileOpen && (
-                    <div className="absolute right-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-2xl border border-[#ece4db] bg-white shadow-lift">
-                      <div className="border-b border-[#f0ebe5] px-4 py-3">
-                        <p className="truncate text-[13px] font-semibold text-[#24464a]">{displayName}</p>
-                        <p className="truncate text-[11px] text-[#829297]">{user?.email}</p>
+                    <div className="absolute right-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-2xl border border-[#dce4e5] bg-white shadow-lift">
+                      <div className="border-b border-[#E4F0F2] px-4 py-3">
+                        <p className="truncate text-[13px] font-semibold text-[#1F6878]">{displayName}</p>
+                        <p className="truncate text-[11px] text-[#707574]">{user?.email}</p>
                       </div>
-                      <Link to="/dashboard/settings" className="flex items-center gap-2.5 px-4 py-2.5 text-[12px] text-[#41575a] hover:bg-[#f8f7f4]"><Settings className="h-4 w-4" /> Website settings</Link>
-                      <Link to="/" className="flex items-center gap-2.5 px-4 py-2.5 text-[12px] text-[#41575a] hover:bg-[#f8f7f4]"><ExternalLink className="h-4 w-4" /> View website</Link>
-                      <button onClick={handleSignOut} className="flex w-full items-center gap-2.5 border-t border-[#f0ebe5] px-4 py-2.5 text-left text-[12px] text-rose-700 hover:bg-rose-50"><LogOut className="h-4 w-4" /> Sign out</button>
+                      <Link to="/dashboard/settings" className="flex items-center gap-2.5 px-4 py-2.5 text-[12px] text-[#1F6878] hover:bg-[#E4F0F2]/60"><Settings className="h-4 w-4 text-[#1F6878]" /> Website settings</Link>
+                      <Link to="/" className="flex items-center gap-2.5 px-4 py-2.5 text-[12px] text-[#1F6878] hover:bg-[#E4F0F2]/60"><ExternalLink className="h-4 w-4 text-[#1F6878]" /> View website</Link>
+                      <button onClick={handleSignOut} className="flex w-full items-center gap-2.5 border-t border-[#E4F0F2] px-4 py-2.5 text-left text-[12px] text-[#E95A35] hover:bg-[#E4F0F2]/60"><LogOut className="h-4 w-4" /> Sign out</button>
                     </div>
                   )}
                 </div>

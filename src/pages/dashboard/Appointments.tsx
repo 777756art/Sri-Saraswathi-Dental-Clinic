@@ -112,68 +112,68 @@ function AppointmentCalendar({ bookings, onBlock }: { bookings: Booking[]; onBlo
     <section className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <button type="button" onClick={() => moveAnchor(-1)} aria-label="Previous period" className="grid h-9 w-9 place-items-center rounded-lg border border-[#e9e4df] bg-white text-[#60777a] hover:bg-[#f7f6f3]"><ChevronLeft className="h-4 w-4" /></button>
-          <button type="button" onClick={() => setAnchor(new Date())} className="h-9 rounded-lg border border-[#e9e4df] bg-white px-4 text-[11px] font-semibold text-[#36585c] hover:bg-[#f7f6f3]">Today</button>
-          <button type="button" onClick={() => moveAnchor(1)} aria-label="Next period" className="grid h-9 w-9 place-items-center rounded-lg border border-[#e9e4df] bg-white text-[#60777a] hover:bg-[#f7f6f3]"><ChevronRight className="h-4 w-4" /></button>
-          <h2 className="ml-1 text-[13px] font-semibold text-[#324e52] sm:text-[14px]">{rangeLabel}</h2>
+          <button type="button" onClick={() => moveAnchor(-1)} aria-label="Previous period" className="grid h-9 w-9 place-items-center rounded-lg border border-[#1F6878]/20 bg-white text-[#1F6878] hover:bg-[#E4F0F2]"><ChevronLeft className="h-4 w-4" /></button>
+          <button type="button" onClick={() => setAnchor(new Date())} className="h-9 rounded-lg border border-[#1F6878]/20 bg-white px-4 text-[11px] font-semibold text-[#1F6878] hover:bg-[#E4F0F2]">Today</button>
+          <button type="button" onClick={() => moveAnchor(1)} aria-label="Next period" className="grid h-9 w-9 place-items-center rounded-lg border border-[#1F6878]/20 bg-white text-[#1F6878] hover:bg-[#E4F0F2]"><ChevronRight className="h-4 w-4" /></button>
+          <h2 className="ml-1 text-[13px] font-semibold text-[#1F6878] sm:text-[14px]">{rangeLabel}</h2>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex rounded-lg border border-[#e9e4df] bg-white p-1">
-            {(["day", "week", "month"] as const).map((value) => <button key={value} type="button" onClick={() => setMode(value)} aria-pressed={mode === value} className={`rounded-md px-3 py-1.5 text-[11px] font-medium capitalize transition ${mode === value ? "bg-[#1d565d] text-white" : "text-[#718286] hover:bg-[#f7f6f3]"}`}>{value}</button>)}
+          <div className="flex rounded-lg border border-[#1F6878]/20 bg-white p-1">
+            {(["day", "week", "month"] as const).map((value) => <button key={value} type="button" onClick={() => setMode(value)} aria-pressed={mode === value} className={`rounded-md px-3 py-1.5 text-[11px] font-medium capitalize transition ${mode === value ? "bg-[#1F6878] text-white" : "text-[#707574] hover:bg-[#E4F0F2] hover:text-[#1F6878]"}`}>{value}</button>)}
           </div>
-          <button type="button" onClick={() => onBlock("range")} className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#e9e4df] bg-white px-3 text-[11px] font-semibold text-[#36585c] hover:bg-[#f7f6f3]"><Clock3 className="h-3.5 w-3.5" /> Block time</button>
+          <button type="button" onClick={() => onBlock("range")} className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#1F6878]/20 bg-white px-3 text-[11px] font-semibold text-[#1F6878] hover:bg-[#E4F0F2]"><Clock3 className="h-3.5 w-3.5 text-[#1F6878]" /> Block time</button>
         </div>
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">
-        <div className="flex items-center justify-between rounded-[16px] border border-[#ece4db] bg-white px-5 py-4 shadow-soft">
-          <div><p className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#94a0a4]">Today&apos;s appointments</p><p className="mt-1 font-display text-[18px] text-[#24464a]">{todayAppointments.length} appointments</p><p className="mt-1 text-[10.5px] text-[#87969a]">{todayAppointments.filter((item) => item.status === "confirmed").length} confirmed · {todayAppointments.filter((item) => item.status === "pending").length} new</p></div>
-          <span className="grid h-10 w-10 place-items-center rounded-full bg-[#eaf5fb] text-[#2381a9]"><Calendar className="h-4 w-4" /></span>
+        <div className="flex items-center justify-between rounded-[16px] border border-[#1F6878]/15 bg-white px-5 py-4 shadow-soft">
+          <div><p className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#1F6878]">Today&apos;s appointments</p><p className="mt-1 font-display text-[18px] font-bold text-[#1F6878]">{todayAppointments.length} appointments</p><p className="mt-1 text-[10.5px] text-[#707574]">{todayAppointments.filter((item) => item.status === "confirmed").length} confirmed · {todayAppointments.filter((item) => item.status === "pending").length} new</p></div>
+          <span className="grid h-10 w-10 place-items-center rounded-full bg-[#E4F0F2] text-[#1F6878]"><Calendar className="h-4 w-4" /></span>
         </div>
-        <div className="flex items-center justify-between rounded-[16px] border border-[#ece4db] bg-white px-5 py-4 shadow-soft">
-          <div><p className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#94a0a4]">Next up {nextAppointment ? `(${nextAppointment.time})` : ""}</p><p className="mt-1 font-display text-[18px] text-[#24464a]">{nextAppointment?.patientName ?? "No upcoming appointments"}</p><p className="mt-1 text-[10.5px] text-[#87969a]">{nextAppointment ? `${nextAppointment.serviceLabel} · ${nextAppointment.dentist}` : "New bookings appear here automatically"}</p></div>
-          <span className="grid h-10 w-10 place-items-center rounded-full bg-[#eef5ff] text-[#3686c4]"><ChevronRight className="h-4 w-4" /></span>
+        <div className="flex items-center justify-between rounded-[16px] border border-[#1F6878]/15 bg-white px-5 py-4 shadow-soft">
+          <div><p className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#1F6878]">Next up {nextAppointment ? `(${nextAppointment.time})` : ""}</p><p className="mt-1 font-display text-[18px] font-bold text-[#1F6878]">{nextAppointment?.patientName ?? "No upcoming appointments"}</p><p className="mt-1 text-[10.5px] text-[#707574]">{nextAppointment ? `${nextAppointment.serviceLabel} · ${nextAppointment.dentist}` : "New bookings appear here automatically"}</p></div>
+          <span className="grid h-10 w-10 place-items-center rounded-full bg-[#E4F0F2] text-[#1F6878]"><ChevronRight className="h-4 w-4" /></span>
         </div>
       </div>
 
       {mode === "month" ? (
-        <div className="overflow-hidden rounded-[18px] border border-[#e7e9ec] bg-white shadow-soft">
-          <div className="grid grid-cols-7 border-b border-[#eceef0] bg-[#fcfbfa] text-center text-[9px] font-bold uppercase tracking-[0.1em] text-[#9aa4ad]">{["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => <span key={day} className="py-3">{day}</span>)}</div>
+        <div className="overflow-hidden rounded-[18px] border border-[#1F6878]/15 bg-white shadow-soft">
+          <div className="grid grid-cols-7 border-b border-[#E4F0F2] bg-[#F5F2EB] text-center text-[9px] font-bold uppercase tracking-[0.1em] text-[#707574]">{["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => <span key={day} className="py-3">{day}</span>)}</div>
           <div className="grid grid-cols-7">
             {days.map((date) => {
               const key = dateKey(date);
               const dayBookings = bookings.filter((booking) => booking.date === key);
-              return <button key={key} type="button" onClick={() => { setAnchor(date); setMode("day"); }} className={`min-h-[92px] border-b border-r border-[#f0f1f2] p-2 text-left transition hover:bg-[#f7fbfa] ${date.getMonth() !== anchor.getMonth() ? "bg-[#fafafa] text-[#b0b8bc]" : "text-[#3b5559]"}`}><span className={`grid h-6 w-6 place-items-center rounded-full text-[10px] font-semibold ${key === todayKey ? "bg-[#1d565d] text-white" : ""}`}>{date.getDate()}</span>{dayBookings.slice(0, 2).map((booking) => <span key={booking.id} className="mt-1 block truncate rounded bg-[#e9f6f1] px-1.5 py-1 text-[9px] font-medium text-[#178366]">{booking.time} · {booking.patientName}</span>)}{dayBookings.length > 2 && <span className="mt-1 block text-[9px] text-[#829297]">+{dayBookings.length - 2} more</span>}</button>;
+              return <button key={key} type="button" onClick={() => { setAnchor(date); setMode("day"); }} className={`min-h-[92px] border-b border-r border-[#E4F0F2]/70 p-2 text-left transition hover:bg-[#E4F0F2]/35 ${date.getMonth() !== anchor.getMonth() ? "bg-[#F5F2EB] text-[#707574]/50" : "text-[#1F6878]"}`}><span className={`grid h-6 w-6 place-items-center rounded-full text-[10px] font-semibold ${key === todayKey ? "bg-[#1F6878] text-white" : ""}`}>{date.getDate()}</span>{dayBookings.slice(0, 2).map((booking) => <span key={booking.id} className="mt-1 block truncate rounded bg-[#E4F0F2] px-1.5 py-1 text-[9px] font-medium text-[#1F6878]">{booking.time} · {booking.patientName}</span>)}{dayBookings.length > 2 && <span className="mt-1 block text-[9px] text-[#707574]">+{dayBookings.length - 2} more</span>}</button>;
             })}
           </div>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-[18px] border border-[#e7e9ec] bg-white shadow-soft">
+        <div className="overflow-x-auto rounded-[18px] border border-[#1F6878]/15 bg-white shadow-soft">
           <div className="min-w-[850px]">
-            <div className="grid border-b border-[#eceef0] bg-[#fcfbfa]" style={{ gridTemplateColumns: `72px repeat(${days.length}, minmax(0, 1fr))` }}>
+            <div className="grid border-b border-[#E4F0F2] bg-[#F5F2EB]" style={{ gridTemplateColumns: `72px repeat(${days.length}, minmax(0, 1fr))` }}>
               <span />
-              {days.map((date) => <div key={dateKey(date)} className="py-3 text-center"><span className="block text-[9px] font-bold uppercase text-[#99a3ac]">{date.toLocaleDateString("en-US", { weekday: "short" })}</span><span className={`mx-auto mt-1 grid h-7 w-7 place-items-center rounded-full text-[11px] font-semibold ${dateKey(date) === todayKey ? "bg-[#1d565d] text-white" : "text-[#40595d]"}`}>{date.getDate()}</span></div>)}
+              {days.map((date) => <div key={dateKey(date)} className="py-3 text-center"><span className="block text-[9px] font-bold uppercase text-[#707574]">{date.toLocaleDateString("en-US", { weekday: "short" })}</span><span className={`mx-auto mt-1 grid h-7 w-7 place-items-center rounded-full text-[11px] font-semibold ${dateKey(date) === todayKey ? "bg-[#1F6878] text-white" : "text-[#1F6878]"}`}>{date.getDate()}</span></div>)}
             </div>
-            <div className="divide-y divide-[#f0f1f2]">
+            <div className="divide-y divide-[#E4F0F2]/70">
               {times.map((hour) => <div key={hour} className="grid min-h-[58px]" style={{ gridTemplateColumns: `72px repeat(${days.length}, minmax(0, 1fr))` }}>
-                <div className="px-3 pt-3 text-[10px] font-medium tabular-nums text-[#839198]">{String(hour % 12 || 12).padStart(2, "0")}:00</div>
+                <div className="px-3 pt-3 text-[10px] font-medium tabular-nums text-[#707574]">{String(hour % 12 || 12).padStart(2, "0")}:00</div>
                 {days.map((date) => {
                   const key = dateKey(date);
                   const appointments = bookings.filter((booking) => booking.date === key && hourFromTime(booking.time) === hour && booking.status !== "cancelled");
-                  return <div key={`${key}-${hour}`} className="border-l border-[#f0f1f2] p-1.5">{appointments.map((booking) => <div key={booking.id} className={`rounded-lg border-l-[3px] px-2 py-2 ${booking.status === "pending" ? "border-[#f39b35] bg-[#fff7eb]" : "border-[#17ad7c] bg-[#f1fbf7]"}`}><p className="truncate text-[9px] font-bold text-[#334d51]">{booking.time} · {booking.patientName}</p><p className="mt-0.5 truncate text-[8px] text-[#7e8e91]">{booking.serviceLabel} · {booking.dentist}</p></div>)}</div>;
+                  return <div key={`${key}-${hour}`} className="border-l border-[#E4F0F2]/70 p-1.5">{appointments.map((booking) => <div key={booking.id} className={`rounded-lg border-l-[3px] px-2 py-2 ${booking.status === "pending" ? "border-[#E95A35] bg-[#E4F0F2]/60" : "border-[#1F6878] bg-[#E4F0F2]"}`}><p className="truncate text-[9px] font-bold text-[#1F6878]">{booking.time} · {booking.patientName}</p><p className="mt-0.5 truncate text-[8px] text-[#707574]">{booking.serviceLabel} · {booking.dentist}</p></div>)}</div>;
                 })}
               </div>)}
             </div>
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#eceef0] bg-[#fcfbfa] px-4 py-3 text-[9.5px] text-[#718084]">
-              <div className="flex flex-wrap gap-3">{[["#16a77a", "Confirmed"], ["#4387fa", "New"], ["#f39b35", "Rescheduled"], ["#ea4c67", "Cancelled"], ["#98a1aa", "Completed"]].map(([color, label]) => <span key={label} className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: color }} />{label}</span>)}</div>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#E4F0F2] bg-[#F5F2EB] px-4 py-3 text-[9.5px] text-[#707574]">
+              <div className="flex flex-wrap gap-3">{[["#1F6878", "Confirmed"], ["#1F6878", "New"], ["#f39b35", "Rescheduled"], ["#E95A35", "Cancelled"], ["#707574", "Completed"]].map(([color, label]) => <span key={label} className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: color }} />{label}</span>)}</div>
               <span>Showing {bookings.length} appointments</span>
             </div>
           </div>
         </div>
       )}
       <div className="flex justify-end gap-2">
-        <button type="button" onClick={() => onBlock("full")} className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#d8e5e2] bg-white px-3.5 text-[11px] font-semibold text-[#36585c] hover:bg-[#f7fbfa]"><Calendar className="h-3.5 w-3.5" /> Block date</button>
-        <button type="button" onClick={() => onBlock("range")} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#103d42] px-3.5 text-[11px] font-semibold text-white hover:bg-[#17545a]"><Clock3 className="h-3.5 w-3.5" /> Block time</button>
+        <button type="button" onClick={() => onBlock("full")} className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#1F6878]/20 bg-white px-3.5 text-[11px] font-semibold text-[#1F6878] hover:bg-[#E4F0F2]"><Calendar className="h-3.5 w-3.5 text-[#1F6878]" /> Block date</button>
+        <button type="button" onClick={() => onBlock("range")} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#E95A35] px-3.5 text-[11px] font-semibold text-white shadow-sm transition hover:bg-[#D14824]"><Clock3 className="h-3.5 w-3.5" /> Block time</button>
       </div>
     </section>
   );
@@ -247,34 +247,34 @@ function AvailabilitySettingsPanel({ compact = false, blockRequest = null, onBlo
     }
   };
 
-  if (loadingSettings) return <div className="grid min-h-52 place-items-center rounded-2xl border border-[#ece4db] bg-white text-sm text-[#718286]">Loading clinic hours…</div>;
+  if (loadingSettings) return <div className="grid min-h-52 place-items-center rounded-2xl border border-[#1F6878]/15 bg-white text-sm text-[#707574]">Loading clinic hours…</div>;
 
   return (
     <>
       {!compact && <>
       <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.7fr)_minmax(330px,0.85fr)]">
-        <section className="rounded-[22px] border border-[#ece4db] bg-white p-5 shadow-soft sm:p-6">
+        <section className="rounded-[22px] border border-[#1F6878]/15 bg-white p-5 shadow-soft sm:p-6">
           <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-            <div><h2 className="font-display text-[20px] text-[#17484d]">Weekly working hours</h2><p className="mt-1 text-[12px] text-[#829297]">Clinic schedule · Erode</p></div>
-            <span className="rounded-full bg-[#f3f1ec] px-3 py-2 text-[11px] font-semibold text-[#36585c]">All providers</span>
+            <div><h2 className="font-display text-[20px] font-bold text-[#1F6878]">Weekly working hours</h2><p className="mt-1 text-[12px] text-[#707574]">Clinic schedule · Erode</p></div>
+            <span className="rounded-full bg-[#E4F0F2] px-3 py-2 text-[11px] font-semibold text-[#1F6878]">All providers</span>
           </div>
-          <div className="divide-y divide-[#f0ebe5]">
+          <div className="divide-y divide-[#1F6878]/10">
             {settings.weeklyHours.map((row) => (
               <div key={row.day} className={`grid gap-x-3 gap-y-2 py-3.5 sm:grid-cols-[72px_100px_minmax(110px,1fr)_20px_minmax(110px,1fr)_auto] sm:items-center ${row.enabled ? "" : "opacity-55"}`}>
-                <button type="button" role="switch" aria-checked={row.enabled} aria-label={`${row.enabled ? "Close" : "Open"} ${row.day}`} onClick={() => updateDay(row.day, { enabled: !row.enabled })} className={`relative h-6 w-11 rounded-full transition ${row.enabled ? "bg-[#17545a]" : "bg-[#d8dddc]"}`}><span className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow-sm transition ${row.enabled ? "left-6" : "left-1"}`} /></button>
-                <span className="text-[12px] font-semibold text-[#344f53]">{row.day}</span>
+                <button type="button" role="switch" aria-checked={row.enabled} aria-label={`${row.enabled ? "Close" : "Open"} ${row.day}`} onClick={() => updateDay(row.day, { enabled: !row.enabled })} className={`relative h-6 w-11 rounded-full transition ${row.enabled ? "bg-[#1F6878]" : "bg-[#707574]/30"}`}><span className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow-sm transition ${row.enabled ? "left-6" : "left-1"}`} /></button>
+                <span className="text-[12px] font-semibold text-[#1F6878]">{row.day}</span>
                 {row.enabled ? <>
                   <Input aria-label={`${row.day} opening time`} type="time" value={row.start} onChange={(event) => updateDay(row.day, { start: event.target.value })} className="h-10 rounded-lg px-2.5 text-[12px]" />
-                  <span className="text-center text-[11px] text-[#94a0a4]">to</span>
+                  <span className="text-center text-[11px] text-[#707574]">to</span>
                   <Input aria-label={`${row.day} closing time`} type="time" value={row.end} onChange={(event) => updateDay(row.day, { end: event.target.value })} className="h-10 rounded-lg px-2.5 text-[12px]" />
-                  <button type="button" onClick={() => addBreak(row.day)} className="justify-self-start whitespace-nowrap text-[10.5px] font-semibold text-[#17545a] hover:text-accent">+ Add break</button>
-                </> : <span className="sm:col-span-4 sm:text-right text-[10px] font-semibold uppercase tracking-[0.12em] text-[#96a1a3]">Clinic closed</span>}
+                  <button type="button" onClick={() => addBreak(row.day)} className="justify-self-start whitespace-nowrap text-[10.5px] font-semibold text-[#1F6878] hover:text-[#E95A35]">+ Add break</button>
+                </> : <span className="sm:col-span-4 sm:text-right text-[10px] font-semibold uppercase tracking-[0.12em] text-[#707574]">Clinic closed</span>}
                 {row.enabled && row.breaks.map((breakTime, index) => <div key={`${row.day}-break-${index}`} className="sm:col-start-3 sm:col-span-4 flex flex-wrap items-center gap-2 pl-0 sm:pl-1">
-                  <span className="text-[10px] font-semibold text-[#829297]">Break</span>
+                  <span className="text-[10px] font-semibold text-[#707574]">Break</span>
                   <Input aria-label={`${row.day} break starts`} type="time" value={breakTime.start} onChange={(event) => updateBreak(row.day, index, "start", event.target.value)} className="h-9 max-w-36 rounded-lg px-2.5 text-[11px]" />
-                  <span className="text-[10px] text-[#94a0a4]">to</span>
+                  <span className="text-[10px] text-[#707574]">to</span>
                   <Input aria-label={`${row.day} break ends`} type="time" value={breakTime.end} onChange={(event) => updateBreak(row.day, index, "end", event.target.value)} className="h-9 max-w-36 rounded-lg px-2.5 text-[11px]" />
-                  <button type="button" aria-label={`Remove ${row.day} break`} onClick={() => updateDay(row.day, { breaks: row.breaks.filter((_, breakIndex) => breakIndex !== index) })} className="rounded-lg p-2 text-[#829297] hover:bg-rose-50 hover:text-rose-700"><X className="h-3.5 w-3.5" /></button>
+                  <button type="button" aria-label={`Remove ${row.day} break`} onClick={() => updateDay(row.day, { breaks: row.breaks.filter((_, breakIndex) => breakIndex !== index) })} className="rounded-lg p-2 text-[#707574] hover:bg-rose-50 hover:text-rose-700"><X className="h-3.5 w-3.5" /></button>
                 </div>)}
               </div>
             ))}
@@ -283,41 +283,41 @@ function AvailabilitySettingsPanel({ compact = false, blockRequest = null, onBlo
         </section>
 
         <div className="space-y-5">
-          <section className="rounded-[22px] border border-[#ece4db] bg-white p-5 shadow-soft sm:p-6">
-            <h2 className="font-display text-[20px] text-[#17484d]">Slot settings</h2>
+          <section className="rounded-[22px] border border-[#1F6878]/15 bg-white p-5 shadow-soft sm:p-6">
+            <h2 className="font-display text-[20px] font-bold text-[#1F6878]">Slot settings</h2>
             <div className="mt-5 space-y-4">
               <Select label="Appointment duration" value={String(settings.appointmentDuration)} onChange={(event) => setSettings((current) => ({ ...current, appointmentDuration: Number(event.target.value) }))} options={[15, 30, 45, 60].map((value) => ({ value: String(value), label: `${value} minutes` }))} />
               <Input label="Maximum patients per slot" type="number" min={1} max={10} value={settings.maxPatientsPerSlot} onChange={(event) => setSettings((current) => ({ ...current, maxPatientsPerSlot: Number(event.target.value) }))} helperText="Limits the number of patients confirmed at the same time." />
             </div>
           </section>
 
-          <section className="rounded-[22px] border border-[#103d42] bg-[#103d42] p-5 text-white shadow-soft sm:p-6">
-            <div className="flex items-start justify-between gap-3"><div><h2 className="font-display text-[20px]">Blocked dates</h2><p className="mt-1 text-[11.5px] text-white/55">Holidays and planned closures</p></div><span className="grid h-9 w-9 place-items-center rounded-full bg-white/10"><Calendar className="h-4 w-4" /></span></div>
+          <section className="rounded-[22px] border border-[#1F6878] bg-[#1F6878] p-5 text-white shadow-soft sm:p-6">
+            <div className="flex items-start justify-between gap-3"><div><h2 className="font-display text-[20px] font-bold">Blocked dates</h2><p className="mt-1 text-[11.5px] text-white/65">Holidays and planned closures</p></div><span className="grid h-9 w-9 place-items-center rounded-full bg-[#1F6878]/40 text-[#E4F0F2]"><Calendar className="h-4 w-4" /></span></div>
             <ul className="mt-5 space-y-2.5">
-              {settings.blockedDates.map((item) => <li key={item.id} className="flex items-center justify-between gap-3 rounded-[14px] bg-white/[0.08] px-3.5 py-3"><div><p className="text-[12px] font-semibold">{new Date(`${item.date}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}{item.type === "range" ? ` · ${item.start}–${item.end}` : ""}</p><p className="mt-0.5 text-[10px] text-white/55">{item.reason}{item.dentist && item.dentist !== "All dentists" ? ` · ${item.dentist}` : ""}{item.notes ? ` · ${item.notes}` : ""}</p></div><button type="button" aria-label={`Remove blocked date ${item.date}`} onClick={() => void persist({ ...settings, blockedDates: settings.blockedDates.filter((entry) => entry.id !== item.id) }, "Blocked date removed")} className="shrink-0 rounded-full p-1.5 text-white/60 hover:bg-white/10 hover:text-white"><X className="h-4 w-4" /></button></li>)}
-              {!settings.blockedDates.length && <li className="rounded-[14px] border border-dashed border-white/20 px-4 py-5 text-center text-[11px] text-white/55">No dates blocked yet</li>}
+              {settings.blockedDates.map((item) => <li key={item.id} className="flex items-center justify-between gap-3 rounded-[14px] bg-white/[0.08] px-3.5 py-3"><div><p className="text-[12px] font-semibold">{new Date(`${item.date}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}{item.type === "range" ? ` · ${item.start}–${item.end}` : ""}</p><p className="mt-0.5 text-[10px] text-white/65">{item.reason}{item.dentist && item.dentist !== "All dentists" ? ` · ${item.dentist}` : ""}{item.notes ? ` · ${item.notes}` : ""}</p></div><button type="button" aria-label={`Remove blocked date ${item.date}`} onClick={() => void persist({ ...settings, blockedDates: settings.blockedDates.filter((entry) => entry.id !== item.id) }, "Blocked date removed")} className="shrink-0 rounded-full p-1.5 text-white/65 hover:bg-white/10 hover:text-white"><X className="h-4 w-4" /></button></li>)}
+              {!settings.blockedDates.length && <li className="rounded-[14px] border border-dashed border-white/20 px-4 py-5 text-center text-[11px] text-white/65">No dates blocked yet</li>}
             </ul>
-            <button type="button" onClick={() => setBlockOpen(true)} className="mt-3 w-full rounded-xl bg-white/10 px-4 py-3 text-[12px] font-semibold transition hover:bg-white/15">＋ Block another date</button>
-            <p className="mt-4 text-[10px] text-white/50">Emergency visits can still be arranged by calling the clinic.</p>
+            <button type="button" onClick={() => setBlockOpen(true)} className="mt-3 w-full rounded-xl bg-[#E95A35] px-4 py-3 text-[12px] font-semibold text-white shadow-sm transition hover:bg-[#D14824]">＋ Block another date</button>
+            <p className="mt-4 text-[10px] text-white/60">Emergency visits can still be arranged by calling the clinic.</p>
           </section>
         </div>
       </div>
-      <section className="mt-5 flex items-center gap-4 rounded-[18px] bg-[#f3f1ec] px-5 py-4 text-[#36585c]">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white"><Clock3 className="h-4 w-4" /></span>
-        <div className="min-w-0 flex-1"><p className="text-[12px] font-semibold">Automatic buffer between appointments</p><p className="mt-1 text-[11px] leading-relaxed text-[#75878a]">A 10-minute chair reset is included when patient slots are generated.</p></div>
-        <span className="rounded-full bg-white px-3 py-2 text-[10px] font-bold uppercase tracking-[0.08em]">10 min buffer</span>
+      <section className="mt-5 flex items-center gap-4 rounded-[18px] border border-[#1F6878]/15 bg-[#E4F0F2] px-5 py-4 text-[#1F6878]">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white text-[#1F6878]"><Clock3 className="h-4 w-4" /></span>
+        <div className="min-w-0 flex-1"><p className="text-[12px] font-semibold">Automatic buffer between appointments</p><p className="mt-1 text-[11px] leading-relaxed text-[#707574]">A 10-minute chair reset is included when patient slots are generated.</p></div>
+        <span className="rounded-full bg-white px-3 py-2 text-[10px] font-bold uppercase tracking-[0.08em] text-[#1F6878]">10 min buffer</span>
       </section>
       </>}
 
       <Modal isOpen={blockOpen} onClose={() => setBlockOpen(false)} title={blockForm.type === "range" ? "Block time range" : "Block a date"} description={blockForm.type === "range" ? "Prevent appointments during selected hours." : "Prevent appointments on selected dates."} size="md">
         <form onSubmit={addBlockedDate} className="space-y-4">
-          <div><p className="mb-2 text-sm font-medium text-foreground/75">Block type</p><div className="grid grid-cols-2 rounded-xl bg-[#f3f1ec] p-1"><button type="button" onClick={() => setBlockForm((current) => ({ ...current, type: "full" }))} className={`rounded-lg px-3 py-2.5 text-[12px] font-semibold ${blockForm.type === "full" ? "bg-[#17545a] text-white" : "text-[#607477]"}`}>Full day</button><button type="button" onClick={() => setBlockForm((current) => ({ ...current, type: "range" }))} className={`rounded-lg px-3 py-2.5 text-[12px] font-semibold ${blockForm.type === "range" ? "bg-[#17545a] text-white" : "text-[#607477]"}`}>Time range</button></div></div>
+          <div><p className="mb-2 text-sm font-medium text-[#1F6878]">Block type</p><div className="grid grid-cols-2 rounded-xl bg-[#F5F2EB] p-1 border border-[#1F6878]/15"><button type="button" onClick={() => setBlockForm((current) => ({ ...current, type: "full" }))} className={`rounded-lg px-3 py-2.5 text-[12px] font-semibold ${blockForm.type === "full" ? "bg-[#1F6878] text-white" : "text-[#707574]"}`}>Full day</button><button type="button" onClick={() => setBlockForm((current) => ({ ...current, type: "range" }))} className={`rounded-lg px-3 py-2.5 text-[12px] font-semibold ${blockForm.type === "range" ? "bg-[#1F6878] text-white" : "text-[#707574]"}`}>Time range</button></div></div>
           <Input label="Date" type="date" required value={blockForm.date} onChange={(event) => setBlockForm((current) => ({ ...current, date: event.target.value }))} />
           {blockForm.type === "range" && <div className="grid grid-cols-2 gap-3"><Input label="From" type="time" required value={blockForm.start} onChange={(event) => setBlockForm((current) => ({ ...current, start: event.target.value }))} /><Input label="To" type="time" required value={blockForm.end} onChange={(event) => setBlockForm((current) => ({ ...current, end: event.target.value }))} /></div>}
-          {blockForm.type === "range" && <><p className="-mt-2 text-[10px] text-[#829297]">Duration: {Math.max(0, Math.round((new Date(`1970-01-01T${blockForm.end}:00`).getTime() - new Date(`1970-01-01T${blockForm.start}:00`).getTime()) / 60000 / 60 * 10) / 10)} hours · blocked slots will be hidden</p><Select label="Dentist" value={blockForm.dentist ?? "All dentists"} onChange={(event) => setBlockForm((current) => ({ ...current, dentist: event.target.value }))} options={[{ value: "All dentists", label: "All dentists (blocks all operatories)" }, ...dentists.map((name) => ({ value: name, label: name }))]} /></>}
+          {blockForm.type === "range" && <><p className="-mt-2 text-[10px] text-[#707574]">Duration: {Math.max(0, Math.round((new Date(`1970-01-01T${blockForm.end}:00`).getTime() - new Date(`1970-01-01T${blockForm.start}:00`).getTime()) / 60000 / 60 * 10) / 10)} hours · blocked slots will be hidden</p><Select label="Dentist" value={blockForm.dentist ?? "All dentists"} onChange={(event) => setBlockForm((current) => ({ ...current, dentist: event.target.value }))} options={[{ value: "All dentists", label: "All dentists (blocks all operatories)" }, ...dentists.map((name) => ({ value: name, label: name }))]} /></>}
           <Select label="Reason" value={blockForm.reason} onChange={(event) => setBlockForm((current) => ({ ...current, reason: event.target.value }))} options={["Clinic closed", "Public holiday", "Staff training", "Maintenance", "Other"].map((value) => ({ value, label: value }))} />
-          <label className="block text-sm font-medium text-foreground/75">Notes (optional)<textarea rows={3} value={blockForm.notes} onChange={(event) => setBlockForm((current) => ({ ...current, notes: event.target.value }))} placeholder="Add a note for your team (optional)" className="mt-1.5 w-full rounded-xl border border-input bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/70 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10" /></label>
-          <div className="flex justify-end gap-3 border-t border-border/70 pt-4"><Button type="button" variant="outline" onClick={() => setBlockOpen(false)}>Cancel</Button><Button type="submit" loading={saving}><Calendar className="h-4 w-4" /> {blockForm.type === "range" ? "Block time" : "Block date"}</Button></div>
+          <label className="block text-sm font-medium text-[#1F6878]">Notes (optional)<textarea rows={3} value={blockForm.notes} onChange={(event) => setBlockForm((current) => ({ ...current, notes: event.target.value }))} placeholder="Add a note for your team (optional)" className="mt-1.5 w-full rounded-xl border border-[#1F6878]/20 bg-white px-4 py-3 text-sm text-[#1F6878] placeholder:text-[#707574]/70 focus:border-[#1F6878] focus:outline-none focus:ring-4 focus:ring-[#1F6878]/15" /></label>
+          <div className="flex justify-end gap-3 border-t border-[#1F6878]/10 pt-4"><Button type="button" variant="outline" onClick={() => setBlockOpen(false)}>Cancel</Button><Button type="submit" loading={saving}><Calendar className="h-4 w-4" /> {blockForm.type === "range" ? "Block time" : "Block date"}</Button></div>
         </form>
       </Modal>
     </>
@@ -629,7 +629,7 @@ export default function AppointmentsPage() {
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-accent">Appointments</span>
-          <h1 className="mt-2 text-display-3 text-foreground">{view === "calendar" ? (availabilityPanel ? "Availability & Schedule" : "Appointment Calendar") : "Appointment requests"}</h1>
+          <h1 className="mt-2 text-display-3 text-[#1F6878]">{view === "calendar" ? (availabilityPanel ? "Availability & Schedule" : "Appointment Calendar") : "Appointment requests"}</h1>
           <p className="mt-1.5 text-[13px] text-muted-foreground">
       
       {/* Reschedule Modal */}
@@ -642,21 +642,21 @@ export default function AppointmentsPage() {
       >
         {rescheduleBooking && (
           <div className="space-y-4">
-            <div className="flex items-center justify-between rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-2 text-xs text-emerald-950">
+            <div className="flex items-center justify-between rounded-xl bg-[#E4F0F2] border border-[#1F6878]/20 px-3 py-2 text-xs text-[#1F6878]">
               <span className="flex items-center gap-1.5 font-medium">
-                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="h-2 w-2 rounded-full bg-[#1F6878] animate-pulse" />
                 Connected via <strong>Green-API (Live WhatsApp Gateway)</strong>
               </span>
-              <span className="text-[11px] text-emerald-800">
+              <span className="text-[11px] text-[#1F6878]">
                 Direct to patient mobile
               </span>
             </div>
 
-            <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-3 text-xs text-blue-900 flex items-start gap-2.5">
-              <CalendarClock className="h-4 w-4 shrink-0 text-blue-600 mt-0.5" />
+            <div className="rounded-xl border border-[#1F6878]/15 bg-[#F5F2EB] p-3 text-xs text-[#1F6878] flex items-start gap-2.5">
+              <CalendarClock className="h-4 w-4 shrink-0 text-[#1F6878] mt-0.5" />
               <div>
-                <p className="font-semibold text-blue-950">Instant Patient WhatsApp Notice</p>
-                <p className="mt-0.5 text-blue-800">
+                <p className="font-semibold text-[#1F6878]">Instant Patient WhatsApp Notice</p>
+                <p className="mt-0.5 text-[#707574]">
                   When you click Reschedule, an automatic WhatsApp notification with the new date, time, and clinic map will be sent directly to <strong>{rescheduleBooking.patientPhone}</strong> and an alert to clinic WhatsApp.
                 </p>
               </div>
@@ -664,10 +664,10 @@ export default function AppointmentsPage() {
 
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
-                <label className="block text-xs font-semibold text-foreground mb-1">New Appointment Date</label>
+                <label className="block text-xs font-semibold text-[#1F6878] mb-1">New Appointment Date</label>
                 <input
                   type="date"
-                  className="w-full rounded-xl border border-secondary-200 bg-card px-3.5 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+                  className="w-full rounded-xl border border-[#1F6878]/20 bg-white px-3.5 py-2.5 text-sm text-[#1F6878] focus:border-[#1F6878] focus:outline-none focus:ring-2 focus:ring-[#1F6878]/20"
                   value={rescheduleDate}
                   onChange={(e) => setRescheduleDate(e.target.value)}
                 />
@@ -700,13 +700,12 @@ export default function AppointmentsPage() {
               />
             </div>
 
-            <div className="flex justify-end gap-2 border-t border-secondary-100 pt-3">
+            <div className="flex justify-end gap-2 border-t border-[#1F6878]/10 pt-3">
               <Button type="button" variant="outline" onClick={() => setRescheduleBooking(null)}>
                 Cancel
               </Button>
               <Button
                 type="button"
-                className="bg-primary-600 hover:bg-primary-700"
                 loading={rescheduleSaving}
                 onClick={() => void handleConfirmReschedule()}
               >
@@ -728,12 +727,12 @@ export default function AppointmentsPage() {
         {customWaBooking && (
           <div className="space-y-4">
             {/* Free Status Banner */}
-            <div className="flex items-center justify-between rounded-xl bg-emerald-50 border border-emerald-200 px-3.5 py-2.5 text-xs text-emerald-950">
+            <div className="flex items-center justify-between rounded-xl bg-[#E4F0F2] border border-[#19B987]/35 px-3.5 py-2.5 text-xs text-[#15191B]">
               <span className="flex items-center gap-2 font-medium">
-                <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="h-2.5 w-2.5 rounded-full bg-[#19B987] animate-pulse" />
                 <span><strong>100% Free WhatsApp Web</strong> · Sends directly from Clinic WhatsApp (<strong>9345743409</strong>)</span>
               </span>
-              <span className="rounded-full bg-emerald-200/80 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-900">
+              <span className="rounded-full bg-[#19B987]/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#139A70]">
                 Zero Fees
               </span>
             </div>
@@ -757,7 +756,7 @@ export default function AppointmentsPage() {
                     key={tpl.id}
                     type="button"
                     onClick={() => applyTemplate(tpl.id, customWaBooking)}
-                    className="rounded-full border border-secondary-200 bg-secondary-50 px-3 py-1 text-[11px] font-medium text-foreground/80 hover:bg-emerald-50 hover:text-emerald-800 hover:border-emerald-300 transition"
+                    className="rounded-full border border-[#1F6878]/20 bg-[#F5F2EB] px-3 py-1 text-[11px] font-medium text-[#1F6878] hover:bg-[#E4F0F2] hover:text-[#1F6878] hover:border-[#1F6878] transition"
                   >
                     {tpl.label}
                   </button>
@@ -768,31 +767,31 @@ export default function AppointmentsPage() {
             {/* Editable Message Box */}
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="text-xs font-semibold text-foreground">Message Preview &amp; Editor</label>
+                <label className="text-xs font-semibold text-[#1F6878]">Message Preview &amp; Editor</label>
                 <button
                   type="button"
                   onClick={() => void handleCopyText()}
-                  className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-emerald-700 transition"
+                  className="inline-flex items-center gap-1 text-[11px] text-[#707574] hover:text-[#1F6878] transition"
                 >
-                  {copiedText ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3" />}
+                  {copiedText ? <Check className="h-3 w-3 text-[#1F6878]" /> : <Copy className="h-3 w-3" />}
                   {copiedText ? "Copied to clipboard!" : "Copy text"}
                 </button>
               </div>
               <textarea
                 rows={7}
-                className="w-full text-xs rounded-xl border border-secondary-200 bg-card p-3 font-sans leading-relaxed focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                className="w-full text-xs rounded-xl border border-[#1F6878]/20 bg-white p-3 font-sans leading-relaxed text-[#1F6878] focus:border-[#1F6878] focus:outline-none focus:ring-2 focus:ring-[#1F6878]/20"
                 value={customWaMessage}
                 onChange={(e) => setCustomWaMessage(e.target.value)}
                 placeholder="Type your WhatsApp message to the patient here..."
               />
-              <div className="mt-1 flex items-center justify-between text-[11px] text-muted-foreground">
+              <div className="mt-1 flex items-center justify-between text-[11px] text-[#707574]">
                 <span>Sending to: <strong>{customWaBooking.patientPhone}</strong></span>
                 <span>{customWaMessage.length} characters</span>
               </div>
             </div>
 
             {/* Action Bar */}
-            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-secondary-100 pt-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[#1F6878]/10 pt-3">
               <Button type="button" variant="outline" size="sm" onClick={() => setCustomWaBooking(null)}>
                 Cancel
               </Button>
@@ -801,7 +800,7 @@ export default function AppointmentsPage() {
                 <button
                   type="button"
                   onClick={() => void handleCopyText()}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-secondary-200 bg-white px-3 py-2 text-xs font-semibold text-foreground/80 transition hover:bg-secondary-50"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-[#1F6878]/20 bg-white px-3 py-2 text-xs font-semibold text-[#1F6878] transition hover:bg-[#E4F0F2]"
                 >
                   <Copy className="h-3.5 w-3.5" />
                   Copy Text
@@ -810,7 +809,7 @@ export default function AppointmentsPage() {
                 <button
                   type="button"
                   onClick={handleOpenWaWeb}
-                  className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-700"
+                  className="inline-flex items-center gap-2 rounded-lg bg-[#19B987] px-4 py-2 text-xs font-semibold text-white shadow-[0_8px_20px_-6px_rgba(25,185,135,0.45)] transition hover:bg-[#139A70]"
                 >
                   <MessageCircle className="h-4 w-4" />
                   Send via WhatsApp Web
@@ -829,18 +828,18 @@ export default function AppointmentsPage() {
           <Button variant="outline" onClick={() => void load()} aria-label="Refresh appointments">
             <RefreshCw className="h-4 w-4" /> Refresh
           </Button>
-          <div className="flex rounded-full border border-border/70 bg-card p-1">
+          <div className="flex rounded-full border border-[#1F6878]/20 bg-white p-1">
             <button
               onClick={() => chooseView("list")}
               aria-label="List view"
-              className={`rounded-full p-1.5 ${view === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              className={`rounded-full p-1.5 ${view === "list" ? "bg-[#1F6878] text-white" : "text-[#707574] hover:text-[#1F6878]"}`}
             >
               <List className="h-4 w-4" />
             </button>
             <button
               onClick={() => chooseView("calendar")}
               aria-label="Agenda view"
-              className={`rounded-full p-1.5 ${view === "calendar" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              className={`rounded-full p-1.5 ${view === "calendar" ? "bg-[#1F6878] text-white" : "text-[#707574] hover:text-[#1F6878]"}`}
             >
               <Calendar className="h-4 w-4" />
             </button>
@@ -933,26 +932,26 @@ export default function AppointmentsPage() {
           : "The appointment will be confirmed. A prepared WhatsApp message will open for you to review and send."}
       >
         {statusDialog && <div className="space-y-4">
-          <div className={`rounded-2xl border p-4 ${statusDialog.action === "reject" ? "border-rose-100 bg-rose-50/50" : "border-emerald-100 bg-emerald-50/50"}`}>
+          <div className={`rounded-2xl border p-4 ${statusDialog.action === "reject" ? "border-rose-100 bg-rose-50/50" : "border-[#1F6878]/20 bg-[#E4F0F2]/70"}`}>
             <div className="flex items-start gap-3">
-              <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-full ${statusDialog.action === "reject" ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700"}`}>
+              <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-full ${statusDialog.action === "reject" ? "bg-rose-100 text-rose-700" : "bg-[#E4F0F2] text-[#1F6878]"}`}>
                 {statusDialog.action === "reject" ? <CircleAlert className="h-5 w-5" /> : <CheckCircle2 className="h-5 w-5" />}
               </span>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-[#24464a]">{statusDialog.booking.patientName}</p>
-                <p className="mt-1 text-xs text-[#687b7e]">{statusDialog.booking.serviceLabel}</p>
-                <p className="mt-2 text-xs font-medium text-[#36585c]">{statusDialog.booking.dateLabel} · {statusDialog.booking.time}</p>
-                <p className="mt-1 text-xs text-[#687b7e]">{statusDialog.booking.dentist || "First available dentist"} · Ref {statusDialog.booking.ref}</p>
+                <p className="text-sm font-semibold text-[#1F6878]">{statusDialog.booking.patientName}</p>
+                <p className="mt-1 text-xs text-[#707574]">{statusDialog.booking.serviceLabel}</p>
+                <p className="mt-2 text-xs font-medium text-[#1F6878]">{statusDialog.booking.dateLabel} · {statusDialog.booking.time}</p>
+                <p className="mt-1 text-xs text-[#707574]">{statusDialog.booking.dentist || "First available dentist"} · Ref {statusDialog.booking.ref}</p>
               </div>
             </div>
           </div>
           {statusDialog.action === "reject" && <div className="space-y-3">
             <Select label="Reason for rejection" value={rejectReason} onChange={(event) => setRejectReason(event.target.value)} options={["Schedule conflict", "Dentist unavailable", "Clinic closed", "Requested slot unavailable", "Other"] .map((value) => ({ value, label: value }))} />
-            <label className="block text-xs font-semibold text-[#52696c]">Message for the patient (optional)
-              <textarea rows={3} value={rejectMessage} onChange={(event) => setRejectMessage(event.target.value)} placeholder="Add a short note to include in the prepared message" className="mt-1.5 w-full resize-y rounded-xl border border-[#e4ded7] bg-white px-3.5 py-3 text-sm font-normal text-[#29484d] outline-none transition placeholder:text-[#a6b0b1] focus:border-[#4d8989] focus:ring-4 focus:ring-[#4d8989]/10" />
+            <label className="block text-xs font-semibold text-[#1F6878]">Message for the patient (optional)
+              <textarea rows={3} value={rejectMessage} onChange={(event) => setRejectMessage(event.target.value)} placeholder="Add a short note to include in the prepared message" className="mt-1.5 w-full resize-y rounded-xl border border-[#1F6878]/20 bg-white px-3.5 py-3 text-sm font-normal text-[#1F6878] outline-none transition placeholder:text-[#707574]/70 focus:border-[#1F6878] focus:ring-4 focus:ring-[#1F6878]/15" />
             </label>
           </div>}
-          <div className="flex flex-col-reverse gap-2 border-t border-[#ece7e1] pt-4 sm:flex-row sm:justify-end">
+          <div className="flex flex-col-reverse gap-2 border-t border-[#1F6878]/10 pt-4 sm:flex-row sm:justify-end">
             <Button type="button" variant="outline" onClick={() => setStatusDialog(null)} disabled={busyId === statusDialog.booking.id}>Cancel</Button>
             <Button type="button" loading={busyId === statusDialog.booking.id} onClick={() => void completeRequestDecision()} className={statusDialog.action === "reject" ? "bg-rose-700 hover:bg-rose-800" : ""}>
               {statusDialog.action === "reject" ? <><X className="h-4 w-4" /> Reject & open WhatsApp</> : <><CheckCircle2 className="h-4 w-4" /> Confirm & open WhatsApp</>}
@@ -963,18 +962,18 @@ export default function AppointmentsPage() {
 
       <Modal isOpen={Boolean(detailsBooking)} onClose={() => setDetailsBooking(null)} size="md" title="Appointment details" description={detailsBooking ? `Request ${detailsBooking.ref}` : undefined}>
         {detailsBooking && <div className="space-y-5">
-          <div className="rounded-2xl border border-[#eae5de] bg-[#fcfaf7] p-4">
-            <div className="flex items-center gap-3"><span className="grid h-11 w-11 place-items-center rounded-full bg-[#e9f3f1] text-sm font-semibold text-[#17545a]">{detailsBooking.patientName.split(" ").map((part) => part[0]).slice(0, 2).join("")}</span><div><p className="text-sm font-semibold text-[#24464a]">{detailsBooking.patientName}</p><p className="mt-0.5 text-xs text-[#829297]">Patient</p></div><Badge className="ml-auto" variant={statusTone[detailsBooking.status]} size="sm">{detailsBooking.statusLabel}</Badge></div>
-            <div className="mt-4 grid gap-2 border-t border-[#ece6df] pt-3 text-xs text-[#62777a]">
-              <a className="inline-flex items-center gap-2 hover:text-[#17545a]" href={`tel:${detailsBooking.patientPhone}`}><Phone className="h-3.5 w-3.5" />{detailsBooking.patientPhone}</a>
-              {detailsBooking.patientEmail && <a className="inline-flex items-center gap-2 hover:text-[#17545a]" href={`mailto:${detailsBooking.patientEmail}`}><Mail className="h-3.5 w-3.5" />{detailsBooking.patientEmail}</a>}
+          <div className="rounded-2xl border border-[#1F6878]/15 bg-[#F5F2EB] p-4">
+            <div className="flex items-center gap-3"><span className="grid h-11 w-11 place-items-center rounded-full bg-[#E4F0F2] text-sm font-semibold text-[#1F6878]">{detailsBooking.patientName.split(" ").map((part) => part[0]).slice(0, 2).join("")}</span><div><p className="text-sm font-semibold text-[#1F6878]">{detailsBooking.patientName}</p><p className="mt-0.5 text-xs text-[#707574]">Patient</p></div><Badge className="ml-auto" variant={statusTone[detailsBooking.status]} size="sm">{detailsBooking.statusLabel}</Badge></div>
+            <div className="mt-4 grid gap-2 border-t border-[#1F6878]/10 pt-3 text-xs text-[#1F6878]/80">
+              <a className="inline-flex items-center gap-2 hover:text-[#1F6878]" href={`tel:${detailsBooking.patientPhone}`}><Phone className="h-3.5 w-3.5 text-[#1F6878]" />{detailsBooking.patientPhone}</a>
+              {detailsBooking.patientEmail && <a className="inline-flex items-center gap-2 hover:text-[#1F6878]" href={`mailto:${detailsBooking.patientEmail}`}><Mail className="h-3.5 w-3.5 text-[#1F6878]" />{detailsBooking.patientEmail}</a>}
             </div>
           </div>
           <dl className="grid grid-cols-2 gap-3 text-xs">
-            {[["Treatment", detailsBooking.serviceLabel], ["Date", detailsBooking.dateLabel], ["Time", detailsBooking.time], ["Dentist", detailsBooking.dentist || "First available"]].map(([label, value]) => <div key={label} className="rounded-xl border border-[#eee9e3] bg-white p-3"><dt className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#93a0a1]">{label}</dt><dd className="mt-1.5 font-medium text-[#36585c]">{value}</dd></div>)}
+            {[["Treatment", detailsBooking.serviceLabel], ["Date", detailsBooking.dateLabel], ["Time", detailsBooking.time], ["Dentist", detailsBooking.dentist || "First available"]].map(([label, value]) => <div key={label} className="rounded-xl border border-[#1F6878]/15 bg-white p-3"><dt className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#707574]">{label}</dt><dd className="mt-1.5 font-medium text-[#1F6878]">{value}</dd></div>)}
           </dl>
-          <div className="rounded-xl border border-[#eee9e3] bg-white p-4"><p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#93a0a1]">Patient notes</p><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[#52696c]">{detailsBooking.notes || "No notes provided."}</p></div>
-          {detailsBooking.whatsapp?.patient && <a href={detailsBooking.whatsapp.patient} target="_blank" rel="noreferrer" className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-[#eaf7f0] text-xs font-semibold text-[#12815a] hover:bg-[#ddf1e6]"><MessageCircle className="h-4 w-4" /> Open WhatsApp message</a>}
+          <div className="rounded-xl border border-[#1F6878]/15 bg-white p-4"><p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#707574]">Patient notes</p><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[#1F6878]">{detailsBooking.notes || "No notes provided."}</p></div>
+          {detailsBooking.whatsapp?.patient && <a href={detailsBooking.whatsapp.patient} target="_blank" rel="noreferrer" className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-[#19B987] text-xs font-semibold text-white hover:bg-[#139A70] transition"><MessageCircle className="h-4 w-4" /> Open WhatsApp message</a>}
         </div>}
       </Modal>
 
@@ -990,10 +989,10 @@ export default function AppointmentsPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search name, ref, phone, service…"
-            className="h-10 w-full rounded-full border border-border bg-card pl-10 pr-4 text-[13px] text-foreground placeholder:text-muted-foreground/70 focus:border-primary-500/50 focus:outline-none focus:ring-4 focus:ring-primary-500/10"
+            className="h-10 w-full rounded-full border border-[#1F6878]/20 bg-white pl-10 pr-4 text-[13px] text-[#1F6878] placeholder:text-[#707574]/70 focus:border-[#1F6878] focus:outline-none focus:ring-4 focus:ring-[#1F6878]/15"
           />
         </div>
-        <span className="text-[12px] text-muted-foreground">
+        <span className="text-[12px] text-[#707574]">
           {loading ? "Loading…" : `${visible.length} bookings`}
         </span>
       </div>
@@ -1013,21 +1012,21 @@ export default function AppointmentsPage() {
 
           if (loading) {
             return (
-              <div className="flex items-center gap-3 rounded-2xl border border-border/70 bg-card px-5 py-10 text-[13px] text-muted-foreground shadow-soft">
-                <Loader2 className="h-4 w-4 animate-spin" /> Loading appointments…
+              <div className="flex items-center gap-3 rounded-2xl border border-[#1F6878]/15 bg-white px-5 py-10 text-[13px] text-[#707574] shadow-soft">
+                <Loader2 className="h-4 w-4 animate-spin text-[#1F6878]" /> Loading appointments…
               </div>
             );
           }
 
           return (
-            <div className="overflow-x-auto rounded-2xl border border-border/70 bg-card shadow-soft">
+            <div className="overflow-x-auto rounded-2xl border border-[#1F6878]/15 bg-white shadow-soft">
               <table className="w-full min-w-[1120px]">
                 <thead>
-                  <tr className="border-b border-border/70 bg-secondary-50/50">
+                  <tr className="border-b border-[#1F6878]/15 bg-[#F5F2EB]">
                     {["Booking ID", "Patient", "Phone / WhatsApp", "Treatment", "Date & time", "Dentist", "Status", "Actions"].map((h) => (
                       <th
                         key={h}
-                        className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground"
+                        className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.12em] text-[#707574]"
                       >
                         {h}
                       </th>
@@ -1040,11 +1039,11 @@ export default function AppointmentsPage() {
                     const label = actionLabel(apt.status);
                     const canCancel = apt.status === "confirmed";
                     return (
-                      <tr key={apt.id} className="border-b border-border/60 transition-colors hover:bg-secondary-50/60">
-                        <td className="px-4 py-3"><span className="text-[11px] font-semibold text-[#557074]">{apt.ref}</span></td>
+                      <tr key={apt.id} className="border-b border-[#1F6878]/10 transition-colors hover:bg-[#F5F2EB]/80">
+                        <td className="px-4 py-3"><span className="text-[11px] font-semibold text-[#707574]">{apt.ref}</span></td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-3">
-                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-100 text-[11px] font-medium text-primary-700">
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#E4F0F2] text-[11px] font-semibold text-[#1F6878]">
                               {apt.patientName
                                 .split(" ")
                                 .map((n) => n[0])
@@ -1052,19 +1051,19 @@ export default function AppointmentsPage() {
                                 .join("")}
                             </div>
                             <div className="min-w-0">
-                              <p className="font-medium text-foreground">{apt.patientName}</p>
-                              <p className="text-[11px] text-muted-foreground">Patient</p>
+                              <p className="font-medium text-[#1F6878]">{apt.patientName}</p>
+                              <p className="text-[11px] text-[#707574]">Patient</p>
                               {apt.notes && (
-                                <p className="mt-0.5 max-w-[220px] truncate text-[11px] italic text-muted-foreground/80">
+                                <p className="mt-0.5 max-w-[220px] truncate text-[11px] italic text-[#707574]/80">
                                   “{apt.notes}”
                                 </p>
                               )}
                             </div>
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-[12px] text-foreground/75">
+                        <td className="px-4 py-3 text-[12px] text-[#1F6878]">
   <div className="flex items-center gap-2">
-    <a href={`tel:${apt.patientPhone}`} className="font-medium text-[#36585c] hover:underline" title="Call patient">
+    <a href={`tel:${apt.patientPhone}`} className="font-medium text-[#1F6878] hover:text-[#1F6878] hover:underline" title="Call patient">
       {apt.patientPhone}
     </a>
     <button
@@ -1072,19 +1071,19 @@ export default function AppointmentsPage() {
       onClick={() => handleOpenCustomWa(apt, "confirmed")}
       aria-label={`WhatsApp ${apt.patientName}`}
       title="Open WhatsApp Web (100% Free)"
-      className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 transition shadow-xs"
+      className="inline-flex items-center gap-1 rounded-full bg-[#19B987] px-2.5 py-0.5 text-[11px] font-semibold text-white hover:bg-[#139A70] transition shadow-xs"
     >
       <MessageCircle className="h-3 w-3" />
       <span>WhatsApp</span>
     </button>
   </div>
 </td>
-                        <td className="px-4 py-3 text-[12px] text-foreground/75">{apt.serviceLabel}</td>
-                        <td className="px-4 py-3 text-sm text-foreground/75">
+                        <td className="px-4 py-3 text-[12px] text-[#1F6878]/85">{apt.serviceLabel}</td>
+                        <td className="px-4 py-3 text-sm text-[#1F6878]/85">
                           {apt.dateLabel}
-                          <span className="mt-0.5 block text-[11px] text-muted-foreground">{apt.time}</span>
+                          <span className="mt-0.5 block text-[11px] text-[#707574]">{apt.time}</span>
                         </td>
-                        <td className="px-4 py-3 text-[12px] text-foreground/75">{apt.dentist || "First available"}</td>
+                        <td className="px-4 py-3 text-[12px] text-[#1F6878]/85">{apt.dentist || "First available"}</td>
                         <td className="px-4 py-3">
                           <Badge variant={statusTone[apt.status]} size="sm">
                             {apt.statusLabel}
@@ -1098,7 +1097,7 @@ export default function AppointmentsPage() {
                                   type="button"
                                   onClick={() => setStatusDialog({ booking: apt, action: "confirm" })}
                                   disabled={busyId === apt.id}
-                                  className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11.5px] font-semibold text-emerald-800 transition hover:bg-emerald-100 disabled:opacity-50"
+                                  className="inline-flex items-center gap-1 rounded-full border border-[#1F6878]/25 bg-[#E4F0F2] px-3 py-1 text-[11.5px] font-semibold text-[#1F6878] transition hover:bg-[#1F6878] hover:text-white disabled:opacity-50"
                                 ><CheckCircle2 className="h-3.5 w-3.5" />Confirm</button>
                                 <button
                                   type="button"
@@ -1112,7 +1111,7 @@ export default function AppointmentsPage() {
                               <button
                                 onClick={() => void updateStatus(apt, next)}
                                 disabled={busyId === apt.id}
-                                className="inline-flex items-center gap-1 rounded-full border border-border/70 px-3 py-1 text-[11.5px] font-medium text-primary-700 transition-colors hover:border-primary-300 hover:bg-primary-50 disabled:opacity-50"
+                                className="inline-flex items-center gap-1 rounded-full border border-[#1F6878]/25 px-3 py-1 text-[11.5px] font-medium text-[#1F6878] transition-colors hover:border-[#1F6878] hover:bg-[#E4F0F2] disabled:opacity-50"
                               >
                                 <CheckCircle2 className="h-3.5 w-3.5" />
                                 {label}
@@ -1123,7 +1122,7 @@ export default function AppointmentsPage() {
                                 onClick={() => void updateStatus(apt, "cancelled")}
                                 disabled={busyId === apt.id}
                                 aria-label={`Cancel booking for ${apt.patientName}`}
-                                className="rounded-full border border-border/70 p-1.5 text-muted-foreground transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                                className="rounded-full border border-[#1F6878]/20 p-1.5 text-[#707574] transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
                               >
                                 <X className="h-3.5 w-3.5" />
                               </button>
@@ -1134,7 +1133,7 @@ export default function AppointmentsPage() {
                               onClick={() => handleOpenReschedule(apt)}
                               aria-label={`Reschedule appointment for ${apt.patientName}`}
                               title="Reschedule & Send WhatsApp"
-                              className="rounded-full border border-border/70 p-1.5 text-muted-foreground transition-colors hover:bg-blue-50 hover:text-blue-700"
+                              className="rounded-full border border-[#1F6878]/20 p-1.5 text-[#707574] transition-colors hover:bg-[#E4F0F2] hover:text-[#1F6878]"
                             >
                               <CalendarClock className="h-3.5 w-3.5" />
                             </button>
@@ -1143,7 +1142,7 @@ export default function AppointmentsPage() {
                               onClick={() => handleOpenCustomWa(apt)}
                               aria-label={`Send WhatsApp message to ${apt.patientName}`}
                               title="Send WhatsApp Message"
-                              className="rounded-full border border-border/70 p-1.5 text-muted-foreground transition-colors hover:bg-emerald-50 hover:text-emerald-700"
+                              className="rounded-full border border-[#19B987]/35 p-1.5 text-[#19B987] transition-colors hover:bg-[#19B987] hover:text-white"
                             >
                               <MessageSquare className="h-3.5 w-3.5" />
                             </button>
@@ -1153,11 +1152,11 @@ export default function AppointmentsPage() {
                               disabled={busyId === apt.id}
                               aria-label={`Send 24h reminder to ${apt.patientName}`}
                               title="Send 24h WhatsApp Reminder"
-                              className="rounded-full border border-border/70 p-1.5 text-muted-foreground transition-colors hover:bg-amber-50 hover:text-amber-700 disabled:opacity-50"
+                              className="rounded-full border border-[#19B987]/35 p-1.5 text-[#19B987] transition-colors hover:bg-[#19B987] hover:text-white disabled:opacity-50"
                             >
                               <BellRing className="h-3.5 w-3.5" />
                             </button>
-<button type="button" onClick={() => setDetailsBooking(apt)} aria-label={`View appointment for ${apt.patientName}`} title="View details" className="rounded-full border border-border/70 p-1.5 text-muted-foreground transition-colors hover:bg-secondary-50 hover:text-primary-700"><Eye className="h-3.5 w-3.5" /></button>
+<button type="button" onClick={() => setDetailsBooking(apt)} aria-label={`View appointment for ${apt.patientName}`} title="View details" className="rounded-full border border-[#1F6878]/20 p-1.5 text-[#707574] transition-colors hover:bg-[#E4F0F2] hover:text-[#1F6878]"><Eye className="h-3.5 w-3.5" /></button>
                           </div>
                         </td>
                       </tr>

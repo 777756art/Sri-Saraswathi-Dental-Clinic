@@ -91,18 +91,18 @@ export default function AIFeaturesPage() {
   };
 
   return (
-    <main className="min-h-screen bg-white">
+    <main className="min-h-screen bg-[#F5F2EB]">
       <section className="px-4 pb-8 pt-[118px] sm:pb-10 sm:pt-[156px] lg:pb-16">
         <div className="container-x">
           <div className="flex flex-col items-start justify-between gap-5 md:flex-row md:items-end">
             <div className="max-w-[650px]">
               <span className="eyebrow"><span className="eyebrow-dot" /> What&apos;s inside</span>
-              <h1 className="mt-4 font-sans text-[34px] font-bold leading-[1.12] tracking-[-.04em] text-[#17282c] sm:text-[46px]">
-                The operating system<br className="hidden sm:block" /> behind your <span className="text-[#ed2f79]">care</span>
+              <h1 className="mt-4 font-display text-[34px] font-bold leading-[1.12] tracking-[-.04em] text-[#1F6878] sm:text-[46px]">
+                The operating system<br className="hidden sm:block" /> behind your <span className="text-[#1F6878]">care</span>
               </h1>
             </div>
-            <span className="inline-flex items-center gap-2 rounded-full border border-[#ece8e3] bg-white px-3.5 py-2 text-[10px] font-medium text-[#6c7880] shadow-sm">
-              <ShieldCheck className="h-3.5 w-3.5 text-[#ed2f79]" /> Clinic-reviewed preview
+            <span className="inline-flex items-center gap-2 rounded-full border border-[#1F6878]/15 bg-white px-3.5 py-2 text-[10px] font-medium text-[#707574] shadow-sm">
+              <ShieldCheck className="h-3.5 w-3.5 text-[#1F6878]" /> Clinic-reviewed preview
             </span>
           </div>
 
@@ -111,12 +111,12 @@ export default function AIFeaturesPage() {
               const Icon = feature.icon;
               return (
                 <StaggerItem key={feature.title}>
-                  <article className="group h-full min-h-[175px] rounded-[18px] border border-[#f0eeeb] bg-white p-5 shadow-[0_10px_25px_-20px_rgba(20,40,50,.5)] transition-all hover:-translate-y-0.5 hover:shadow-[0_15px_30px_-20px_rgba(20,40,50,.42)] lg:min-h-[200px]">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#edf6f8] text-[#337d98] transition-colors group-hover:bg-[#e5f4f1] group-hover:text-[#15816f]">
+                  <article className="group h-full min-h-[175px] rounded-[18px] border border-[#1F6878]/12 bg-white p-5 shadow-[0_10px_25px_-20px_rgba(31,104,120,.35)] transition-all hover:-translate-y-0.5 hover:border-[#1F6878]/35 hover:shadow-[0_15px_30px_-20px_rgba(31,104,120,.3)] lg:min-h-[200px]">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#E4F0F2] text-[#1F6878] transition-colors group-hover:bg-[#1F6878] group-hover:text-white">
                       <Icon className="h-4 w-4" />
                     </span>
-                    <h2 className="mt-3 font-display text-[15px] font-semibold leading-snug text-[#24383d]">{feature.title}</h2>
-                    <p className="mt-1.5 text-[11px] leading-[1.65] text-[#7c858b]">{feature.description}</p>
+                    <h2 className="mt-3 font-display text-[15px] font-bold leading-snug text-[#1F6878]">{feature.title}</h2>
+                    <p className="mt-1.5 text-[11px] leading-[1.65] text-[#707574]">{feature.description}</p>
                   </article>
                 </StaggerItem>
               );
@@ -128,55 +128,55 @@ export default function AIFeaturesPage() {
       <section id="demo" className="px-4 pb-16 pt-5 sm:pb-24 sm:pt-7">
         <div className="container-x">
           <ScrollReveal>
-            <div className="rounded-[18px] bg-[#242424] p-5 text-white shadow-[0_22px_55px_-38px_rgba(0,0,0,.55)] sm:p-8 lg:p-10">
-              <span className="inline-flex items-center gap-2 rounded-full bg-white/[0.08] px-3 py-1.5 text-[9px] font-bold uppercase tracking-[.12em] text-[#b8d9d0]">
-                <Bot className="h-3.5 w-3.5" /> Clinic assistant preview
+            <div className="rounded-[18px] bg-[#1F6878] p-5 text-white shadow-[0_22px_55px_-38px_rgba(31,104,120,.6)] sm:p-8 lg:p-10">
+              <span className="inline-flex items-center gap-2 rounded-full bg-white/[0.08] px-3 py-1.5 text-[9px] font-bold uppercase tracking-[.12em] text-[#E4F0F2]">
+                <Bot className="h-3.5 w-3.5 text-[#1F6878]" /> Clinic assistant preview
               </span>
-              <h2 className="mt-3 font-display text-[24px] font-medium leading-tight tracking-[-.025em] text-white sm:text-[30px]">
-                Your smile deserves care that <span className="italic text-[#a3d8c9]">listens.</span>
+              <h2 className="mt-3 font-display text-[24px] font-bold leading-tight tracking-[-.025em] text-white sm:text-[30px]">
+                Your smile deserves care that <span className="text-[#E4F0F2]">listens.</span>
               </h2>
-              <p className="mt-2 max-w-xl text-[12px] leading-5 text-white/55 sm:text-[13px]">
+              <p className="mt-2 max-w-xl text-[12px] leading-5 text-[#E4F0F2]/75 sm:text-[13px]">
                 Replies in this sample are pre-written for clinic information and booking. They do not diagnose or recommend treatment.
               </p>
 
-              <div className="mt-5 overflow-hidden rounded-[15px] bg-[#303030] p-4 sm:p-5">
+              <div className="mt-5 overflow-hidden rounded-[15px] bg-[#154C58]/85 p-4 sm:p-5">
                 <div className="flex items-center gap-3 rounded-xl bg-white/[0.06] px-3.5 py-3">
-                  <span className="grid h-9 w-9 place-items-center rounded-full bg-[#bcefe0] text-[#214841]"><Bot className="h-4 w-4" /></span>
+                  <span className="grid h-9 w-9 place-items-center rounded-full bg-[#E4F0F2] text-[#1F6878]"><Bot className="h-4 w-4 text-[#1F6878]" /></span>
                   <div className="min-w-0 flex-1">
                   <p className="text-[12px] font-semibold text-white">Aura · Sri Saraswathi care assistant</p>
-                  <p className="mt-0.5 text-[10px] text-[#a4c8bf]">Clinic information · care team review</p>
+                  <p className="mt-0.5 text-[10px] text-[#E4F0F2]">Clinic information · care team review</p>
                   </div>
-                  <span className="hidden rounded-full bg-white/[0.08] px-2.5 py-1 text-[9px] text-white/55 sm:inline">Clinic information</span>
+                  <span className="hidden rounded-full bg-white/[0.08] px-2.5 py-1 text-[9px] text-[#E4F0F2]/75 sm:inline">Clinic information</span>
                 </div>
 
                 <div ref={scrollRef} className="mt-3 h-[460px] space-y-3 overflow-y-auto p-1 sm:h-[560px] sm:p-2">
                   {chatMessages.map((msg, i) => (
                     <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className={cn("flex", msg.role === "user" ? "justify-end" : "justify-start")}>
-                      <div className={cn("max-w-[85%] rounded-2xl px-4 py-2.5 text-[12px] leading-relaxed sm:text-[13px]", msg.role === "user" ? "rounded-br-sm bg-[#596361] text-white" : "rounded-bl-sm bg-[#163a37] text-white/85")}>
+                      <div className={cn("max-w-[85%] rounded-2xl px-4 py-2.5 text-[12px] leading-relaxed sm:text-[13px]", msg.role === "user" ? "rounded-br-sm bg-[#1F6878] text-white" : "rounded-bl-sm bg-[#1F6878]/45 text-white/95")}>
                         {msg.text}
                       </div>
                     </motion.div>
                   ))}
                   {chatLoading && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start">
-                      <div className="rounded-2xl rounded-bl-sm bg-[#163a37] px-4 py-3"><div className="flex gap-1"><span className="h-1.5 w-1.5 animate-bounce rounded-full bg-white/65" /><span className="h-1.5 w-1.5 animate-bounce rounded-full bg-white/50 [animation-delay:120ms]" /><span className="h-1.5 w-1.5 animate-bounce rounded-full bg-white/35 [animation-delay:240ms]" /></div></div>
+                      <div className="rounded-2xl rounded-bl-sm bg-[#1F6878]/45 px-4 py-3"><div className="flex gap-1"><span className="h-1.5 w-1.5 animate-bounce rounded-full bg-white/65" /><span className="h-1.5 w-1.5 animate-bounce rounded-full bg-white/50 [animation-delay:120ms]" /><span className="h-1.5 w-1.5 animate-bounce rounded-full bg-white/35 [animation-delay:240ms]" /></div></div>
                     </motion.div>
                   )}
                 </div>
 
                 <div className="mt-2 flex flex-wrap gap-2">
                   {quickQuestions.map((q) => (
-                    <button key={q} type="button" onClick={() => askQuick(q)} className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 text-[10px] text-white/70 transition hover:border-[#a3d8c9]/50 hover:text-white">{q}</button>
+                    <button key={q} type="button" onClick={() => askQuick(q)} className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 text-[10px] text-[#E4F0F2]/80 transition hover:border-[#1F6878] hover:bg-[#1F6878]/30 hover:text-white">{q}</button>
                   ))}
                 </div>
 
-                <div className="mt-4 flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] p-1.5 pl-4">
-                  <MessageSquareText className="h-4 w-4 shrink-0 text-white/45" />
+                <div className="mt-4 flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.06] p-1.5 pl-4">
+                  <MessageSquareText className="h-4 w-4 shrink-0 text-[#E4F0F2]" />
                   <input type="text" value={chatInput} onChange={(event) => setChatInput(event.target.value)} onKeyDown={(event) => event.key === "Enter" && handleSendMessage()} placeholder="Ask about the clinic or booking…" className="min-w-0 flex-1 bg-transparent py-1.5 text-[12px] text-white placeholder:text-white/40 focus:outline-none" />
-                  <button type="button" onClick={handleSendMessage} disabled={!chatInput.trim()} aria-label="Send message" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#bcefe0] text-[#214841] transition hover:bg-white disabled:opacity-40"><Send className="h-3.5 w-3.5" /></button>
+                  <button type="button" onClick={handleSendMessage} disabled={!chatInput.trim()} aria-label="Send message" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#E95A35] text-white transition hover:bg-[#D14824] disabled:opacity-40"><Send className="h-3.5 w-3.5" /></button>
                 </div>
               </div>
-              <p className="mt-3 text-[10px] leading-relaxed text-white/45"><AlertTriangle className="mr-1 inline h-3 w-3 text-[#e9c786]" />This preview is not a clinical service. For symptoms or urgent concerns, contact the clinic directly.</p>
+              <p className="mt-3 text-[10px] leading-relaxed text-[#E4F0F2]/60"><AlertTriangle className="mr-1 inline h-3 w-3 text-[#E4F0F2]" />This preview is not a clinical service. For symptoms or urgent concerns, contact the clinic directly.</p>
             </div>
           </ScrollReveal>
         </div>

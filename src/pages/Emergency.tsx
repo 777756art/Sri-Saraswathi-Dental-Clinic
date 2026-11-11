@@ -69,7 +69,7 @@ export default function EmergencyPage() {
           eyebrow="Urgent dental enquiries"
           title={
             <>
-              Dental concern? <span className="italic text-accent-300">Talk to the clinic.</span>
+              Dental concern? <span className="text-[#E4F0F2]">Talk to the clinic.</span>
             </>
           }
           description="Call the clinic to discuss urgent dental concerns and ask about appointment availability. This form is for enquiries and is not monitored as an emergency service."
@@ -106,8 +106,8 @@ export default function EmergencyPage() {
                   <p className="mt-1 text-xs leading-5 text-white/55">Please call to ask about urgent care and available appointment times.</p>
                 </div>
               </div>
-              <div className="mt-6 flex items-start gap-2 border-t border-white/10 pt-4 text-[11px] leading-relaxed text-white/45">
-                <Ambulance className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent-300" />
+              <div className="mt-6 flex items-start gap-2 border-t border-white/10 pt-4 text-[11px] leading-relaxed text-[#E4F0F2]/65">
+                <Ambulance className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#E4F0F2]" />
                 For a life-threatening emergency, contact local emergency services.
               </div>
             </div>
@@ -121,63 +121,63 @@ export default function EmergencyPage() {
                 <span className="eyebrow">
                   <span className="eyebrow-dot" /> What we treat
                 </span>
-                <h2 className="mt-5 text-display-3 text-balance">
-                  Tell us what is troubling you
-                </h2>
-                <p className="mt-4 max-w-md text-[15px] leading-relaxed text-muted-foreground">
-                  Common concerns include severe tooth pain, a damaged tooth or swelling. Call the clinic for urgent guidance and current availability.
-                </p>
+              <h2 className="mt-5 font-display text-2xl font-bold text-[#1F6878] sm:text-3xl text-balance">
+                Tell us what is <span className="text-[#1F6878]">troubling you</span>
+              </h2>
+              <p className="mt-4 max-w-md text-[15px] leading-relaxed text-[#707574]">
+                Common concerns include severe tooth pain, a damaged tooth or swelling. Call the clinic for urgent guidance and current availability.
+              </p>
 
-                <div className="mt-8 grid gap-2.5 sm:grid-cols-2">
-                  {emergencies.map((item) => (
-                    <div
-                      key={item}
-                      className="flex items-center gap-2.5 rounded-xl border border-accent/15 bg-accent-50/60 px-3.5 py-3 text-[13px] font-medium text-foreground/85"
-                    >
-                      <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-accent" />
-                      {item}
-                    </div>
-                  ))}
-                </div>
+              <div className="mt-8 grid gap-2.5 sm:grid-cols-2">
+                {emergencies.map((item) => (
+                  <div
+                    key={item}
+                    className="flex items-center gap-2.5 rounded-xl border border-[#E95A35]/15 bg-[#E4F0F2]/60 px-3.5 py-3 text-[13px] font-medium text-[#1F6878]"
+                  >
+                    <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-[#E95A35]" />
+                    {item}
+                  </div>
+                ))}
+              </div>
 
-                <div className="mt-8 rounded-2xl border border-border/70 bg-card p-5 shadow-soft">
-                  <div className="flex items-start gap-4">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-50 text-primary-700">
-                      <Shield className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <h3 className="text-[15px] font-semibold text-foreground">
-                        Check urgent appointment availability
-                      </h3>
-                      <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
-                        Availability can change during the day. Call the clinic to discuss your concern and ask about the next available time.
-                      </p>
-                      <Button asChild size="sm" className="mt-4">
-                        <a href="tel:+914244272494">
-                          <Phone className="h-3.5 w-3.5" /> Call the emergency line
-                        </a>
-                      </Button>
-                    </div>
+              <div className="mt-8 rounded-2xl border border-[#1F6878]/15 bg-white p-5 shadow-soft">
+                <div className="flex items-start gap-4">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#E4F0F2] text-[#1F6878]">
+                    <Shield className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-[15px] font-bold text-[#1F6878]">
+                      Check urgent appointment availability
+                    </h3>
+                    <p className="mt-1 text-[13px] leading-relaxed text-[#707574]">
+                      Availability can change during the day. Call the clinic to discuss your concern and ask about the next available time.
+                    </p>
+                    <Button asChild size="sm" className="mt-4">
+                      <a href="tel:+914244272494">
+                        <Phone className="h-3.5 w-3.5" /> Call the emergency line
+                      </a>
+                    </Button>
                   </div>
                 </div>
               </div>
+            </div>
 
-              <div>
-                {submission !== "success" ? (
-                  <div className="rounded-3xl border border-border/70 bg-card p-6 shadow-card md:p-8">
-                    <div className="flex items-center gap-3">
-                      <span className="flex h-10 w-10 items-center justify-center rounded-full bg-accent-50 text-accent">
-                        <Clock className="h-4 w-4" />
-                      </span>
-                      <div>
-                        <h3 className="font-display text-2xl font-medium text-foreground">
-                          Request emergency care
-                        </h3>
-                        <p className="text-[12px] text-muted-foreground">
-                          Share your contact number and the clinic team can review your enquiry.
-                        </p>
-                      </div>
+            <div>
+              {submission !== "success" ? (
+                <div className="rounded-3xl border border-[#1F6878]/15 bg-white p-6 shadow-card md:p-8">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#E4F0F2] text-[#E95A35]">
+                      <Clock className="h-4 w-4" />
+                    </span>
+                    <div>
+                      <h3 className="font-display text-2xl font-bold text-[#1F6878]">
+                        Request emergency care
+                      </h3>
+                      <p className="text-[12px] text-[#707574]">
+                        Share your contact number and the clinic team can review your enquiry.
+                      </p>
                     </div>
+                  </div>
 
                     <form
                       className="mt-7"
@@ -214,27 +214,27 @@ export default function EmergencyPage() {
                         />
                         <TextArea name="details" label="Brief description" maxLength={3000} placeholder="Describe your concern…" />
                         {submission === "error" && <p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800">{error}</p>}
-                        <Button type="submit" variant="danger" size="lg" fullWidth loading={submission === "sending"}>
+                        <Button type="submit" variant="primary" size="lg" fullWidth loading={submission === "sending"}>
                           {submission !== "sending" && <AlertTriangle className="h-4 w-4" />} {submission === "sending" ? "Sending enquiry…" : "Send urgent enquiry"}
                         </Button>
-                        <p className="text-center text-[11px] text-muted-foreground">
+                        <p className="text-center text-[11px] text-[#707574]">
                           This form is not an emergency channel. For immediate help, call the clinic or local emergency services.
                         </p>
                       </div>
                     </form>
                   </div>
                 ) : (
-                  <div className="rounded-3xl border border-emerald-200/70 bg-emerald-50/60 p-8 text-center">
-                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+                  <div className="rounded-3xl border border-[#1F6878]/20 bg-[#E4F0F2] p-8 text-center">
+                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white text-[#1F6878] shadow-sm">
                       <CheckCircle className="h-7 w-7" />
                     </div>
-                    <h3 className="mt-5 font-display text-2xl font-medium text-foreground">
+                    <h3 className="mt-5 font-display text-2xl font-bold text-[#1F6878]">
                       Request received
                     </h3>
-                    <p className="mx-auto mt-2 max-w-sm text-[14px] leading-relaxed text-muted-foreground">
+                    <p className="mx-auto mt-2 max-w-sm text-[14px] leading-relaxed text-[#707574]">
                       Your enquiry was sent to the clinic team. If you need immediate help, call the clinic directly.
                     </p>
-                    <Button asChild variant="danger" className="mt-6">
+                    <Button asChild variant="primary" className="mt-6">
                       <a href="tel:+914244272494">
                         <Phone className="h-4 w-4" /> Call us directly
                       </a>

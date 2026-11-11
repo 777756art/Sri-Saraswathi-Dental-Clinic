@@ -73,7 +73,7 @@ export default function MarketingPage() {
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <span className="eyebrow"><span className="eyebrow-dot" /> Clinic workspace</span>
-          <h1 className="mt-3 text-display-3 text-foreground">Marketing</h1>
+          <h1 className="mt-3 text-display-3 text-[#1F6878]">Marketing</h1>
           <p className="mt-1.5 text-[13px] text-muted-foreground">Campaigns, patient testimonials, reviews and local SEO.</p>
         </div>
         <Button onClick={() => setCampaignOpen(true)}><Plus className="h-4 w-4" /> New Campaign</Button>
@@ -114,7 +114,7 @@ export default function MarketingPage() {
 
       <Card>
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-foreground">Campaigns</h2>
+          <h2 className="text-lg font-semibold text-[#1F6878]">Campaigns</h2>
           <Badge variant="info">{activeCount} active</Badge>
         </div>
         <div className="space-y-4">

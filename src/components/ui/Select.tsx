@@ -20,10 +20,10 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
         {label && (
           <label
             htmlFor={selectId}
-            className="mb-1.5 block text-sm font-medium text-foreground/75"
+            className="mb-1.5 block text-sm font-medium text-[#15191B]"
           >
             {label}
-            {props.required && <span className="ml-1 text-red-500">*</span>}
+            {props.required && <span className="ml-1 text-[#E95A35]">*</span>}
           </label>
         )}
         <div className="relative">
@@ -31,8 +31,8 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             ref={ref}
             id={selectId}
             className={cn(
-              "w-full appearance-none rounded-xl border border-input bg-card px-4 py-2.5 pr-10 text-sm text-foreground",
-              "transition-colors focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10",
+              "w-full appearance-none rounded-xl border border-input bg-card px-4 py-2.5 pr-10 text-sm text-[#15191B]",
+              "transition-colors focus:border-[#1F6878] focus:outline-none focus:ring-4 focus:ring-[#1F6878]/15",
               "disabled:cursor-not-allowed disabled:bg-muted",
               error && "border-red-500",
               className

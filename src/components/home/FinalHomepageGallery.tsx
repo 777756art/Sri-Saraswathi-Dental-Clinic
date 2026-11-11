@@ -98,13 +98,13 @@ export function FinalHomepageGallery() {
       <div className="container-x">
         {/* Centered Heading */}
         <div className="mx-auto max-w-2xl text-center">
-          <span className="inline-flex items-center gap-2 rounded-full border border-[#f0d4df] bg-[#fff8fa] px-3.5 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[#ed2f79]">
-            <Building2 className="h-3.5 w-3.5" /> Clinic Spaces
+          <span className="inline-flex items-center gap-2 rounded-full border border-[#1F6878]/20 bg-[#E4F0F2] px-3.5 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[#1F6878]">
+            <Building2 className="h-3.5 w-3.5 text-[#1F6878]" /> Clinic Spaces
           </span>
-          <h2 className="mt-3 font-sans text-[32px] font-bold leading-tight tracking-[-0.035em] text-[#073b43] sm:text-[42px]">
-            Explore Sri Saraswathi <span className="text-[#0e8a5e]">Up Close.</span>
+          <h2 className="mt-3 font-sans text-[32px] font-bold leading-tight tracking-[-0.035em] text-[#1F6878] sm:text-[42px]">
+            Explore Sri Saraswathi <span className="text-[#1F6878]">Up Close.</span>
           </h2>
-          <p className="mx-auto mt-3 max-w-xl text-[14px] leading-relaxed text-[#687680] sm:text-[15px]">
+          <p className="mx-auto mt-3 max-w-xl text-[14px] leading-relaxed text-[#707574] sm:text-[15px]">
             A comfortable, hygienic environment located at Soli Complex, Surampatti Four Rd, Erode.
           </p>
         </div>
@@ -118,8 +118,8 @@ export function FinalHomepageGallery() {
               onClick={() => setActiveCategory(cat)}
               className={`rounded-full border px-4 py-1.5 text-[11px] font-bold transition ${
                 effectiveCategory === cat
-                  ? "border-[#073b43] bg-[#073b43] text-white shadow-sm"
-                  : "border-[#e5ded9] bg-white text-[#56656b] hover:border-[#ed2f79] hover:text-[#ed2f79]"
+                  ? "border-[#1F6878] bg-[#1F6878] text-white shadow-sm"
+                  : "border-[#dce4e5] bg-white text-[#1F6878]/80 hover:border-[#1F6878] hover:bg-[#E4F0F2] hover:text-[#1F6878]"
               }`}
             >
               {cat}
@@ -135,7 +135,7 @@ export function FinalHomepageGallery() {
               type="button"
               onClick={() => setSelectedPhoto(photo)}
               aria-label={`View ${photo.title}`}
-              className="group relative aspect-[1.3/1] overflow-hidden rounded-[22px] border border-[#ebe4de] bg-[#eef3f1] text-left shadow-[0_8px_24px_-16px_rgba(7,59,67,0.22)] transition duration-300 hover:-translate-y-1 hover:border-[#dfc3d0] hover:shadow-[0_18px_36px_-18px_rgba(7,59,67,0.3)]"
+              className="group relative aspect-[1.3/1] overflow-hidden rounded-[22px] border border-[#dce4e5] bg-[#E4F0F2] text-left shadow-[0_8px_24px_-16px_rgba(31,104,120,0.2)] transition duration-300 hover:-translate-y-1 hover:border-[#1F6878]/35 hover:shadow-[0_18px_36px_-18px_rgba(31,104,120,0.28)]"
             >
               <img
                 src={photo.image}
@@ -144,18 +144,18 @@ export function FinalHomepageGallery() {
                 decoding="async"
                 className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.05]"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#073b43]/85 via-transparent to-transparent opacity-90 transition duration-300 group-hover:from-[#073b43]/95" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#1F6878]/85 via-transparent to-transparent opacity-90 transition duration-300 group-hover:from-[#1F6878]/95" />
 
               <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between gap-3 text-white">
                 <div>
-                  <span className="block text-[9.5px] font-bold uppercase tracking-[0.16em] text-[#a3d8c9]">
+                  <span className="block text-[9.5px] font-bold uppercase tracking-[0.16em] text-[#E4F0F2]">
                     {photo.category}
                   </span>
                   <p className="mt-1 font-sans text-[15px] font-bold leading-snug">
                     {photo.title}
                   </p>
                 </div>
-                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl border border-white/30 bg-white/20 backdrop-blur-md transition group-hover:bg-[#ed2f79] group-hover:border-[#ed2f79]">
+                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl border border-white/30 bg-white/20 backdrop-blur-md transition group-hover:bg-[#E95A35] group-hover:border-[#E95A35]">
                   <Images className="h-4 w-4" />
                 </span>
               </div>
@@ -167,7 +167,7 @@ export function FinalHomepageGallery() {
         <div className="mt-10 text-center">
           <Link
             to="/clinic-gallery"
-            className="inline-flex h-[48px] items-center gap-2 rounded-full border border-[#073b43] px-7 text-[13px] font-bold text-[#073b43] transition hover:bg-[#073b43] hover:text-white"
+            className="inline-flex h-[48px] items-center gap-2 rounded-full border border-[#1F6878] px-7 text-[13px] font-bold text-[#1F6878] transition hover:bg-[#1F6878] hover:text-white"
           >
             Explore Full Clinic Gallery <ArrowRight className="h-4 w-4" />
           </Link>
@@ -215,7 +215,7 @@ export function FinalHomepageGallery() {
             <motion.div
               initial={{ scale: 0.95, y: 10 }}
               animate={{ scale: 1, y: 0 }}
-              className="max-h-[88vh] max-w-[min(1050px,92vw)] overflow-hidden rounded-[26px] border border-white/15 bg-[#0e171b] shadow-2xl"
+              className="max-h-[88vh] max-w-[min(1050px,92vw)] overflow-hidden rounded-[26px] border border-white/15 bg-[#0F3841] shadow-2xl"
             >
               <img
                 src={selectedPhoto.image}
@@ -224,7 +224,7 @@ export function FinalHomepageGallery() {
               />
               <div className="p-4 sm:p-5 text-white flex items-center justify-between">
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#a3d8c9]">
+                  <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#E4F0F2]">
                     {selectedPhoto.category}
                   </span>
                   <p className="mt-0.5 text-[17px] font-bold">{selectedPhoto.title}</p>

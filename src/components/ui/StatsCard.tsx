@@ -13,10 +13,10 @@ interface StatsCardProps {
 
 const variants = {
   default: "bg-card border-border/80",
-  primary: "bg-primary-50 border-primary-200/70",
-  success: "bg-emerald-50 border-emerald-200/70",
-  warning: "bg-amber-50 border-amber-200/70",
-  danger: "bg-red-50 border-red-200/70",
+  primary: "bg-[#E4F0F2] border-[#1F6878]/20",
+  success: "bg-[#E4F0F2] border-[#1F6878]/25",
+  warning: "bg-[#E4F0F2]/75 border-[#E95A35]/20",
+  danger: "bg-rose-50 border-rose-200/70",
 };
 
 export function StatsCard({
@@ -58,14 +58,14 @@ export function StatsCard({
       {trend && (
         <div className="mt-3 flex items-center gap-1.5">
           {trend.isUp ? (
-            <TrendingUp className="h-4 w-4 text-green-600" />
+            <TrendingUp className="h-4 w-4 text-[#1F6878]" />
           ) : (
-            <TrendingDown className="h-4 w-4 text-red-600" />
+            <TrendingDown className="h-4 w-4 text-rose-600" />
           )}
           <span
             className={cn(
               "text-sm font-medium",
-              trend.isUp ? "text-green-600" : "text-red-600"
+              trend.isUp ? "text-[#1F6878]" : "text-rose-600"
             )}
           >
             {trend.value}%

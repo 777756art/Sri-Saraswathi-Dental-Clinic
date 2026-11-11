@@ -19,7 +19,7 @@ export default function HomePage() {
   }, []);
 
   return (
-    <main className="min-h-screen bg-white">
+    <main className="min-h-screen bg-[#F5F2EB]">
       {/* Section 01 – Hero Banner */}
       <Hero />
 

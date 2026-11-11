@@ -140,7 +140,7 @@ export function Navbar() {
     <AnnouncementBanner offers={offerItems} />
     <header
       className={cn(
-        "fixed inset-x-0 z-50 border-b border-[#e9e9e9] bg-white/95 shadow-[0_5px_18px_-16px_rgba(25,36,48,0.45)] backdrop-blur-xl transition-all duration-300",
+        "fixed inset-x-0 z-50 border-b border-[#dce4e5] bg-white/95 shadow-[0_5px_18px_-16px_rgba(25,36,48,0.45)] backdrop-blur-xl transition-all duration-300",
         hasAnnouncement ? "top-[30px]" : "top-0",
       )}
     >
@@ -176,8 +176,8 @@ export function Navbar() {
                   className={cn(
                     "flex items-center gap-1 rounded-full px-3.5 py-2 text-[13px] font-medium transition-colors",
                     dropdownOpen || pathname.startsWith("/services")
-                      ? "text-[#1f2e44]"
-                      : "text-[#59616e] hover:text-[#1f2e44]"
+                      ? "text-[#1F6878]"
+                      : "text-[#1F6878]/75 hover:text-[#1F6878]"
                   )}
                   aria-expanded={dropdownOpen}
                 >
@@ -198,15 +198,15 @@ export function Navbar() {
                       transition={{ duration: 0.16, ease: "easeOut" }}
                       className="absolute left-1/2 top-full z-50 w-[350px] -translate-x-1/2 pt-3"
                     >
-                      <div className="overflow-hidden rounded-2xl border border-border/70 bg-card p-2 shadow-lift">
+                      <div className="overflow-hidden rounded-2xl border border-[#dce4e5] bg-white p-2 shadow-lift">
                         <div className="grid gap-0.5">
                           {link.children.map((child) => (
                             <Link
                               key={child.label}
                               to={child.href}
-                              className="group flex items-center gap-3 rounded-xl px-3 py-3 text-[13px] text-secondary-700 transition-colors hover:bg-primary-50 hover:text-primary-800"
+                              className="group flex items-center gap-3 rounded-xl px-3 py-3 text-[13px] text-[#1F6878]/85 transition-colors hover:bg-[#E4F0F2] hover:text-[#1F6878]"
                             >
-                              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#fce8f1] text-[#c72d70]"><child.icon className="h-4 w-4" /></span>
+                              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#E4F0F2] text-[#1F6878]"><child.icon className="h-4 w-4" /></span>
                               <span className="flex-1">{child.label}</span>
                               <ArrowRight className="h-3 w-3 -translate-x-1 opacity-0 transition-all group-hover:translate-x-0 group-hover:opacity-100" />
                             </Link>
@@ -224,13 +224,13 @@ export function Navbar() {
                 className={cn(
                   "relative rounded-full px-3.5 py-2 text-[13px] font-medium transition-colors",
                   isActive(link.href)
-                    ? "text-[#1f2e44]"
-                    : "text-[#59616e] hover:text-[#1f2e44]"
+                    ? "text-[#1F6878]"
+                    : "text-[#1F6878]/75 hover:text-[#1F6878]"
                 )}
               >
                 {link.label}
                 {isActive(link.href) && (
-                  <span className="absolute inset-x-3.5 -bottom-0.5 h-[2px] rounded-full bg-[#ed2f79]" />
+                  <span className="absolute inset-x-3.5 -bottom-0.5 h-[2px] rounded-full bg-[#1F6878]" />
                 )}
               </Link>
             )
@@ -241,7 +241,7 @@ export function Navbar() {
           {hasBooking && (
             <Link
               to="/patient-portal/appointments"
-              className="hidden items-center gap-1.5 rounded-full bg-primary-50 px-3 py-2 text-[12.5px] font-semibold text-primary-800 transition-colors hover:bg-primary-100 xl:flex"
+              className="hidden items-center gap-1.5 rounded-full bg-[#E4F0F2] px-3 py-2 text-[12.5px] font-semibold text-[#1F6878] transition-colors hover:bg-[#d1e4e8] xl:flex"
             >
               <CalendarCheck className="h-3.5 w-3.5" />
               View my appointment
@@ -254,9 +254,9 @@ export function Navbar() {
                 onClick={() => setUserMenuOpen((v) => !v)}
                 aria-expanded={userMenuOpen}
                 aria-haspopup="menu"
-                className="flex items-center gap-2 rounded-full border border-border/70 bg-card/70 py-1 pl-1 pr-2.5 text-[13px] font-medium text-foreground transition-colors hover:bg-secondary-100"
+                className="flex items-center gap-2 rounded-full border border-[#dce4e5] bg-white py-1 pl-1 pr-2.5 text-[13px] font-medium text-[#1F6878] transition-colors hover:bg-[#E4F0F2]/50"
               >
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-ink-950 text-[11px] font-semibold text-white">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#1F6878] text-[11px] font-semibold text-white">
                   {initials}
                 </span>
                 <span className="max-w-[110px] truncate">{user.firstName}</span>
@@ -341,7 +341,7 @@ export function Navbar() {
             </div>
           ) : null}
           <Link to="/booking">
-            <Button size="sm" className="rounded-full bg-[#ed2f79] px-5 text-white shadow-[0_8px_18px_-10px_rgba(237,47,121,0.8)] hover:bg-[#d91d68]">
+            <Button size="sm" className="rounded-full bg-[#E95A35] px-5 text-white shadow-[0_8px_18px_-10px_rgba(233,90,53,0.75)] hover:bg-[#D14824]">
               Book a Visit
               <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
             </Button>
@@ -473,7 +473,7 @@ export function Navbar() {
                               ))}
                               <Link
                                 to="/booking"
-                                className="col-span-2 mt-1 flex items-center justify-between rounded-xl bg-ink-950 px-4 py-3 text-[13px] font-medium text-white"
+                                className="col-span-2 mt-1 flex items-center justify-between rounded-xl bg-[#E95A35] px-4 py-3 text-[13px] font-semibold text-white shadow-[0_8px_18px_-8px_rgba(233,90,53,0.55)] transition hover:bg-[#D14824]"
                                 onClick={() => setMobileOpen(false)}
                               >
                                 Not sure what you need? Book a free consult
@@ -505,13 +505,13 @@ export function Navbar() {
 
               <div className="mt-6 space-y-2 border-t border-border/70 pt-6">
                 <Link to="/booking" onClick={() => setMobileOpen(false)}>
-                  <Button fullWidth size="lg" className="bg-[#ed2f79] text-white hover:bg-[#d91d68]">
+                  <Button fullWidth size="lg" className="bg-[#E95A35] text-white hover:bg-[#D14824]">
                     Book a Visit
                     <ArrowRight className="h-4 w-4" />
                   </Button>
                 </Link>
                 <Link to="/emergency" onClick={() => setMobileOpen(false)}>
-                  <Button fullWidth variant="outline" size="lg" className="border-accent/40 text-accent-700">
+                  <Button fullWidth variant="outline" size="lg" className="border-[#E95A35]/40 text-[#E95A35] hover:bg-[#E4F0F2]">
                     Emergency Visit
                   </Button>
                 </Link>
@@ -559,4 +559,3 @@ export function Navbar() {
     </>
   );
 }
-

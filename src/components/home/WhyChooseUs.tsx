@@ -39,13 +39,14 @@ export function WhyChooseUs() {
       <div className="container-x">
         {/* Centered Heading */}
         <div className="mx-auto max-w-2xl text-center">
-          <span className="inline-flex items-center gap-2 rounded-full border border-[#f0d4df] bg-[#fff8fa] px-3.5 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[#ed2f79]">
-            <ShieldCheck className="h-3.5 w-3.5" /> Our Commitment
+          <span className="inline-flex items-center gap-2 rounded-full border border-[#1F6878]/20 bg-[#E4F0F2] px-3.5 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[#1F6878]">
+            <ShieldCheck className="h-3.5 w-3.5 text-[#1F6878]" /> Our Commitment
           </span>
-          <h2 className="mt-3 font-sans text-[32px] font-bold leading-tight tracking-[-0.03em] text-[#073b43] sm:text-[42px]">
-            Why Choose Sri Saraswathi Dental Clinic?
+          <h2 className="mt-3 font-sans text-[32px] font-bold leading-tight tracking-[-0.03em] text-[#1F6878] sm:text-[42px]">
+            Why Choose <span className="text-[#1F6878]">Sri Saraswathi</span> Dental Clinic?
           </h2>
-          <p className="mx-auto mt-3 max-w-xl text-[14px] leading-relaxed text-[#687680] sm:text-[15px]">
+          <div className="mx-auto mt-3.5 h-1 w-14 rounded-full bg-[#1F6878]" />
+          <p className="mx-auto mt-3.5 max-w-xl text-[14px] leading-relaxed text-[#707574] sm:text-[15px]">
             A patient-first healthcare experience built on honest conversations, advanced clinical standards, and gentle chairside care.
           </p>
         </div>
@@ -55,20 +56,20 @@ export function WhyChooseUs() {
           {reasons.map(({ icon: Icon, title, text }, index) => (
             <article
               key={title}
-              className="group rounded-[22px] border border-[#ebe4de] bg-[#faf8f4] p-6 shadow-[0_6px_22px_-16px_rgba(7,59,67,0.18)] transition duration-300 hover:-translate-y-1 hover:border-[#dfc3d0] hover:bg-white hover:shadow-[0_16px_36px_-18px_rgba(7,59,67,0.25)] sm:p-7"
+              className="group rounded-[22px] border border-[#1F6878]/15 bg-[#E4F0F2]/55 p-6 shadow-[0_6px_22px_-16px_rgba(31,104,120,0.16)] transition duration-300 hover:-translate-y-1 hover:border-[#1F6878]/35 hover:bg-white hover:shadow-[0_16px_36px_-18px_rgba(31,104,120,0.22)] sm:p-7"
             >
               <div className="flex items-center justify-between">
-                <span className="grid h-12 w-12 place-items-center rounded-2xl bg-white text-[#ed2f79] shadow-sm transition duration-300 group-hover:bg-[#ed2f79] group-hover:text-white">
+                <span className="grid h-12 w-12 place-items-center rounded-2xl bg-white text-[#1F6878] shadow-sm transition duration-300 group-hover:bg-[#1F6878] group-hover:text-white">
                   <Icon className="h-5 w-5" />
                 </span>
-                <span className="text-[12px] font-bold text-[#b0bcc1]">
+                <span className="text-[12px] font-bold text-[#1F6878]/45">
                   0{index + 1}
                 </span>
               </div>
-              <h3 className="mt-5 font-sans text-[18px] font-bold leading-snug text-[#073b43]">
+              <h3 className="mt-5 font-sans text-[18px] font-bold leading-snug text-[#1F6878]">
                 {title}
               </h3>
-              <p className="mt-2 text-[13px] leading-relaxed text-[#687680]">
+              <p className="mt-2 text-[13px] leading-relaxed text-[#707574]">
                 {text}
               </p>
             </article>
