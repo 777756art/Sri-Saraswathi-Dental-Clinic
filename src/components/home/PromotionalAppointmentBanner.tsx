@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, CalendarDays, Clock, MapPin, Phone, ShieldCheck } from "lucide-react";
 import { clinicImages } from "@/lib/images";
+import { resolveApiAsset } from "@/lib/api";
 import { useClinicSettings } from "@/lib/clinic-settings";
 import { useSiteContent } from "@/components/home/SiteContentSections";
 
@@ -14,7 +15,7 @@ export function PromotionalAppointmentBanner() {
 
   const title = activeOffer?.title || "Ready to Experience Gentle, Compassionate Dental Care?";
   const description = activeOffer?.description || "Whether you need a routine check-up, pain relief, or want to discuss a full smile makeover, Dr. Kishore Kumar and our team are here to help you every step of the way.";
-  const imageSrc = activeOffer?.mediaUrl || clinicImages.heroDentalCare;
+  const imageSrc = activeOffer?.mediaUrl ? resolveApiAsset(activeOffer.mediaUrl) : clinicImages.heroDentalCare;
 
   return (
     <section className="bg-white px-4 py-12 sm:py-16" aria-label="Promotional Appointment Banner">

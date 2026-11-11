@@ -52,7 +52,7 @@ const defaultPhotos: GalleryItem[] = [
   },
 ];
 
-const categories = ["All Spaces", "Treatment Rooms", "Reception", "Operatory", "Facilities"];
+const defaultCategories = ["All Spaces", "Treatment Rooms", "Reception", "Operatory", "Facilities"];
 
 export function FinalHomepageGallery() {
   const { items: imgItems } = useSiteContent("image");
@@ -73,10 +73,17 @@ export function FinalHomepageGallery() {
 
   const allPhotos: GalleryItem[] = dynamicPhotos.length > 0 ? dynamicPhotos : defaultPhotos;
 
+  const categories =
+    dynamicPhotos.length > 0
+      ? ["All Spaces", ...Array.from(new Set(allPhotos.map((p) => p.category.trim()).filter(Boolean)))]
+      : defaultCategories;
+
+  const effectiveCategory = categories.includes(activeCategory) ? activeCategory : "All Spaces";
+
   const filteredPhotos =
-    activeCategory === "All Spaces"
+    effectiveCategory === "All Spaces"
       ? allPhotos
-      : allPhotos.filter((p) => p.category.toLowerCase().includes(activeCategory.toLowerCase()));
+      : allPhotos.filter((p) => p.category.toLowerCase().includes(effectiveCategory.toLowerCase()));
 
   const selectedIndex = selectedPhoto ? filteredPhotos.findIndex((p) => p.id === selectedPhoto.id) : -1;
 
@@ -110,7 +117,7 @@ export function FinalHomepageGallery() {
               type="button"
               onClick={() => setActiveCategory(cat)}
               className={`rounded-full border px-4 py-1.5 text-[11px] font-bold transition ${
-                activeCategory === cat
+                effectiveCategory === cat
                   ? "border-[#073b43] bg-[#073b43] text-white shadow-sm"
                   : "border-[#e5ded9] bg-white text-[#56656b] hover:border-[#ed2f79] hover:text-[#ed2f79]"
               }`}

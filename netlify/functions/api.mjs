@@ -76,5 +76,7 @@ app.use((err, _req, res, _next) => {
   res.status(status).json({ error: err?.message || "Unexpected server error." });
 });
 
-export const handler = serverless(app);
+export const handler = serverless(app, {
+  binary: ["image/*", "video/*", "application/octet-stream"],
+});
 export default handler;

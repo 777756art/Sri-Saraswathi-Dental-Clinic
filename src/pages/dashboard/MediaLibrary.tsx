@@ -3,8 +3,8 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import {
   ArrowUpRight,
   Check,
+  Cloud,
   Film,
-  HardDrive,
   Image,
   Images,
   LoaderCircle,
@@ -16,22 +16,27 @@ import {
   X,
 } from "lucide-react";
 import toast from "react-hot-toast";
-import { api } from "@/lib/api";
-import {
-  MEDIA_CATEGORIES,
-  type ClinicMediaKind,
-  type ClinicMediaRecord,
-  type MediaCategory,
-  listClinicMedia,
-  removeClinicMedia,
-  saveClinicMedia,
-} from "@/lib/media-store";
+import { api, resolveApiAsset, type SiteContent } from "@/lib/api";
+import { MEDIA_CATEGORIES, type ClinicMediaKind, type MediaCategory } from "@/lib/media-store";
 
 const MAX_FILE_BYTES = 150 * 1024 * 1024;
+const HOSTED_RECOMMENDED_BYTES = 4.5 * 1024 * 1024;
 const ACCEPTED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/avif", "image/gif"]);
 const ACCEPTED_VIDEO_TYPES = new Set(["video/mp4", "video/webm", "video/quicktime"]);
 
-type MediaItem = ClinicMediaRecord & { previewUrl: string };
+type MediaItem = {
+  id: number;
+  contentType: "image" | "reel" | "video";
+  name: string;
+  kind: ClinicMediaKind;
+  size: number;
+  category: MediaCategory | string;
+  createdAt: number;
+  includeInGallery: boolean;
+  mediaUrl: string;
+  previewUrl: string;
+};
+
 type Filter = "All" | "Photos" | "Videos";
 
 function getMediaKind(file: File): ClinicMediaKind | null {
@@ -57,10 +62,23 @@ function titleFromFilename(name: string) {
   return name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ").trim();
 }
 
-function makeId() {
-  return typeof crypto !== "undefined" && "randomUUID" in crypto
-    ? crypto.randomUUID()
-    : Date.now() + "-" + Math.random().toString(36).slice(2);
+function mapContentToMediaItem(row: SiteContent): MediaItem {
+  const kind: ClinicMediaKind = row.type === "reel" || row.type === "video" ? "video" : "image";
+  const parsedTime = Date.parse(row.createdAt || row.publishedAt || "");
+  const parsedSize = Number(row.seoDescription || 0);
+  const mediaUrl = row.mediaUrl || row.media_url || "";
+  return {
+    id: Number(row.id),
+    contentType: row.type === "video" ? "video" : row.type === "reel" ? "reel" : "image",
+    name: row.title || (kind === "video" ? "Clinic Video" : "Clinic Photo"),
+    kind,
+    size: Number.isFinite(parsedSize) && parsedSize > 0 ? parsedSize : 0,
+    category: row.category || "Clinic",
+    createdAt: Number.isFinite(parsedTime) ? parsedTime : Date.now(),
+    includeInGallery: Boolean(row.published),
+    mediaUrl,
+    previewUrl: resolveApiAsset(mediaUrl),
+  };
 }
 
 export default function MediaLibraryPage() {
@@ -73,26 +91,23 @@ export default function MediaLibraryPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [preview, setPreview] = useState<MediaItem | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<MediaItem | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const objectUrls = useRef<string[]>([]);
 
   const refreshMedia = useCallback(async () => {
-    const records = await listClinicMedia();
-    objectUrls.current.forEach((url) => URL.revokeObjectURL(url));
-    const nextItems = records.map((record) => ({
-      ...record,
-      previewUrl: URL.createObjectURL(record.blob),
-    }));
-    objectUrls.current = nextItems.map((item) => item.previewUrl);
-    setItems(nextItems);
+    const data = await api.get<{ items: SiteContent[] }>("/api/admin/content");
+    const mediaRows = (data.items || []).filter(
+      (item) =>
+        (item.type === "image" || item.type === "reel" || item.type === "video") &&
+        Boolean(item.mediaUrl || item.media_url)
+    );
+    setItems(mediaRows.map(mapContentToMediaItem));
   }, []);
 
   useEffect(() => {
     void refreshMedia()
-      .catch((error: unknown) => toast.error(error instanceof Error ? error.message : "Could not open the media library."))
+      .catch((error: unknown) => toast.error(error instanceof Error ? error.message : "Could not load the media library."))
       .finally(() => setIsLoading(false));
-
-    return () => objectUrls.current.forEach((url) => URL.revokeObjectURL(url));
   }, [refreshMedia]);
 
   const filteredItems = useMemo(() => {
@@ -106,7 +121,7 @@ export default function MediaLibraryPage() {
 
   const photoCount = items.filter((item) => item.kind === "image").length;
   const videoCount = items.filter((item) => item.kind === "video").length;
-  const totalBytes = items.reduce((total, item) => total + item.size, 0);
+  const liveCount = items.filter((item) => item.includeInGallery).length;
 
   const saveFiles = async (fileList: FileList | File[]) => {
     const files = Array.from(fileList);
@@ -129,47 +144,39 @@ export default function MediaLibraryPage() {
         }
 
         try {
-          // 1. Upload directly to Cloudflare R2 object storage
           const r2Folder = kind === "video" ? "reels" : "gallery";
-          const uploaded = await api.upload(file, r2Folder).catch(() => null);
-
-          // 2. Register in Cloudflare D1 gallery table
-          if (uploaded?.url) {
-            await api.post("/api/admin/gallery", {
-              title: titleFromFilename(file.name) || file.name,
-              description: `${category} showcase photo`,
-              image_url: uploaded.url,
-              category: category.toLowerCase(),
-              status: "active",
-              display_order: 1,
-            }).catch(() => null);
+          const uploaded = await api.upload(file, r2Folder);
+          if (!uploaded?.url) {
+            throw new Error("Cloud upload returned no URL.");
           }
 
-          // 3. Keep local IndexedDB record for instant caching
-          const record: ClinicMediaRecord = {
-            id: makeId(),
-            name: titleFromFilename(file.name) || file.name,
-            kind,
-            mimeType: file.type || (kind === "image" ? "image/jpeg" : "video/mp4"),
-            size: file.size,
+          await api.post<{ item: SiteContent }>("/api/admin/content", {
+            type: kind === "video" ? "reel" : "image",
+            title: titleFromFilename(file.name) || file.name,
             category,
-            createdAt: Date.now(),
-            includeInGallery: true,
-            blob: file,
-          };
-          await saveClinicMedia(record).catch(() => null);
+            excerpt: kind === "video" ? `${category} clinic video` : `${category} showcase photo`,
+            mediaUrl: uploaded.url,
+            seoDescription: String(file.size),
+            homepageHighlight: true,
+            published: true,
+            displayOrder: 0,
+          });
           saved += 1;
         } catch (error) {
-          rejected.push(file.name + ": " + (error instanceof Error ? error.message : "could not save"));
+          let message = error instanceof Error ? error.message : "could not upload";
+          if (file.size > HOSTED_RECOMMENDED_BYTES) {
+            message += " (keep hosted uploads under 4.5 MB)";
+          }
+          rejected.push(`${file.name}: ${message}`);
         }
       }
 
       if (saved) {
         try {
           await refreshMedia();
-          toast.success(saved + (saved === 1 ? " file saved to Cloudflare R2 & D1" : " files saved to Cloudflare R2 & D1"));
+          toast.success(saved + (saved === 1 ? " file stored & published to website" : " files stored & published to website"));
         } catch (error) {
-          toast.error(error instanceof Error ? error.message : "Files were saved, but the library could not refresh.");
+          toast.error(error instanceof Error ? error.message : "Files uploaded, but the library could not refresh.");
         }
       }
       if (rejected.length) toast.error(rejected.slice(0, 2).join(" · "));
@@ -179,27 +186,35 @@ export default function MediaLibraryPage() {
     }
   };
 
-  const updateItem = async (item: MediaItem, patch: Partial<ClinicMediaRecord>) => {
+  const updateItem = async (item: MediaItem, patch: Partial<Pick<MediaItem, "category" | "includeInGallery">>) => {
     try {
-      const { previewUrl: _previewUrl, ...record } = item;
-      await saveClinicMedia({ ...record, ...patch });
+      await api.patch<{ item: SiteContent }>(`/api/admin/content/${item.id}`, {
+        ...(patch.category !== undefined ? { category: patch.category } : {}),
+        ...(patch.includeInGallery !== undefined
+          ? { published: patch.includeInGallery, homepageHighlight: patch.includeInGallery }
+          : {}),
+      });
       await refreshMedia();
-      toast.success("Media details updated");
+      toast.success("Website visibility updated");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not update this file.");
     }
   };
 
   const confirmDelete = async () => {
-    if (!deleteTarget) return;
+    if (!deleteTarget || isDeleting) return;
+    setIsDeleting(true);
     try {
-      await removeClinicMedia(deleteTarget.id);
+      await api.delete(`/api/admin/content/${deleteTarget.id}`);
+      const deletedId = deleteTarget.id;
       setDeleteTarget(null);
-      if (preview?.id === deleteTarget.id) setPreview(null);
+      if (preview?.id === deletedId) setPreview(null);
       await refreshMedia();
-      toast.success("File removed from the library");
+      toast.success("File removed from website & cloud storage");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not remove this file.");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -222,7 +237,7 @@ export default function MediaLibraryPage() {
               </p>
               <h1 className="mt-5 font-display text-4xl font-medium tracking-[-0.04em] sm:text-5xl">A better view of your work.</h1>
               <p className="mt-3 max-w-xl text-sm leading-6 text-white/65">
-                Keep treatment photography, team moments and educational clips together. Choose what appears in your local website preview.
+                Upload clinic photos and educational clips directly to your website storage. Toggle any item live so patients see it across the gallery and reels sections.
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-3">
@@ -233,7 +248,11 @@ export default function MediaLibraryPage() {
                   onChange={(event) => setCategory(event.target.value as MediaCategory)}
                   className="rounded-lg border-0 bg-transparent py-1 text-xs font-semibold text-white outline-none"
                 >
-                  {MEDIA_CATEGORIES.map((value) => <option key={value} value={value} className="bg-[#19312f] text-white">{value}</option>)}
+                  {MEDIA_CATEGORIES.map((value) => (
+                    <option key={value} value={value} className="bg-[#19312f] text-white">
+                      {value}
+                    </option>
+                  ))}
                 </select>
               </label>
               <button
@@ -267,8 +286,8 @@ export default function MediaLibraryPage() {
               <div><p className="font-display text-xl">{videoCount}</p><p className="text-[10px] uppercase tracking-[0.16em] text-white/45">Videos</p></div>
             </div>
             <div className="flex items-center gap-3">
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-pink-200"><HardDrive className="h-4 w-4" /></span>
-              <div><p className="font-display text-xl">{formatBytes(totalBytes)}</p><p className="text-[10px] uppercase tracking-[0.16em] text-white/45">Stored in this browser</p></div>
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-pink-200"><Cloud className="h-4 w-4" /></span>
+              <div><p className="font-display text-xl">{liveCount}</p><p className="text-[10px] uppercase tracking-[0.16em] text-white/45">Live on website</p></div>
             </div>
           </div>
         </section>
@@ -287,7 +306,7 @@ export default function MediaLibraryPage() {
               <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white text-[#34695e] shadow-sm"><Upload className="h-5 w-5" /></span>
               <div>
                 <h2 className="text-sm font-semibold text-[#20322e]">Drop your files here</h2>
-                <p className="mt-1 text-xs leading-5 text-[#687772]">JPG, PNG, WEBP, AVIF, GIF, MP4, WEBM or MOV · up to 150 MB per file</p>
+                <p className="mt-1 text-xs leading-5 text-[#687772]">JPG, PNG, WEBP, AVIF, GIF, MP4, WEBM or MOV · stored in Cloudflare R2 (keep hosted uploads under 4.5 MB per file)</p>
               </div>
             </div>
             <button type="button" onClick={() => inputRef.current?.click()} className="inline-flex h-10 items-center gap-2 self-start rounded-xl border border-[#cfdcd4] bg-white px-4 text-xs font-semibold text-[#315e53] transition hover:border-[#93b5a6] hover:bg-[#f7fbf7] sm:self-auto">
@@ -320,55 +339,62 @@ export default function MediaLibraryPage() {
           <div className="grid min-h-48 place-items-center rounded-[26px] border border-[#e1e7e0] bg-white"><LoaderCircle className="h-6 w-6 animate-spin text-[#508271]" /></div>
         ) : filteredItems.length ? (
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {filteredItems.map((item) => (
-              <article key={item.id} className="media-card group overflow-hidden rounded-[24px] border border-[#e1e7e0] bg-white shadow-[0_4px_24px_-18px_rgba(27,54,44,.35)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_48px_-32px_rgba(27,54,44,.5)]">
-                <button type="button" className="media-preview relative block aspect-[1.68] w-full overflow-hidden bg-[#e5ebe3] text-left" onClick={() => setPreview(item)} aria-label={"Preview " + item.name}>
-                  {item.kind === "image" ? (
-                    <img src={item.previewUrl} alt={item.name} loading="lazy" decoding="async" className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.04]" />
-                  ) : (
-                    <video src={item.previewUrl} muted playsInline preload="metadata" className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.04]" />
-                  )}
-                  <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-[#12221d]/70 px-2.5 py-1 text-[10px] font-semibold text-white backdrop-blur">
-                    {item.kind === "image" ? <Image className="h-3 w-3" /> : <Film className="h-3 w-3" />}
-                    {item.kind === "image" ? "PHOTO" : "VIDEO"}
-                  </span>
-                  <span className="absolute bottom-3 right-3 grid h-9 w-9 place-items-center rounded-full bg-white/90 text-[#274c3f] opacity-0 shadow-sm transition group-hover:opacity-100"><ArrowUpRight className="h-4 w-4" /></span>
-                </button>
-                <div className="space-y-4 p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <h3 className="truncate text-sm font-semibold text-[#243630]" title={item.name}>{item.name}</h3>
-                      <p className="mt-1 text-[11px] text-[#8a9690]">{formatBytes(item.size)} <span className="mx-1">·</span> {new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric" }).format(item.createdAt)}</p>
+            {filteredItems.map((item) => {
+              const hasCustomCat = !MEDIA_CATEGORIES.includes(item.category as MediaCategory);
+              return (
+                <article key={item.id} className="media-card group overflow-hidden rounded-[24px] border border-[#e1e7e0] bg-white shadow-[0_4px_24px_-18px_rgba(27,54,44,.35)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_48px_-32px_rgba(27,54,44,.5)]">
+                  <button type="button" className="media-preview relative block aspect-[1.68] w-full overflow-hidden bg-[#e5ebe3] text-left" onClick={() => setPreview(item)} aria-label={"Preview " + item.name}>
+                    {item.kind === "image" ? (
+                      <img src={item.previewUrl} alt={item.name} loading="lazy" decoding="async" className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.04]" />
+                    ) : (
+                      <video src={item.previewUrl} muted playsInline preload="metadata" className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.04]" />
+                    )}
+                    <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-[#12221d]/70 px-2.5 py-1 text-[10px] font-semibold text-white backdrop-blur">
+                      {item.kind === "image" ? <Image className="h-3 w-3" /> : <Film className="h-3 w-3" />}
+                      {item.kind === "image" ? "PHOTO" : "VIDEO"}
+                    </span>
+                    <span className="absolute bottom-3 right-3 grid h-9 w-9 place-items-center rounded-full bg-white/90 text-[#274c3f] opacity-0 shadow-sm transition group-hover:opacity-100"><ArrowUpRight className="h-4 w-4" /></span>
+                  </button>
+                  <div className="space-y-4 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <h3 className="truncate text-sm font-semibold text-[#243630]" title={item.name}>{item.name}</h3>
+                        <p className="mt-1 text-[11px] text-[#8a9690]">
+                          {item.size > 0 ? `${formatBytes(item.size)} · ` : `${item.category} · `}
+                          {new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric" }).format(item.createdAt)}
+                        </p>
+                      </div>
+                      <button type="button" onClick={() => setDeleteTarget(item)} aria-label={"Delete " + item.name} className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[#8b9791] transition hover:bg-[#fff0ee] hover:text-[#ba5548]"><Trash2 className="h-4 w-4" /></button>
                     </div>
-                    <button type="button" onClick={() => setDeleteTarget(item)} aria-label={"Delete " + item.name} className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[#8b9791] transition hover:bg-[#fff0ee] hover:text-[#ba5548]"><Trash2 className="h-4 w-4" /></button>
+                    <div className="flex items-center justify-between gap-3 border-t border-[#edf0eb] pt-3">
+                      <select value={item.category} onChange={(event) => void updateItem(item, { category: event.target.value as MediaCategory })} aria-label={"Category for " + item.name} className="min-w-0 rounded-lg border border-[#e4e9e2] bg-[#fafbf8] px-2.5 py-2 text-xs font-medium text-[#64736b] outline-none focus:border-[#8eac9b]">
+                        {hasCustomCat && <option value={item.category}>{item.category}</option>}
+                        {MEDIA_CATEGORIES.map((value) => <option key={value} value={value}>{value}</option>)}
+                      </select>
+                      <button type="button" onClick={() => void updateItem(item, { includeInGallery: !item.includeInGallery })} className={"inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-2 text-[10px] font-semibold transition " + (item.includeInGallery ? "bg-[#edf7dc] text-[#426326]" : "bg-[#f3f5f0] text-[#73817a] hover:bg-[#e9efe4]")} aria-pressed={item.includeInGallery}>
+                        {item.includeInGallery ? <Check className="h-3 w-3" /> : <Sparkles className="h-3 w-3" />}
+                        {item.includeInGallery ? "Live on site" : "Publish to site"}
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between gap-3 border-t border-[#edf0eb] pt-3">
-                    <select value={item.category} onChange={(event) => void updateItem(item, { category: event.target.value as MediaCategory })} aria-label={"Category for " + item.name} className="min-w-0 rounded-lg border border-[#e4e9e2] bg-[#fafbf8] px-2.5 py-2 text-xs font-medium text-[#64736b] outline-none focus:border-[#8eac9b]">
-                      {MEDIA_CATEGORIES.map((value) => <option key={value} value={value}>{value}</option>)}
-                    </select>
-                    <button type="button" onClick={() => void updateItem(item, { includeInGallery: !item.includeInGallery })} className={"inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-2 text-[10px] font-semibold transition " + (item.includeInGallery ? "bg-[#edf7dc] text-[#426326]" : "bg-[#f3f5f0] text-[#73817a] hover:bg-[#e9efe4]")} aria-pressed={item.includeInGallery}>
-                      {item.includeInGallery ? <Check className="h-3 w-3" /> : <Sparkles className="h-3 w-3" />}
-                      {item.includeInGallery ? "In preview" : "Add to preview"}
-                    </button>
-                  </div>
-                </div>
-              </article>
-            ))}
+                </article>
+              );
+            })}
           </div>
         ) : (
           <div className="grid min-h-[320px] place-items-center rounded-[26px] border border-[#e1e7e0] bg-white px-6 py-12 text-center">
             <div className="max-w-sm">
               <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[#eff4eb] text-[#56816f]"><Images className="h-6 w-6" /></span>
               <h3 className="mt-4 font-display text-xl font-medium text-[#273931]">{items.length ? "No files match that search" : "Your next upload starts here"}</h3>
-              <p className="mt-2 text-sm leading-6 text-[#77847d]">{items.length ? "Try another name or switch between photos and videos." : "Add treatment photos and short clips, then choose which ones appear in this browser’s gallery preview."}</p>
+              <p className="mt-2 text-sm leading-6 text-[#77847d]">{items.length ? "Try another name or switch between photos and videos." : "Add treatment photos and short clips to store them in the cloud and display them on your public website."}</p>
               {!items.length && <button type="button" onClick={() => inputRef.current?.click()} className="mt-5 inline-flex h-11 items-center gap-2 rounded-xl bg-[#1c3933] px-4 text-sm font-semibold text-white transition hover:bg-[#294f46]"><Plus className="h-4 w-4" /> Add your first file</button>}
             </div>
           </div>
         )}
 
         <div className="flex items-start gap-3 rounded-2xl border border-[#dbe6d9] bg-[#f5f8f0] px-4 py-4 text-[11px] leading-5 text-[#657366] sm:px-5">
-          <HardDrive className="mt-0.5 h-4 w-4 shrink-0 text-[#708e67]" />
-          <p><strong className="font-semibold text-[#405241]">Stored in this browser.</strong> Files stay on this device and are not sent to a server or shared with other clinic users. Only add media you have permission to use; use the preview toggle to see how a file looks in the public gallery on this browser.</p>
+          <Cloud className="mt-0.5 h-4 w-4 shrink-0 text-[#708e67]" />
+          <p><strong className="font-semibold text-[#405241]">Stored in Cloudflare R2 &amp; D1.</strong> Uploaded photos and videos are saved to your clinic website database and cloud object storage so patients see them across all devices. Photos appear in the Clinic Gallery, and videos appear in Dental Reels when toggled live.</p>
         </div>
       </div>
 
@@ -378,7 +404,7 @@ export default function MediaLibraryPage() {
             <button type="button" onClick={() => setPreview(null)} aria-label="Close preview" className="absolute right-3 top-3 z-10 grid h-10 w-10 place-items-center rounded-full bg-black/45 text-white transition hover:bg-black/70"><X className="h-5 w-5" /></button>
             {preview.kind === "image" ? <img src={preview.previewUrl} alt={preview.name} className="max-h-[76vh] w-full object-contain" /> : <video src={preview.previewUrl} controls autoPlay playsInline className="max-h-[76vh] w-full bg-black" />}
             <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 text-white">
-              <div><p className="font-medium">{preview.name}</p><p className="mt-1 text-xs text-white/55">{preview.category} · {formatBytes(preview.size)}</p></div>
+              <div><p className="font-medium">{preview.name}</p><p className="mt-1 text-xs text-white/55">{preview.category}{preview.size > 0 ? ` · ${formatBytes(preview.size)}` : ""}</p></div>
               <button type="button" onClick={() => { setPreview(null); setDeleteTarget(preview); }} className="inline-flex items-center gap-2 rounded-xl border border-white/15 px-3.5 py-2 text-xs font-semibold text-white/75 transition hover:border-red-300/30 hover:bg-red-300/10 hover:text-red-100"><Trash2 className="h-3.5 w-3.5" /> Remove file</button>
             </div>
           </div>
@@ -390,10 +416,10 @@ export default function MediaLibraryPage() {
           <div className="w-full max-w-md rounded-[24px] border border-[#e4e9e2] bg-white p-6 shadow-2xl">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#fff0ee] text-[#b64a3e]"><Trash2 className="h-5 w-5" /></div>
             <h2 id="delete-media-title" className="mt-4 font-display text-2xl font-medium text-[#23352e]">Remove this file?</h2>
-            <p className="mt-2 text-sm leading-6 text-[#6e7b74]"><strong className="font-medium text-[#34443d]">{deleteTarget.name}</strong> will be permanently removed from this browser’s media library.</p>
+            <p className="mt-2 text-sm leading-6 text-[#6e7b74]"><strong className="font-medium text-[#34443d]">{deleteTarget.name}</strong> will be permanently removed from your website and Cloudflare R2 storage.</p>
             <div className="mt-6 flex justify-end gap-2">
-              <button type="button" onClick={() => setDeleteTarget(null)} className="h-10 rounded-xl border border-[#dce3dc] px-4 text-sm font-semibold text-[#56665e] transition hover:bg-[#f6f8f4]">Cancel</button>
-              <button type="button" onClick={() => void confirmDelete()} className="h-10 rounded-xl bg-[#a94438] px-4 text-sm font-semibold text-white transition hover:bg-[#90372d]">Remove file</button>
+              <button type="button" onClick={() => setDeleteTarget(null)} disabled={isDeleting} className="h-10 rounded-xl border border-[#dce3dc] px-4 text-sm font-semibold text-[#56665e] transition hover:bg-[#f6f8f4]">Cancel</button>
+              <button type="button" onClick={() => void confirmDelete()} disabled={isDeleting} className="h-10 rounded-xl bg-[#a94438] px-4 text-sm font-semibold text-white transition hover:bg-[#90372d] disabled:opacity-70">{isDeleting ? "Removing..." : "Remove file"}</button>
             </div>
           </div>
         </div>
@@ -401,5 +427,3 @@ export default function MediaLibraryPage() {
     </DashboardLayout>
   );
 }
-
-

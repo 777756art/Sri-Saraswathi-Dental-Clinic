@@ -214,10 +214,38 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
 
       const item = await r2.get(key);
       if (item) {
+        const bodyBuf = Buffer.isBuffer(item.body) ? item.body : Buffer.from(item.body);
+        const total = bodyBuf.length;
+        const contentType = item.contentType || "application/octet-stream";
         res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
-        res.setHeader("Content-Type", item.contentType || "application/octet-stream");
-        res.setHeader("ETag", `"${item.etag}"`);
-        return res.send(item.body);
+        res.setHeader("Content-Type", contentType);
+        res.setHeader("Accept-Ranges", "bytes");
+        if (item.etag) res.setHeader("ETag", `"${item.etag}"`);
+
+        const rangeHeader = req.headers.range;
+        if (rangeHeader && /^bytes=/i.test(rangeHeader)) {
+          const match = /^bytes=(\d*)-(\d*)$/i.exec(String(rangeHeader).trim());
+          if (match && (match[1] || match[2])) {
+            if (total === 0) {
+              res.setHeader("Content-Range", "bytes */0");
+              return res.status(416).end();
+            }
+            const start = match[1] ? Number(match[1]) : Math.max(0, total - Number(match[2]));
+            const end = match[1] && match[2] ? Math.min(Number(match[2]), total - 1) : total - 1;
+            if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || start >= total || end < start) {
+              res.setHeader("Content-Range", `bytes */${total}`);
+              return res.status(416).end();
+            }
+            const chunk = bodyBuf.subarray(start, end + 1);
+            res.status(206);
+            res.setHeader("Content-Range", `bytes ${start}-${end}/${total}`);
+            res.setHeader("Content-Length", String(chunk.length));
+            return res.send(chunk);
+          }
+        }
+
+        res.setHeader("Content-Length", String(total));
+        return res.send(bodyBuf);
       }
 
       // Fallback: check if file exists in legacy uploads dir
@@ -1045,18 +1073,553 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
     }
   });
 
+  /* ------------------------------------------------------------- UNIFIED SITE CONTENT HELPERS */
+
+  const SITE_CONTENT_TYPES = [
+    "hero",
+    "blog",
+    "offer",
+    "gallery",
+    "reel",
+    "video",
+    "image",
+    "badge",
+    "treatment",
+    "doctor",
+    "achievement",
+    "testimonial",
+    "before_after",
+  ];
+
+  const getTodayIsoIST = () =>
+    new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+
+  const parseBool = (val, fallback) => {
+    if (val === undefined || val === null) return fallback;
+    if (typeof val === "boolean") return val;
+    if (typeof val === "number") return val !== 0;
+    const s = String(val).trim().toLowerCase();
+    if (s === "true" || s === "1" || s === "yes") return true;
+    if (s === "false" || s === "0" || s === "no" || s === "") return false;
+    return fallback;
+  };
+
+  const computeReadTime = (body) => {
+    const words = String(body || "")
+      .replace(/<[^>]*>/g, " ")
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean).length;
+    return `${Math.max(1, Math.ceil(words / 200))} min read`;
+  };
+
+  const extractR2KeyFromUrl = (url) => {
+    const s = String(url || "").trim();
+    if (!s) return "";
+    const apiMatch = s.match(/\/api\/media\/(.+?)(?:\?.*)?$/);
+    if (apiMatch) {
+      try {
+        return decodeURIComponent(apiMatch[1]);
+      } catch {
+        return apiMatch[1];
+      }
+    }
+    const publicDomain = (process.env.R2_PUBLIC_DOMAIN || "").replace(/\/+$/, "");
+    if (publicDomain && s.startsWith(`${publicDomain}/`)) {
+      const raw = s.slice(publicDomain.length + 1).split("?")[0];
+      try {
+        return decodeURIComponent(raw);
+      } catch {
+        return raw;
+      }
+    }
+    return "";
+  };
+
+  const deleteUnreferencedR2Media = async (urls, excludeContentId = null) => {
+    const keys = Array.from(new Set(urls.map(extractR2KeyFromUrl).filter(Boolean)));
+    for (const key of keys) {
+      const mediaPath = `/api/media/${key}`;
+      const fullUrl = getR2PublicUrl(key);
+      const sql = excludeContentId
+        ? `SELECT id FROM site_content
+           WHERE id != ?
+             AND (media_url IN (?, ?) OR mobile_media_url IN (?, ?) OR logo_url IN (?, ?) OR before_image IN (?, ?) OR after_image IN (?, ?))
+           LIMIT 1`
+        : `SELECT id FROM site_content
+           WHERE media_url IN (?, ?) OR mobile_media_url IN (?, ?) OR logo_url IN (?, ?) OR before_image IN (?, ?) OR after_image IN (?, ?)
+           LIMIT 1`;
+      const params = excludeContentId
+        ? [excludeContentId, mediaPath, fullUrl, mediaPath, fullUrl, mediaPath, fullUrl, mediaPath, fullUrl, mediaPath, fullUrl]
+        : [mediaPath, fullUrl, mediaPath, fullUrl, mediaPath, fullUrl, mediaPath, fullUrl, mediaPath, fullUrl];
+      const stillUsed = await d1.prepare(sql).bind(...params).first();
+      if (!stillUsed) {
+        await safeDeleteR2File(r2, key);
+      }
+    }
+  };
+
+  const uniqueSiteContentSlug = async (type, rawSlugOrTitle, excludeId = null) => {
+    const base =
+      String(rawSlugOrTitle || "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "") || `${type}-${Date.now().toString(36)}`;
+    let candidate = base;
+    let suffix = 1;
+    while (true) {
+      const existing = excludeId
+        ? await d1.prepare("SELECT id FROM site_content WHERE type = ? AND slug = ? AND id != ?").bind(type, candidate, excludeId).first()
+        : await d1.prepare("SELECT id FROM site_content WHERE type = ? AND slug = ?").bind(type, candidate).first();
+      if (!existing) return candidate;
+      suffix += 1;
+      candidate = `${base}-${suffix}`;
+    }
+  };
+
+  const serializeSiteContent = (row) => {
+    const mediaUrl = row.media_url || "";
+    const mobileMediaUrl = row.mobile_media_url || "";
+    const beforeImage = row.before_image || "";
+    const afterImage = row.after_image || "";
+    const excerpt = row.excerpt || "";
+    const body = row.body || "";
+    const displayOrder = Number(row.display_order || 0);
+    return {
+      id: Number(row.id),
+      type: row.type,
+      slug: row.slug || "",
+      title: row.title || "",
+      subtitle: row.subtitle || "",
+      category: row.category || "",
+      author: row.author || "",
+      excerpt,
+      body,
+      mediaUrl,
+      mobileMediaUrl,
+      logoUrl: row.logo_url || "",
+      beforeImage,
+      afterImage,
+      linkUrl: row.link_url || "",
+      ctaLabel: row.cta_label || "",
+      secondaryCtaLabel: row.secondary_cta_label || "",
+      secondaryCtaUrl: row.secondary_cta_url || "",
+      badgeText: row.badge_text || "",
+      ratingScore: row.rating_score || "",
+      ratingVerified: Boolean(row.rating_verified),
+      reviewCount: row.review_count || "",
+      trustBadgeText: row.trust_badge_text || "",
+      startDate: row.start_date || "",
+      endDate: row.end_date || "",
+      publishedAt: row.published_at || row.created_at || "",
+      seoTitle: row.seo_title || "",
+      seoDescription: row.seo_description || "",
+      price: Number(row.price || 0),
+      sessions: row.sessions || "",
+      duration: row.duration || "",
+      availableForBooking: row.available_for_booking !== undefined ? Boolean(row.available_for_booking) : true,
+      qualification: row.qualification || "",
+      specialization: row.specialization || "",
+      yearsExperience: row.years_experience || "",
+      registrationNumber: row.registration_number || "",
+      phone: row.phone || "",
+      email: row.email || "",
+      homepageHighlight: Boolean(row.homepage_highlight),
+      patientConsent: Boolean(row.patient_consent),
+      published: Boolean(row.published),
+      displayOrder,
+      description: excerpt,
+      content: body,
+      readTime: computeReadTime(body || excerpt),
+      media_url: mediaUrl,
+      coverImage: mediaUrl,
+      coverImageUrl: mediaUrl,
+      cover_image: mediaUrl,
+      thumbnail: mobileMediaUrl || mediaUrl,
+      before_image: beforeImage,
+      after_image: afterImage,
+      display_order: displayOrder,
+      createdAt: row.created_at || "",
+      updatedAt: row.updated_at || "",
+    };
+  };
+
+  const normalizeSiteContentInput = (b, existing = null, resolvedType = null) => {
+    const pickStr = (value, existingVal = "") =>
+      value !== undefined ? String(value ?? "").trim() : String(existingVal ?? "");
+
+    const type = resolvedType || existing?.type || String(b.type || "").trim();
+    const mediaRaw = b.mediaUrl ?? b.media_url ?? b.coverImage ?? b.cover_image ?? b.image_url;
+    const mobileRaw = b.mobileMediaUrl ?? b.mobile_media_url ?? b.thumbnail;
+    const beforeRaw = b.beforeImage ?? b.before_image ?? b.before_image_url;
+    const afterRaw = b.afterImage ?? b.after_image ?? b.after_image_url;
+    const excerptRaw = b.excerpt ?? b.description ?? b.short_description;
+    const bodyRaw = b.body ?? b.content ?? b.full_description;
+    const displayRaw = b.displayOrder ?? b.display_order;
+
+    return {
+      type,
+      title: pickStr(b.title ?? b.name ?? b.treatment_name, existing?.title || ""),
+      subtitle: pickStr(b.subtitle, existing?.subtitle || ""),
+      category: pickStr(b.category, existing?.category || ""),
+      author: pickStr(b.author, existing?.author || ""),
+      excerpt: pickStr(excerptRaw, existing?.excerpt || ""),
+      body: bodyRaw !== undefined ? String(bodyRaw ?? "") : String(existing?.body ?? ""),
+      mediaUrl: pickStr(mediaRaw, existing?.media_url || ""),
+      mobileMediaUrl: pickStr(mobileRaw, existing?.mobile_media_url || ""),
+      logoUrl: pickStr(b.logoUrl ?? b.logo_url, existing?.logo_url || ""),
+      beforeImage: pickStr(beforeRaw, existing?.before_image || ""),
+      afterImage: pickStr(afterRaw, existing?.after_image || ""),
+      linkUrl: pickStr(b.linkUrl ?? b.link_url, existing?.link_url || ""),
+      ctaLabel: pickStr(b.ctaLabel ?? b.cta_label, existing?.cta_label || ""),
+      secondaryCtaLabel: pickStr(b.secondaryCtaLabel ?? b.secondary_cta_label, existing?.secondary_cta_label || ""),
+      secondaryCtaUrl: pickStr(b.secondaryCtaUrl ?? b.secondary_cta_url, existing?.secondary_cta_url || ""),
+      badgeText: pickStr(b.badgeText ?? b.badge_text, existing?.badge_text || ""),
+      ratingScore: pickStr(b.ratingScore ?? b.rating_score, existing?.rating_score || ""),
+      ratingVerified: parseBool(b.ratingVerified ?? b.rating_verified, existing ? Boolean(existing.rating_verified) : false),
+      reviewCount: pickStr(b.reviewCount ?? b.review_count, existing?.review_count || ""),
+      trustBadgeText: pickStr(b.trustBadgeText ?? b.trust_badge_text, existing?.trust_badge_text || ""),
+      startDate: pickStr(b.startDate ?? b.start_date, existing?.start_date || ""),
+      endDate: pickStr(b.endDate ?? b.end_date, existing?.end_date || ""),
+      publishedAt: pickStr(b.publishedAt ?? b.published_at, existing?.published_at || ""),
+      seoTitle: pickStr(b.seoTitle ?? b.seo_title, existing?.seo_title || ""),
+      seoDescription: pickStr(b.seoDescription ?? b.seo_description, existing?.seo_description || ""),
+      price: b.price !== undefined ? Math.max(0, Number(b.price) || 0) : Number(existing?.price || 0),
+      sessions: pickStr(b.sessions, existing?.sessions || ""),
+      duration: pickStr(b.duration, existing?.duration || ""),
+      availableForBooking: parseBool(
+        b.availableForBooking ?? b.available_for_booking,
+        existing ? Boolean(existing.available_for_booking) : true
+      ),
+      qualification: pickStr(b.qualification, existing?.qualification || ""),
+      specialization: pickStr(b.specialization, existing?.specialization || ""),
+      yearsExperience: pickStr(b.yearsExperience ?? b.years_experience ?? b.experience, existing?.years_experience || ""),
+      registrationNumber: pickStr(b.registrationNumber ?? b.registration_number, existing?.registration_number || ""),
+      phone: pickStr(b.phone, existing?.phone || ""),
+      email: pickStr(b.email, existing?.email || ""),
+      homepageHighlight: parseBool(
+        b.homepageHighlight ?? b.homepage_highlight,
+        existing ? Boolean(existing.homepage_highlight) : type === "hero"
+      ),
+      patientConsent: parseBool(
+        b.patientConsent ?? b.patient_consent,
+        existing ? Boolean(existing.patient_consent) : false
+      ),
+      published: parseBool(
+        b.published,
+        existing ? Boolean(existing.published) : true
+      ),
+      displayOrder: displayRaw !== undefined ? Number(displayRaw) || 0 : Number(existing?.display_order || 0),
+    };
+  };
+
+  const syncSiteContentToLegacyTables = async (row) => {
+    try {
+      const legacyTable = row.legacy_table || "";
+      const legacyId = row.legacy_id ? Number(row.legacy_id) : null;
+      const setLegacyRef = async (tbl, id) => {
+        if (row.legacy_table !== tbl || Number(row.legacy_id) !== Number(id)) {
+          await d1
+            .prepare("UPDATE site_content SET legacy_table = ?, legacy_id = ? WHERE id = ?")
+            .bind(tbl, id, row.id)
+            .run();
+        }
+      };
+
+      if (row.type === "doctor") {
+        const status = row.published ? "active" : "inactive";
+        const key = extractR2KeyFromUrl(row.media_url) || null;
+        if (legacyTable === "doctors" && legacyId) {
+          await d1.prepare(`
+            UPDATE doctors SET
+              name = ?, qualification = ?, specialization = ?, experience = ?, biography = ?,
+              profile_image_key = ?, profile_image_url = ?, status = ?, display_order = ?, updated_at = datetime('now')
+            WHERE id = ?
+          `).bind(
+            row.title || "Doctor",
+            row.qualification || "",
+            row.specialization || row.subtitle || "",
+            row.years_experience || "",
+            row.body || row.excerpt || "",
+            key,
+            row.media_url || "",
+            status,
+            Number(row.display_order || 0),
+            legacyId
+          ).run();
+        } else {
+          const info = await d1.prepare(`
+            INSERT INTO doctors (name, qualification, specialization, experience, biography, profile_image_key, profile_image_url, status, display_order, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+          `).bind(
+            row.title || "Doctor",
+            row.qualification || "",
+            row.specialization || row.subtitle || "",
+            row.years_experience || "",
+            row.body || row.excerpt || "",
+            key,
+            row.media_url || "",
+            status,
+            Number(row.display_order || 0)
+          ).run();
+          await setLegacyRef("doctors", info.meta.last_row_id);
+        }
+      } else if (row.type === "treatment") {
+        const status = row.published ? "active" : "inactive";
+        const key = extractR2KeyFromUrl(row.media_url) || null;
+        if (legacyTable === "treatments" && legacyId) {
+          await d1.prepare(`
+            UPDATE treatments SET
+              treatment_name = ?, slug = ?, short_description = ?, full_description = ?,
+              treatment_image_key = ?, treatment_image_url = ?, status = ?, display_order = ?, updated_at = datetime('now')
+            WHERE id = ?
+          `).bind(
+            row.title || "Treatment",
+            row.slug,
+            row.excerpt || "",
+            row.body || "",
+            key,
+            row.media_url || "",
+            status,
+            Number(row.display_order || 0),
+            legacyId
+          ).run();
+        } else {
+          let treatmentSlug = row.slug;
+          const dup = await d1.prepare("SELECT id FROM treatments WHERE slug = ?").bind(treatmentSlug).first();
+          if (dup) treatmentSlug = `${row.slug}-${row.id}`;
+          const info = await d1.prepare(`
+            INSERT INTO treatments (treatment_name, slug, short_description, full_description, benefits, treatment_image_key, treatment_image_url, status, display_order, created_at, updated_at)
+            VALUES (?, ?, ?, ?, '[]', ?, ?, ?, ?, datetime('now'), datetime('now'))
+          `).bind(
+            row.title || "Treatment",
+            treatmentSlug,
+            row.excerpt || "",
+            row.body || "",
+            key,
+            row.media_url || "",
+            status,
+            Number(row.display_order || 0)
+          ).run();
+          await setLegacyRef("treatments", info.meta.last_row_id);
+        }
+      } else if (row.type === "blog") {
+        const status = row.published ? "published" : "draft";
+        const key = extractR2KeyFromUrl(row.media_url) || null;
+        if (legacyTable === "blogs" && legacyId) {
+          await d1.prepare(`
+            UPDATE blogs SET
+              title = ?, slug = ?, category = ?, description = ?, content = ?,
+              cover_image_key = ?, cover_image_url = ?, status = ?, published_at = ?, updated_at = datetime('now')
+            WHERE id = ?
+          `).bind(
+            row.title || "Article",
+            row.slug,
+            row.category || "Dental Health",
+            row.excerpt || "",
+            row.body || "",
+            key,
+            row.media_url || "",
+            status,
+            row.published_at || row.created_at || new Date().toISOString(),
+            legacyId
+          ).run();
+        } else {
+          let blogSlug = row.slug;
+          const dup = await d1.prepare("SELECT id FROM blogs WHERE slug = ?").bind(blogSlug).first();
+          if (dup) blogSlug = `${row.slug}-${row.id}`;
+          const info = await d1.prepare(`
+            INSERT INTO blogs (title, slug, category, description, content, cover_image_key, cover_image_url, status, published_at, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+          `).bind(
+            row.title || "Article",
+            blogSlug,
+            row.category || "Dental Health",
+            row.excerpt || "",
+            row.body || "",
+            key,
+            row.media_url || "",
+            status,
+            row.published_at || new Date().toISOString()
+          ).run();
+          await setLegacyRef("blogs", info.meta.last_row_id);
+        }
+      } else if (row.type === "image") {
+        const status = row.published ? "active" : "inactive";
+        const key = extractR2KeyFromUrl(row.media_url) || null;
+        if (legacyTable === "gallery" && legacyId) {
+          await d1.prepare(`
+            UPDATE gallery SET
+              title = ?, description = ?, image_key = ?, image_url = ?, category = ?, status = ?, display_order = ?
+            WHERE id = ?
+          `).bind(
+            row.title || "Clinic Photo",
+            row.excerpt || "",
+            key,
+            row.media_url || "",
+            row.category || "Clinic",
+            status,
+            Number(row.display_order || 0),
+            legacyId
+          ).run();
+        } else {
+          const info = await d1.prepare(`
+            INSERT INTO gallery (title, description, image_key, image_url, category, status, display_order, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+          `).bind(
+            row.title || "Clinic Photo",
+            row.excerpt || "",
+            key,
+            row.media_url || "",
+            row.category || "Clinic",
+            status,
+            Number(row.display_order || 0)
+          ).run();
+          await setLegacyRef("gallery", info.meta.last_row_id);
+        }
+      } else if (row.type === "gallery") {
+        const status = row.published && row.patient_consent ? "active" : "inactive";
+        const bKey = extractR2KeyFromUrl(row.before_image) || null;
+        const aKey = extractR2KeyFromUrl(row.after_image) || null;
+        if (legacyTable === "before_after" && legacyId) {
+          await d1.prepare(`
+            UPDATE before_after SET
+              title = ?, description = ?, before_image_key = ?, before_image_url = ?, after_image_key = ?, after_image_url = ?, status = ?
+            WHERE id = ?
+          `).bind(
+            row.title || "Smile Transformation",
+            row.excerpt || "",
+            bKey,
+            row.before_image || "",
+            aKey,
+            row.after_image || "",
+            status,
+            legacyId
+          ).run();
+        } else {
+          const info = await d1.prepare(`
+            INSERT INTO before_after (title, description, before_image_key, before_image_url, after_image_key, after_image_url, status, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+          `).bind(
+            row.title || "Smile Transformation",
+            row.excerpt || "",
+            bKey,
+            row.before_image || "",
+            aKey,
+            row.after_image || "",
+            status
+          ).run();
+          await setLegacyRef("before_after", info.meta.last_row_id);
+        }
+      } else if (row.type === "reel" || row.type === "video") {
+        const status = row.published ? "active" : "inactive";
+        const vKey = extractR2KeyFromUrl(row.media_url) || null;
+        const tKey = extractR2KeyFromUrl(row.mobile_media_url) || null;
+        if (legacyTable === "reels" && legacyId) {
+          await d1.prepare(`
+            UPDATE reels SET
+              title = ?, description = ?, video_key = ?, video_url = ?, thumbnail_key = ?, thumbnail_url = ?,
+              homepage_visibility = ?, status = ?, display_order = ?
+            WHERE id = ?
+          `).bind(
+            row.title || "Dental Reel",
+            row.excerpt || "",
+            vKey,
+            row.media_url || "",
+            tKey,
+            row.mobile_media_url || "",
+            row.homepage_highlight ? 1 : 0,
+            status,
+            Number(row.display_order || 0),
+            legacyId
+          ).run();
+        } else {
+          const info = await d1.prepare(`
+            INSERT INTO reels (title, description, video_key, video_url, thumbnail_key, thumbnail_url, homepage_visibility, status, display_order, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+          `).bind(
+            row.title || "Dental Reel",
+            row.excerpt || "",
+            vKey,
+            row.media_url || "",
+            tKey,
+            row.mobile_media_url || "",
+            row.homepage_highlight ? 1 : 0,
+            status,
+            Number(row.display_order || 0)
+          ).run();
+          await setLegacyRef("reels", info.meta.last_row_id);
+        }
+      } else if (row.type === "offer") {
+        const status = row.published ? "active" : "inactive";
+        const imgKey = extractR2KeyFromUrl(row.media_url) || null;
+        if (legacyTable === "offers" && legacyId) {
+          await d1.prepare(`
+            UPDATE offers SET
+              title = ?, description = ?, image_key = ?, image_url = ?, start_date = ?, end_date = ?, homepage_visibility = ?, status = ?
+            WHERE id = ?
+          `).bind(
+            row.title || "Offer",
+            row.excerpt || "",
+            imgKey,
+            row.media_url || "",
+            row.start_date || null,
+            row.end_date || null,
+            row.homepage_highlight ? 1 : 0,
+            status,
+            legacyId
+          ).run();
+        } else {
+          const info = await d1.prepare(`
+            INSERT INTO offers (title, description, image_key, image_url, start_date, end_date, homepage_visibility, status, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+          `).bind(
+            row.title || "Offer",
+            row.excerpt || "",
+            imgKey,
+            row.media_url || "",
+            row.start_date || null,
+            row.end_date || null,
+            row.homepage_highlight ? 1 : 0,
+            status
+          ).run();
+          await setLegacyRef("offers", info.meta.last_row_id);
+        }
+      }
+    } catch (syncErr) {
+      console.warn("Legacy table sync notice:", syncErr?.message || syncErr);
+    }
+  };
+
+  const syncLegacyDeletion = async (row) => {
+    const allowedTables = new Set(["doctors", "treatments", "blogs", "gallery", "before_after", "reels", "offers"]);
+    const table = row.legacy_table;
+    const legacyId = Number(row.legacy_id);
+    if (!table || !legacyId || !allowedTables.has(table)) return;
+    try {
+      await d1.prepare(`DELETE FROM ${table} WHERE id = ?`).bind(legacyId).run();
+    } catch (err) {
+      // Preserve referential integrity if existing appointments reference this doctor or treatment
+      if (table === "doctors" || table === "treatments") {
+        await d1.prepare(`UPDATE ${table} SET status = 'inactive' WHERE id = ?`).bind(legacyId).run().catch(() => null);
+      } else {
+        console.warn("Legacy delete notice:", err?.message || err);
+      }
+    }
+  };
+
   /* ------------------------------------------------------------- 6. BLOGS (with R2 Cover Image) */
 
   const handleGetBlogs = async (_req, res) => {
     try {
-      const rows = (await d1.prepare("SELECT * FROM blogs WHERE status = 'published' ORDER BY published_at DESC, id DESC").all()).results;
-      const formatted = rows.map(b => ({
-        ...b,
-        coverImage: b.cover_image_url || (b.cover_image_key ? getR2PublicUrl(b.cover_image_key) : ""),
-        coverImageUrl: b.cover_image_url || (b.cover_image_key ? getR2PublicUrl(b.cover_image_key) : ""),
-        cover_image: b.cover_image_url || (b.cover_image_key ? getR2PublicUrl(b.cover_image_key) : ""),
-        readTime: b.read_time || "4 min read",
-      }));
+      const rows = (
+        await d1
+          .prepare(
+            "SELECT * FROM site_content WHERE type = 'blog' AND published = 1 ORDER BY CASE WHEN published_at != '' THEN published_at ELSE created_at END DESC, id DESC"
+          )
+          .all()
+      ).results || [];
+      const formatted = rows.map(serializeSiteContent);
       res.json({ blogs: formatted, items: formatted });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -1069,17 +1632,20 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
   const handleGetBlogBySlug = async (req, res) => {
     try {
       const slug = String(req.params.slug).trim();
-      const blog = await d1.prepare("SELECT * FROM blogs WHERE slug = ?").bind(slug).first();
-      if (!blog) return res.status(404).json({ error: "Blog not found." });
-      const formatted = {
-        ...blog,
-        coverImage: blog.cover_image_url || (blog.cover_image_key ? getR2PublicUrl(blog.cover_image_key) : ""),
-        coverImageUrl: blog.cover_image_url || (blog.cover_image_key ? getR2PublicUrl(blog.cover_image_key) : ""),
-        cover_image: blog.cover_image_url || (blog.cover_image_key ? getR2PublicUrl(blog.cover_image_key) : ""),
-        readTime: blog.read_time || "4 min read",
-      };
-      const related = (await d1.prepare("SELECT * FROM blogs WHERE status = 'published' AND id != ? ORDER BY id DESC LIMIT 3").bind(blog.id).all()).results;
-      res.json({ blog: formatted, item: formatted, related });
+      const row = await d1
+        .prepare("SELECT * FROM site_content WHERE type = 'blog' AND slug = ? AND published = 1")
+        .bind(slug)
+        .first();
+      if (!row) return res.status(404).json({ error: "Blog not found." });
+      const formatted = serializeSiteContent(row);
+      const relatedRows =
+        (
+          await d1
+            .prepare("SELECT * FROM site_content WHERE type = 'blog' AND published = 1 AND id != ? ORDER BY id DESC LIMIT 3")
+            .bind(row.id)
+            .all()
+        ).results || [];
+      res.json({ blog: formatted, item: formatted, related: relatedRows.map(serializeSiteContent) });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -1214,19 +1780,35 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
       const imageUrl = b.image_url ? String(b.image_url).trim() : (imageKey ? getR2PublicUrl(imageKey) : "");
       if (!imageUrl && !imageKey) return res.status(400).json({ error: "Image URL or image key is required." });
 
+      const title = String(b.title || "").trim();
+      const description = String(b.description || "").trim();
+      const category = String(b.category || "clinic").trim();
+      const status = b.status === "inactive" ? "inactive" : "active";
+      const displayOrder = Number(b.display_order || 0);
+
       const info = await d1.prepare(`
         INSERT INTO gallery (title, description, image_key, image_url, category, status, display_order, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
-      `).bind(
-        String(b.title || "").trim(),
-        String(b.description || "").trim(),
-        imageKey,
-        imageUrl,
-        String(b.category || "clinic").trim(),
-        b.status === "inactive" ? "inactive" : "active",
-        Number(b.display_order || 0)
-      ).run();
+      `).bind(title, description, imageKey, imageUrl, category, status, displayOrder).run();
       const created = await d1.prepare("SELECT * FROM gallery WHERE id = ?").bind(info.meta.last_row_id).first();
+
+      const slug = await uniqueSiteContentSlug("image", title || `image-${info.meta.last_row_id}`);
+      await d1.prepare(`
+        INSERT INTO site_content (
+          type, slug, title, category, excerpt, media_url,
+          homepage_highlight, published, display_order, legacy_table, legacy_id, created_at, updated_at
+        ) VALUES ('image', ?, ?, ?, ?, ?, 1, ?, ?, 'gallery', ?, datetime('now'), datetime('now'))
+      `).bind(
+        slug,
+        title || "Clinic Photo",
+        category,
+        description,
+        imageUrl,
+        status === "inactive" ? 0 : 1,
+        displayOrder,
+        info.meta.last_row_id
+      ).run().catch(() => null);
+
       res.status(201).json({ gallery: created });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -1236,11 +1818,13 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
   app.delete("/api/admin/gallery/:id", requireAdmin, async (req, res) => {
     try {
       const id = Number(req.params.id);
-      const existing = await d1.prepare("SELECT image_key FROM gallery WHERE id = ?").bind(id).first();
-      if (existing?.image_key) {
-        await safeDeleteR2File(r2, existing.image_key);
-      }
+      const existing = await d1.prepare("SELECT image_key, image_url FROM gallery WHERE id = ?").bind(id).first();
+      await d1.prepare("DELETE FROM site_content WHERE legacy_table = 'gallery' AND legacy_id = ?").bind(id).run();
       await d1.prepare("DELETE FROM gallery WHERE id = ?").bind(id).run();
+      const urls = [];
+      if (existing?.image_url) urls.push(existing.image_url);
+      if (existing?.image_key) urls.push(getR2PublicUrl(existing.image_key));
+      if (urls.length) await deleteUnreferencedR2Media(urls);
       res.json({ ok: true, id });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -1578,197 +2162,278 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
     }
   });
 
-  /* ------------------------------------------------------------- COMPATIBILITY BRIDGE: /api/content */
+  /* ------------------------------------------------------------- UNIFIED CMS CONTENT API (/api/admin/content & /api/content) */
+
+  app.get("/api/admin/content", requireAdmin, async (req, res) => {
+    try {
+      const type = req.query.type ? String(req.query.type).trim() : "";
+      if (type && !SITE_CONTENT_TYPES.includes(type)) {
+        return res.status(400).json({ error: "Invalid content type." });
+      }
+      const rows = type
+        ? (await d1.prepare("SELECT * FROM site_content WHERE type = ? ORDER BY display_order ASC, id DESC").bind(type).all()).results || []
+        : (await d1.prepare("SELECT * FROM site_content ORDER BY display_order ASC, id DESC").all()).results || [];
+      res.json({ items: rows.map(serializeSiteContent) });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/admin/content", requireAdmin, async (req, res) => {
+    try {
+      const b = req.body || {};
+      const type = String(b.type || "").trim();
+      if (!type || !SITE_CONTENT_TYPES.includes(type)) {
+        return res.status(400).json({ error: "Valid content type is required." });
+      }
+
+      const data = normalizeSiteContentInput(b, null, type);
+      if (!data.title && !data.mediaUrl && !data.beforeImage && !data.afterImage) {
+        return res.status(400).json({ error: "Please enter a title or upload media." });
+      }
+      if (data.published && (type === "gallery" || type === "testimonial") && !data.patientConsent) {
+        return res.status(400).json({ error: "Patient consent is required before publishing this entry." });
+      }
+
+      const slug = await uniqueSiteContentSlug(type, b.slug || data.title || type);
+      const publishedAt = data.publishedAt || (data.published ? new Date().toISOString() : "");
+
+      const info = await d1.prepare(`
+        INSERT INTO site_content (
+          type, slug, title, subtitle, category, author, excerpt, body,
+          media_url, mobile_media_url, logo_url, before_image, after_image,
+          link_url, cta_label, secondary_cta_label, secondary_cta_url,
+          badge_text, rating_score, rating_verified, review_count, trust_badge_text,
+          start_date, end_date, published_at, seo_title, seo_description,
+          price, sessions, duration, available_for_booking,
+          qualification, specialization, years_experience, registration_number,
+          phone, email, homepage_highlight, patient_consent, published, display_order,
+          created_at, updated_at
+        ) VALUES (
+          ?, ?, ?, ?, ?, ?, ?, ?,
+          ?, ?, ?, ?, ?,
+          ?, ?, ?, ?,
+          ?, ?, ?, ?, ?,
+          ?, ?, ?, ?, ?,
+          ?, ?, ?, ?,
+          ?, ?, ?, ?,
+          ?, ?, ?, ?, ?, ?,
+          datetime('now'), datetime('now')
+        )
+      `).bind(
+        type,
+        slug,
+        data.title,
+        data.subtitle,
+        data.category,
+        data.author,
+        data.excerpt,
+        data.body,
+        data.mediaUrl,
+        data.mobileMediaUrl,
+        data.logoUrl,
+        data.beforeImage,
+        data.afterImage,
+        data.linkUrl,
+        data.ctaLabel,
+        data.secondaryCtaLabel,
+        data.secondaryCtaUrl,
+        data.badgeText,
+        data.ratingScore,
+        data.ratingVerified ? 1 : 0,
+        data.reviewCount,
+        data.trustBadgeText,
+        data.startDate,
+        data.endDate,
+        publishedAt,
+        data.seoTitle,
+        data.seoDescription,
+        data.price,
+        data.sessions,
+        data.duration,
+        data.availableForBooking ? 1 : 0,
+        data.qualification,
+        data.specialization,
+        data.yearsExperience,
+        data.registrationNumber,
+        data.phone,
+        data.email,
+        data.homepageHighlight ? 1 : 0,
+        data.patientConsent ? 1 : 0,
+        data.published ? 1 : 0,
+        data.displayOrder
+      ).run();
+
+      const created = await d1.prepare("SELECT * FROM site_content WHERE id = ?").bind(info.meta.last_row_id).first();
+      await syncSiteContentToLegacyTables(created);
+      const finalRow = await d1.prepare("SELECT * FROM site_content WHERE id = ?").bind(info.meta.last_row_id).first();
+      res.status(201).json({ item: serializeSiteContent(finalRow || created) });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.patch("/api/admin/content/:id", requireAdmin, async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      if (!Number.isFinite(id) || id <= 0) {
+        return res.status(400).json({ error: "Invalid content ID." });
+      }
+      const existing = await d1.prepare("SELECT * FROM site_content WHERE id = ?").bind(id).first();
+      if (!existing) {
+        return res.status(404).json({ error: "Content entry not found." });
+      }
+
+      const b = req.body || {};
+      const type =
+        b.type && SITE_CONTENT_TYPES.includes(String(b.type).trim())
+          ? String(b.type).trim()
+          : existing.type;
+      const data = normalizeSiteContentInput(b, existing, type);
+
+      if (!data.title && !data.mediaUrl && !data.beforeImage && !data.afterImage) {
+        return res.status(400).json({ error: "Please enter a title or upload media." });
+      }
+      if (data.published && (type === "gallery" || type === "testimonial") && !data.patientConsent) {
+        return res.status(400).json({ error: "Patient consent is required before publishing this entry." });
+      }
+
+      const rawSlug = b.slug !== undefined ? String(b.slug).trim() : "";
+      const slug =
+        (rawSlug && rawSlug !== existing.slug) || type !== existing.type
+          ? await uniqueSiteContentSlug(type, rawSlug || data.title || type, id)
+          : existing.slug;
+      const publishedAt = data.publishedAt || (data.published ? new Date().toISOString() : "");
+
+      const replacedUrls = [];
+      if (existing.media_url && existing.media_url !== data.mediaUrl) replacedUrls.push(existing.media_url);
+      if (existing.mobile_media_url && existing.mobile_media_url !== data.mobileMediaUrl) replacedUrls.push(existing.mobile_media_url);
+      if (existing.logo_url && existing.logo_url !== data.logoUrl) replacedUrls.push(existing.logo_url);
+      if (existing.before_image && existing.before_image !== data.beforeImage) replacedUrls.push(existing.before_image);
+      if (existing.after_image && existing.after_image !== data.afterImage) replacedUrls.push(existing.after_image);
+
+      await d1.prepare(`
+        UPDATE site_content SET
+          type = ?, slug = ?, title = ?, subtitle = ?, category = ?, author = ?, excerpt = ?, body = ?,
+          media_url = ?, mobile_media_url = ?, logo_url = ?, before_image = ?, after_image = ?,
+          link_url = ?, cta_label = ?, secondary_cta_label = ?, secondary_cta_url = ?,
+          badge_text = ?, rating_score = ?, rating_verified = ?, review_count = ?, trust_badge_text = ?,
+          start_date = ?, end_date = ?, published_at = ?, seo_title = ?, seo_description = ?,
+          price = ?, sessions = ?, duration = ?, available_for_booking = ?,
+          qualification = ?, specialization = ?, years_experience = ?, registration_number = ?,
+          phone = ?, email = ?, homepage_highlight = ?, patient_consent = ?, published = ?, display_order = ?,
+          updated_at = datetime('now')
+        WHERE id = ?
+      `).bind(
+        type,
+        slug,
+        data.title,
+        data.subtitle,
+        data.category,
+        data.author,
+        data.excerpt,
+        data.body,
+        data.mediaUrl,
+        data.mobileMediaUrl,
+        data.logoUrl,
+        data.beforeImage,
+        data.afterImage,
+        data.linkUrl,
+        data.ctaLabel,
+        data.secondaryCtaLabel,
+        data.secondaryCtaUrl,
+        data.badgeText,
+        data.ratingScore,
+        data.ratingVerified ? 1 : 0,
+        data.reviewCount,
+        data.trustBadgeText,
+        data.startDate,
+        data.endDate,
+        publishedAt,
+        data.seoTitle,
+        data.seoDescription,
+        data.price,
+        data.sessions,
+        data.duration,
+        data.availableForBooking ? 1 : 0,
+        data.qualification,
+        data.specialization,
+        data.yearsExperience,
+        data.registrationNumber,
+        data.phone,
+        data.email,
+        data.homepageHighlight ? 1 : 0,
+        data.patientConsent ? 1 : 0,
+        data.published ? 1 : 0,
+        data.displayOrder,
+        id
+      ).run();
+
+      if (replacedUrls.length) {
+        await deleteUnreferencedR2Media(replacedUrls, id);
+      }
+
+      const updated = await d1.prepare("SELECT * FROM site_content WHERE id = ?").bind(id).first();
+      await syncSiteContentToLegacyTables(updated);
+      const finalRow = await d1.prepare("SELECT * FROM site_content WHERE id = ?").bind(id).first();
+      res.json({ item: serializeSiteContent(finalRow || updated) });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.delete("/api/admin/content/:id", requireAdmin, async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      if (!Number.isFinite(id) || id <= 0) {
+        return res.status(400).json({ error: "Invalid content ID." });
+      }
+      const existing = await d1.prepare("SELECT * FROM site_content WHERE id = ?").bind(id).first();
+      if (!existing) {
+        return res.status(404).json({ error: "Content entry not found." });
+      }
+
+      await d1.prepare("DELETE FROM site_content WHERE id = ?").bind(id).run();
+      await syncLegacyDeletion(existing);
+      await deleteUnreferencedR2Media(
+        [existing.media_url, existing.mobile_media_url, existing.logo_url, existing.before_image, existing.after_image],
+        id
+      );
+
+      res.json({ ok: true, id });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   app.get("/api/content", async (req, res) => {
     try {
-      const type = req.query.type;
-      const all = [];
+      const rawType = req.query.type ? String(req.query.type).trim() : "";
+      let rows = [];
 
-      // 1. Doctors
-      if (!type || type === "doctor") {
-        const docs = (await d1.prepare("SELECT * FROM doctors WHERE status = 'active' ORDER BY display_order ASC").all()).results;
-        all.push(...docs.map(d => {
-          const img = d.profile_image_url || (d.profile_image_key ? getR2PublicUrl(d.profile_image_key) : "");
-          return {
-            id: d.id,
-            type: "doctor",
-            title: d.name,
-            name: d.name,
-            subtitle: d.specialization,
-            specialization: d.specialization,
-            category: d.qualification,
-            qualification: d.qualification,
-            description: d.biography,
-            experience: d.experience,
-            mediaUrl: img,
-            media_url: img,
-            profileImageUrl: img,
-            displayOrder: d.display_order,
-            display_order: d.display_order,
-            data: { experience: d.experience, profile_image_key: d.profile_image_key },
-            published: 1,
-            status: "active",
-          };
-        }));
+      if (!rawType) {
+        rows = (await d1.prepare("SELECT * FROM site_content WHERE published = 1 ORDER BY display_order ASC, id DESC").all()).results || [];
+      } else if (rawType === "before_after" || rawType === "before-after" || rawType === "transformation") {
+        rows = (await d1.prepare("SELECT * FROM site_content WHERE type IN ('gallery', 'before_after') AND published = 1 ORDER BY display_order ASC, id DESC").all()).results || [];
+      } else if (SITE_CONTENT_TYPES.includes(rawType)) {
+        rows = (await d1.prepare("SELECT * FROM site_content WHERE type = ? AND published = 1 ORDER BY display_order ASC, id DESC").bind(rawType).all()).results || [];
       }
 
-      // 2. Treatments
-      if (!type || type === "treatment") {
-        const trts = (await d1.prepare("SELECT * FROM treatments WHERE status = 'active' ORDER BY display_order ASC").all()).results;
-        all.push(...trts.map(t => {
-          const img = t.treatment_image_url || (t.treatment_image_key ? getR2PublicUrl(t.treatment_image_key) : "");
-          return {
-            id: t.id,
-            type: "treatment",
-            slug: t.slug,
-            title: t.treatment_name,
-            treatment_name: t.treatment_name,
-            subtitle: t.short_description,
-            short_description: t.short_description,
-            description: t.full_description,
-            full_description: t.full_description,
-            mediaUrl: img,
-            media_url: img,
-            displayOrder: t.display_order,
-            display_order: t.display_order,
-            data: { benefits: t.benefits, treatment_image_key: t.treatment_image_key },
-            published: 1,
-            status: "active",
-          };
-        }));
-      }
+      const today = getTodayIsoIST();
+      const visible = rows.filter((row) => {
+        if ((row.type === "gallery" || row.type === "testimonial") && !row.patient_consent) {
+          return false;
+        }
+        if (row.type === "offer") {
+          const start = String(row.start_date || "").slice(0, 10);
+          const end = String(row.end_date || "").slice(0, 10);
+          if (/^\d{4}-\d{2}-\d{2}$/.test(start) && start > today) return false;
+          if (/^\d{4}-\d{2}-\d{2}$/.test(end) && end < today) return false;
+        }
+        return true;
+      });
 
-      // 3. Blogs
-      if (!type || type === "blog") {
-        const blogs = (await d1.prepare("SELECT * FROM blogs WHERE status = 'published' ORDER BY id DESC").all()).results;
-        all.push(...blogs.map(b => {
-          const img = b.cover_image_url || (b.cover_image_key ? getR2PublicUrl(b.cover_image_key) : "");
-          return {
-            id: b.id,
-            type: "blog",
-            title: b.title,
-            slug: b.slug,
-            subtitle: b.description,
-            description: b.content,
-            content: b.content,
-            mediaUrl: img,
-            media_url: img,
-            coverImage: img,
-            category: b.category,
-            data: { cover_image_key: b.cover_image_key },
-            published: 1,
-            status: "published",
-          };
-        }));
-      }
-
-      // 4. Gallery & Images
-      if (!type || type === "gallery" || type === "image") {
-        const items = (await d1.prepare("SELECT * FROM gallery WHERE status = 'active' ORDER BY display_order ASC").all()).results;
-        all.push(...items.map(g => {
-          const img = g.image_url || (g.image_key ? getR2PublicUrl(g.image_key) : "");
-          return {
-            id: g.id,
-            type: "image",
-            title: g.title,
-            category: g.category,
-            mediaUrl: img,
-            media_url: img,
-            displayOrder: g.display_order,
-            display_order: g.display_order,
-            data: { image_key: g.image_key },
-            published: 1,
-            status: "active",
-          };
-        }));
-      }
-
-      // 5. Before & After Transformations
-      if (!type || type === "before_after" || type === "before-after" || type === "transformation") {
-        const bas = (await d1.prepare("SELECT * FROM before_after WHERE status = 'active' ORDER BY id DESC").all()).results;
-        all.push(...bas.map(ba => {
-          const bImg = ba.before_image_url || (ba.before_image_key ? getR2PublicUrl(ba.before_image_key) : "");
-          const aImg = ba.after_image_url || (ba.after_image_key ? getR2PublicUrl(ba.after_image_key) : "");
-          return {
-            id: ba.id,
-            type: "before_after",
-            title: ba.title,
-            description: ba.description,
-            beforeImage: bImg,
-            before_image: bImg,
-            before_image_url: bImg,
-            afterImage: aImg,
-            after_image: aImg,
-            after_image_url: aImg,
-            mediaUrl: aImg,
-            media_url: aImg,
-            published: 1,
-            status: "active",
-          };
-        }));
-      }
-
-      // 6. Reels & Videos
-      if (!type || type === "reel" || type === "video") {
-        const reels = (await d1.prepare("SELECT * FROM reels WHERE status = 'active' AND homepage_visibility = 1 ORDER BY display_order ASC").all()).results;
-        all.push(...reels.map(r => {
-          const vid = r.video_url || (r.video_key ? getR2PublicUrl(r.video_key) : "");
-          const thumb = r.thumbnail_url || (r.thumbnail_key ? getR2PublicUrl(r.thumbnail_key) : "");
-          return {
-            id: r.id,
-            type: "reel",
-            title: r.title,
-            mediaUrl: vid,
-            media_url: vid,
-            thumbnail: thumb,
-            data: { thumbnail: thumb, video_key: r.video_key, thumbnail_key: r.thumbnail_key },
-            displayOrder: r.display_order,
-            display_order: r.display_order,
-            published: 1,
-            status: "active",
-          };
-        }));
-      }
-
-      // 7. Offers
-      if (!type || type === "offer") {
-        const offers = (await d1.prepare("SELECT * FROM offers WHERE status = 'active' AND homepage_visibility = 1 ORDER BY id DESC").all()).results;
-        all.push(...offers.map(o => {
-          const img = o.image_url || (o.image_key ? getR2PublicUrl(o.image_key) : "");
-          return {
-            id: o.id,
-            type: "offer",
-            title: o.title,
-            description: o.description,
-            mediaUrl: img,
-            media_url: img,
-            data: { startDate: o.start_date, endDate: o.end_date, image_key: o.image_key },
-            startDate: o.start_date,
-            endDate: o.end_date,
-            published: 1,
-            status: "active",
-          };
-        }));
-      }
-
-      // 8. Hero Banners
-      if (!type || type === "hero") {
-        all.push({
-          id: "hero-1",
-          type: "hero",
-          title: "Advanced Dental Care with a Gentle Touch",
-          subtitle: "State-of-the-Art Technology & Painless Root Canal Treatments in Erode",
-          description: "Compassionate dental expertise powered by computerized apex locators and painless anesthesia.",
-          mediaUrl: "https://images.unsplash.com/photo-1629909613654-28e377c37b09?q=80&w=1200&auto=format&fit=crop",
-          media_url: "https://images.unsplash.com/photo-1629909613654-28e377c37b09?q=80&w=1200&auto=format&fit=crop",
-          displayOrder: 1,
-          display_order: 1,
-          published: 1,
-          status: "active",
-        });
-      }
-
-      res.json({ items: all });
+      res.json({ items: visible.map(serializeSiteContent) });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -1777,11 +2442,19 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
   /* ------------------------------------------------------------- COMPATIBILITY BRIDGE: /api/meta */
   app.get("/api/meta", async (_req, res) => {
     try {
-      const treatments = (await d1.prepare("SELECT * FROM treatments WHERE status = 'active' ORDER BY display_order ASC").all()).results || [];
-      const doctors = (await d1.prepare("SELECT * FROM doctors WHERE status = 'active' ORDER BY display_order ASC").all()).results || [];
+      const treatments = (
+        await d1
+          .prepare("SELECT id, slug, title FROM site_content WHERE type = 'treatment' AND published = 1 AND available_for_booking = 1 ORDER BY display_order ASC, id ASC")
+          .all()
+      ).results || [];
+      const doctors = (
+        await d1
+          .prepare("SELECT id, title FROM site_content WHERE type = 'doctor' AND published = 1 ORDER BY display_order ASC, id ASC")
+          .all()
+      ).results || [];
 
-      const services = treatments.map(t => ({ value: t.slug || String(t.id), label: t.treatment_name }));
-      const dentists = doctors.map(d => d.name);
+      const services = treatments.map((t) => ({ value: t.slug || String(t.id), label: t.title }));
+      const dentists = doctors.map((d) => d.title).filter(Boolean);
 
       const defaultServices = [
         { value: "general-dentistry", label: "General Dentistry & Consultation" },
@@ -1791,12 +2464,12 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
         { value: "teeth-whitening", label: "Laser Teeth Whitening" },
         { value: "cosmetic-dentistry", label: "Cosmetic Smile Designing & Veneers" },
         { value: "pediatric-dentistry", label: "Pediatric Dental Care" },
-        { value: "periodontics-gum-care", label: "Laser Periodontics & Gum Surgery" }
+        { value: "periodontics-gum-care", label: "Laser Periodontics & Gum Surgery" },
       ];
 
       const mergedServices = new Map();
-      defaultServices.forEach(s => mergedServices.set(s.value, s.label));
-      services.forEach(s => mergedServices.set(s.value, s.label));
+      defaultServices.forEach((s) => mergedServices.set(s.value, s.label));
+      services.forEach((s) => mergedServices.set(s.value, s.label));
 
       const defaultDentists = ["Dr. Kishore Kumar, B.D.S., M.D.S.", "Dr. Priyadharshini K, B.D.S."];
       const mergedDentists = Array.from(new Set([...defaultDentists, ...dentists]));

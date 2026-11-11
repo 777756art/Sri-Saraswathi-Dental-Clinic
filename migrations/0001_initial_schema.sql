@@ -184,6 +184,63 @@ CREATE TABLE IF NOT EXISTS contact_enquiries (
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS d1_meta (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Unified Dynamic Website CMS & Media Metadata
+CREATE TABLE IF NOT EXISTS site_content (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  type TEXT NOT NULL,
+  slug TEXT NOT NULL,
+  title TEXT NOT NULL DEFAULT '',
+  subtitle TEXT NOT NULL DEFAULT '',
+  category TEXT NOT NULL DEFAULT '',
+  author TEXT NOT NULL DEFAULT '',
+  excerpt TEXT NOT NULL DEFAULT '',
+  body TEXT NOT NULL DEFAULT '',
+  media_url TEXT NOT NULL DEFAULT '',
+  mobile_media_url TEXT NOT NULL DEFAULT '',
+  logo_url TEXT NOT NULL DEFAULT '',
+  before_image TEXT NOT NULL DEFAULT '',
+  after_image TEXT NOT NULL DEFAULT '',
+  link_url TEXT NOT NULL DEFAULT '',
+  cta_label TEXT NOT NULL DEFAULT '',
+  secondary_cta_label TEXT NOT NULL DEFAULT '',
+  secondary_cta_url TEXT NOT NULL DEFAULT '',
+  badge_text TEXT NOT NULL DEFAULT '',
+  rating_score TEXT NOT NULL DEFAULT '',
+  rating_verified INTEGER NOT NULL DEFAULT 0,
+  review_count TEXT NOT NULL DEFAULT '',
+  trust_badge_text TEXT NOT NULL DEFAULT '',
+  start_date TEXT NOT NULL DEFAULT '',
+  end_date TEXT NOT NULL DEFAULT '',
+  published_at TEXT NOT NULL DEFAULT '',
+  seo_title TEXT NOT NULL DEFAULT '',
+  seo_description TEXT NOT NULL DEFAULT '',
+  price INTEGER NOT NULL DEFAULT 0,
+  sessions TEXT NOT NULL DEFAULT '',
+  duration TEXT NOT NULL DEFAULT '',
+  available_for_booking INTEGER NOT NULL DEFAULT 1,
+  qualification TEXT NOT NULL DEFAULT '',
+  specialization TEXT NOT NULL DEFAULT '',
+  years_experience TEXT NOT NULL DEFAULT '',
+  registration_number TEXT NOT NULL DEFAULT '',
+  phone TEXT NOT NULL DEFAULT '',
+  email TEXT NOT NULL DEFAULT '',
+  homepage_highlight INTEGER NOT NULL DEFAULT 0,
+  patient_consent INTEGER NOT NULL DEFAULT 0,
+  published INTEGER NOT NULL DEFAULT 1,
+  display_order INTEGER NOT NULL DEFAULT 0,
+  legacy_table TEXT NOT NULL DEFAULT '',
+  legacy_id INTEGER DEFAULT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(type, slug)
+);
+
 -- High-performance database indexes
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone);
@@ -193,6 +250,9 @@ CREATE INDEX IF NOT EXISTS idx_doctors_status ON doctors(status, display_order);
 CREATE INDEX IF NOT EXISTS idx_treatments_status ON treatments(status, display_order);
 CREATE INDEX IF NOT EXISTS idx_blocked_dates ON blocked_dates(block_date);
 CREATE INDEX IF NOT EXISTS idx_blogs_slug ON blogs(slug);
+CREATE INDEX IF NOT EXISTS idx_site_content_type_order ON site_content(type, published, display_order, id);
+CREATE INDEX IF NOT EXISTS idx_site_content_slug ON site_content(slug);
+CREATE INDEX IF NOT EXISTS idx_site_content_legacy ON site_content(legacy_table, legacy_id);
 CREATE INDEX IF NOT EXISTS idx_gallery_cat ON gallery(category, status, display_order);
 CREATE INDEX IF NOT EXISTS idx_before_after_treatment ON before_after(treatment_id, status);
 CREATE INDEX IF NOT EXISTS idx_reels_visible ON reels(homepage_visibility, status, display_order);
