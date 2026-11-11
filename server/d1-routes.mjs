@@ -82,19 +82,79 @@ function formatRef(id, date) {
 export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secret-key-2026") {
   const r2 = getR2Bucket();
 
-  // Middleware: Authenticate Admin via D1
-  const requireAdmin = async (req, res, next) => {
+  const cookieAttrs = (req) => {
+    const isHttps = req.secure || req.headers["x-forwarded-proto"] === "https" || process.env.NODE_ENV === "production";
+    return isHttps ? "; Secure; SameSite=Lax" : "; SameSite=Lax";
+  };
+
+  const setSessionCookie = (req, res, user) => {
+    const token = signSession(user, sessionSecret);
+    res.setHeader("Set-Cookie", `${COOKIE_NAME}=${token}; HttpOnly${cookieAttrs(req)}; Path=/; Max-Age=${SESSION_DAYS * 86400}`);
+  };
+
+  const clearSessionCookie = (req, res) => {
+    res.setHeader("Set-Cookie", `${COOKIE_NAME}=; HttpOnly${cookieAttrs(req)}; Path=/; Max-Age=0`);
+  };
+
+  const getSessionUser = async (req) => {
     const token = parseCookies(req.headers.cookie)[COOKIE_NAME];
     const session = verifySession(token, sessionSecret);
-    if (!session || session.role !== "admin") {
-      return res.status(401).json({ error: "Unauthorized. Admin access required." });
+    if (!session) return null;
+
+    if (session.role === "admin") {
+      const admin = await d1.prepare("SELECT id, name, email, role, status FROM admins WHERE id = ?").bind(session.uid).first();
+      if (!admin || admin.status === "inactive") return null;
+      const [firstName, ...rest] = String(admin.name || "").trim().split(" ");
+      return {
+        id: admin.id,
+        firstName: firstName || "Admin",
+        lastName: rest.join(" ") || "",
+        name: admin.name || "Admin",
+        email: admin.email,
+        phone: "",
+        role: admin.role || "admin",
+      };
     }
-    const admin = await d1.prepare("SELECT id, name, email, role, status FROM admins WHERE id = ?").bind(session.uid).first();
-    if (!admin || admin.status === "inactive") {
-      return res.status(401).json({ error: "Session invalid or admin account inactive." });
+
+    const patient = await d1.prepare("SELECT id, first_name, last_name, email, phone, role FROM users WHERE id = ?").bind(session.uid).first();
+    if (!patient) return null;
+    return {
+      id: patient.id,
+      firstName: patient.first_name,
+      lastName: patient.last_name,
+      name: `${patient.first_name} ${patient.last_name}`.trim(),
+      email: patient.email,
+      phone: patient.phone || "",
+      role: patient.role || "patient",
+    };
+  };
+
+  // Middleware: Authenticate Admin via D1
+  const requireAdmin = async (req, res, next) => {
+    try {
+      const user = await getSessionUser(req);
+      if (!user || user.role !== "admin") {
+        return res.status(401).json({ error: "Unauthorized. Admin access required." });
+      }
+      req.admin = user;
+      next();
+    } catch (err) {
+      res.status(500).json({ error: err.message });
     }
-    req.admin = admin;
-    next();
+  };
+
+  // Middleware: Authenticate Patient or Admin via D1
+  const requireAuth = async (req, res, next) => {
+    try {
+      const user = await getSessionUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Please sign in to continue." });
+      }
+      req.user = user;
+      next();
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
   };
 
   /* ------------------------------------------------------------- CLOUDFLARE R2 MEDIA UPLOAD & STREAMING */
@@ -185,60 +245,133 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
     }
   });
 
-  /* ------------------------------------------------------------- 1. ADMINS & AUTH */
+  /* ------------------------------------------------------------- 1. ADMINS, PATIENTS & AUTH */
+
+  app.post("/api/auth/register", async (req, res) => {
+    try {
+      const b = req.body || {};
+      const firstName = String(b.firstName || "").trim();
+      const lastName = String(b.lastName || "").trim();
+      const email = String(b.email || "").trim().toLowerCase();
+      const phone = String(b.phone || "").trim();
+      const password = String(b.password || "");
+
+      if (!firstName || !lastName) {
+        return res.status(400).json({ error: "Please enter your full name." });
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+        return res.status(400).json({ error: "Please enter a valid email address." });
+      }
+      const phoneDigits = phone.replace(/\D/g, "");
+      if (phoneDigits.length < 10 || phoneDigits.length > 13) {
+        return res.status(400).json({ error: "Please enter a valid mobile number." });
+      }
+      if (password.length < 8) {
+        return res.status(400).json({ error: "Password must be at least 8 characters." });
+      }
+
+      const existingPatient = await d1.prepare("SELECT id FROM users WHERE LOWER(email) = ?").bind(email).first();
+      const existingAdmin = await d1.prepare("SELECT id FROM admins WHERE LOWER(email) = ?").bind(email).first();
+      if (existingPatient || existingAdmin) {
+        return res.status(409).json({ error: "An account with this email already exists. Please sign in." });
+      }
+
+      const passwordHash = hashPassword(password);
+      const info = await d1.prepare(
+        "INSERT INTO users (first_name, last_name, email, phone, password_hash, role, created_at, last_login_at, login_count) VALUES (?, ?, ?, ?, ?, 'patient', datetime('now'), datetime('now'), 1)"
+      ).bind(firstName, lastName, email, phone, passwordHash).run();
+
+      const newId = Number(info.meta?.last_row_id || 0);
+      const user = {
+        id: newId,
+        firstName,
+        lastName,
+        email,
+        phone,
+        role: "patient",
+      };
+
+      setSessionCookie(req, res, user);
+      res.status(201).json({ user });
+    } catch (err) {
+      res.status(500).json({ error: err.message || "Could not create account." });
+    }
+  });
 
   app.post("/api/auth/login", async (req, res) => {
     try {
       const { email, password } = req.body || {};
-      if (!email || !password) {
+      const cleanEmail = String(email || "").trim().toLowerCase();
+      if (!cleanEmail || !password) {
         return res.status(400).json({ error: "Email and password are required." });
       }
-      const admin = await d1.prepare("SELECT * FROM admins WHERE email = ?").bind(String(email).trim().toLowerCase()).first();
-      if (!admin || !verifyPassword(password, admin.password_hash)) {
-        return res.status(401).json({ error: "Invalid email or password." });
-      }
-      if (admin.status === "inactive") {
-        return res.status(403).json({ error: "Account is inactive. Contact the chief surgeon." });
-      }
-      const token = signSession(admin, sessionSecret);
-      const attributes = process.env.NODE_ENV === "production" ? "; Secure; SameSite=Lax" : "; SameSite=Lax";
-      res.setHeader("Set-Cookie", `${COOKIE_NAME}=${token}; HttpOnly${attributes}; Path=/; Max-Age=${SESSION_DAYS * 86400}`);
 
-      const [firstName, ...rest] = admin.name.split(" ");
-      res.json({
-        user: {
+      const admin = await d1.prepare("SELECT * FROM admins WHERE LOWER(email) = ?").bind(cleanEmail).first();
+      if (admin) {
+        if (!verifyPassword(password, admin.password_hash)) {
+          return res.status(401).json({ error: "Invalid email or password." });
+        }
+        if (admin.status === "inactive") {
+          return res.status(403).json({ error: "Account is inactive. Contact the chief surgeon." });
+        }
+        const [firstName, ...rest] = String(admin.name || "").trim().split(" ");
+        const user = {
           id: admin.id,
           firstName: firstName || "Admin",
           lastName: rest.join(" ") || "",
           email: admin.email,
-          role: admin.role,
-        },
-      });
+          phone: "",
+          role: admin.role || "admin",
+        };
+        setSessionCookie(req, res, user);
+        return res.json({ user });
+      }
+
+      const patient = await d1.prepare("SELECT * FROM users WHERE LOWER(email) = ?").bind(cleanEmail).first();
+      if (!patient || !verifyPassword(password, patient.password_hash)) {
+        return res.status(401).json({ error: "Invalid email or password." });
+      }
+
+      await d1.prepare(
+        "UPDATE users SET last_login_at = datetime('now'), login_count = COALESCE(login_count, 0) + 1 WHERE id = ?"
+      ).bind(patient.id).run();
+
+      const user = {
+        id: patient.id,
+        firstName: patient.first_name,
+        lastName: patient.last_name,
+        email: patient.email,
+        phone: patient.phone || "",
+        role: patient.role || "patient",
+      };
+      setSessionCookie(req, res, user);
+      res.json({ user });
     } catch (err) {
       res.status(500).json({ error: err.message || "Login failed." });
     }
   });
 
   app.get("/api/auth/me", async (req, res) => {
-    const token = parseCookies(req.headers.cookie)[COOKIE_NAME];
-    const session = verifySession(token, sessionSecret);
-    if (!session) return res.status(401).json({ error: "Not authenticated." });
-    const admin = await d1.prepare("SELECT id, name, email, role FROM admins WHERE id = ?").bind(session.uid).first();
-    if (!admin) return res.status(401).json({ error: "User not found." });
-    const [firstName, ...rest] = admin.name.split(" ");
-    res.json({
-      user: {
-        id: admin.id,
-        firstName: firstName || "Admin",
-        lastName: rest.join(" ") || "",
-        email: admin.email,
-        role: admin.role,
-      },
-    });
+    try {
+      const user = await getSessionUser(req);
+      if (!user) return res.status(401).json({ error: "Not authenticated." });
+      res.json({
+        user: {
+          id: user.id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          phone: user.phone,
+          role: user.role,
+        },
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
   });
 
-  app.post("/api/auth/logout", async (_req, res) => {
-    res.setHeader("Set-Cookie", `${COOKIE_NAME}=; HttpOnly; Path=/; Max-Age=0`);
+  app.post("/api/auth/logout", async (req, res) => {
+    clearSessionCookie(req, res);
     res.json({ ok: true });
   });
 
@@ -551,13 +684,24 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
   const handleCreateAppointment = async (req, res) => {
     try {
       const b = req.body || {};
-      const patientName = String(b.patientName || b.patient_name || "").trim();
-      const phone = String(b.patientPhone || b.phone || "").trim();
-      const email = String(b.patientEmail || b.email || "").trim();
+      const sessionUser = await getSessionUser(req).catch(() => null);
+      const patientName = String(b.patientName || b.patient_name || sessionUser?.name || "").trim();
+      const phone = String(b.patientPhone || b.phone || sessionUser?.phone || "").trim();
+      const email = String(b.patientEmail || b.email || sessionUser?.email || "").trim().toLowerCase();
       const date = String(b.date || b.appointment_date || "").trim();
       const time = String(b.time || b.appointment_time || "").trim();
       const notes = String(b.notes || b.message || "").trim();
-      const doctorId = b.doctorId || b.doctor_id ? Number(b.doctorId || b.doctor_id) : 1;
+
+      let doctorId = b.doctorId || b.doctor_id ? Number(b.doctorId || b.doctor_id) : null;
+      let dentistName = String(b.dentist || "").trim() || "Dr. Kishore Kumar";
+      if (!doctorId && b.dentist) {
+        const doc = await d1.prepare("SELECT id, name FROM doctors WHERE LOWER(name) LIKE ?").bind(`%${dentistName.split(",")[0].toLowerCase()}%`).first();
+        if (doc) {
+          doctorId = doc.id;
+          dentistName = doc.name;
+        }
+      }
+      if (!doctorId) doctorId = 1;
 
       if (!patientName) return res.status(400).json({ error: "Patient name is required." });
       if (phone.replace(/\D/g, "").length < 10) return res.status(400).json({ error: "Valid 10-digit phone number is required." });
@@ -580,10 +724,13 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
       let treatmentId = b.treatmentId || b.treatment_id ? Number(b.treatmentId || b.treatment_id) : null;
       let serviceLabel = "Comprehensive Dental Check-up";
       if (!treatmentId && b.service) {
-        const found = await d1.prepare("SELECT id, treatment_name FROM treatments WHERE treatment_name LIKE ?").bind(`%${b.service}%`).first();
+        const svc = String(b.service).trim();
+        const found = await d1.prepare("SELECT id, treatment_name FROM treatments WHERE slug = ? OR LOWER(treatment_name) LIKE ?").bind(svc, `%${svc.replace(/-/g, " ").toLowerCase()}%`).first();
         if (found) {
           treatmentId = found.id;
           serviceLabel = found.treatment_name;
+        } else {
+          serviceLabel = svc.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
         }
       } else if (treatmentId) {
         const found = await d1.prepare("SELECT treatment_name FROM treatments WHERE id = ?").bind(treatmentId).first();
@@ -626,7 +773,7 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
         date,
         dateLabel: date,
         time,
-        dentist: "Dr. Kishore Kumar",
+        dentist: dentistName,
         notes,
         status: "pending",
         statusLabel: "Pending confirmation",
@@ -646,6 +793,125 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
 
   app.post("/api/appointments", handleCreateAppointment);
   app.post("/api/bookings", handleCreateAppointment);
+
+  const formatAppointmentForUser = (r) => {
+    const ref = formatRef(r.id, r.appointment_date);
+    const serviceLabel = r.treatment_label || "Dental Care & Checkup";
+    const normalizedStatus = String(r.status || "Pending").toLowerCase();
+    const statusLabel =
+      normalizedStatus === "confirmed" ? "Confirmed" :
+      normalizedStatus === "checked_in" ? "Checked in" :
+      normalizedStatus === "cancelled" ? "Cancelled" :
+      normalizedStatus === "completed" ? "Completed" : "Pending";
+    const clinicMsg = `Hello Sri Saraswathi Dental Clinic, regarding my appointment (${ref}) for ${serviceLabel} on ${r.appointment_date} at ${r.appointment_time}.`;
+    return {
+      id: r.id,
+      ref,
+      patientName: r.patient_name || "Patient",
+      patientPhone: r.phone || "",
+      patientEmail: r.email || "",
+      service: r.treatment_slug || "general-dentistry",
+      serviceLabel,
+      date: r.appointment_date,
+      dateLabel: r.appointment_date,
+      time: r.appointment_time,
+      dentist: r.doctor_name || "Dr. Kishore Kumar",
+      notes: r.message || "",
+      status: normalizedStatus,
+      statusLabel,
+      createdAt: r.created_at,
+      updatedAt: r.updated_at || r.created_at,
+      whatsapp: {
+        clinic: formatWhatsAppLink("9345743409", clinicMsg),
+      },
+    };
+  };
+
+  app.get("/api/bookings/mine", requireAuth, async (req, res) => {
+    try {
+      const userEmail = String(req.user.email || "").trim().toLowerCase();
+      const phoneDigits = String(req.user.phone || "").replace(/\D/g, "").slice(-10);
+
+      const rows = (await d1.prepare(`
+        SELECT a.*, d.name as doctor_name, t.treatment_name as treatment_label, t.slug as treatment_slug
+        FROM appointments a
+        LEFT JOIN doctors d ON a.doctor_id = d.id
+        LEFT JOIN treatments t ON a.treatment_id = t.id
+        WHERE LOWER(COALESCE(a.email, '')) = ?
+           OR (? != '' AND REPLACE(REPLACE(REPLACE(COALESCE(a.phone, ''), '+', ''), ' ', ''), '-', '') LIKE ?)
+        ORDER BY a.appointment_date DESC, a.id DESC
+      `).bind(userEmail, phoneDigits, `%${phoneDigits}`).all()).results || [];
+
+      res.json({ bookings: rows.map(formatAppointmentForUser) });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.patch("/api/bookings/:id", requireAuth, async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const existing = await d1.prepare("SELECT * FROM appointments WHERE id = ?").bind(id).first();
+      if (!existing) return res.status(404).json({ error: "Booking not found." });
+
+      const userEmail = String(req.user.email || "").trim().toLowerCase();
+      const userDigits = String(req.user.phone || "").replace(/\D/g, "").slice(-10);
+      const rowDigits = String(existing.phone || "").replace(/\D/g, "").slice(-10);
+      const owns =
+        req.user.role === "admin" ||
+        (userEmail && String(existing.email || "").trim().toLowerCase() === userEmail) ||
+        (userDigits && rowDigits && userDigits === rowDigits);
+
+      if (!owns) return res.status(404).json({ error: "Booking not found." });
+
+      const curStatus = String(existing.status || "").toLowerCase();
+      if (curStatus === "completed" || curStatus === "cancelled") {
+        return res.status(400).json({ error: "This appointment can no longer be changed. Please book a new visit." });
+      }
+
+      const b = req.body || {};
+      const nextStatusRaw = b.status ? String(b.status).toLowerCase() : null;
+      if (nextStatusRaw && nextStatusRaw !== "cancelled") {
+        return res.status(403).json({ error: "You can only cancel an appointment here." });
+      }
+
+      const nextDate = b.date ? String(b.date).trim() : existing.appointment_date;
+      const nextTime = b.time ? String(b.time).trim() : existing.appointment_time;
+
+      if (b.date || b.time) {
+        const blocked = await d1.prepare("SELECT * FROM blocked_dates WHERE block_date = ? AND start_time IS NULL").bind(nextDate).first();
+        if (blocked) {
+          return res.status(400).json({ error: `Selected date is unavailable: ${blocked.reason || "Clinic closed."}` });
+        }
+        const bookedCount = await d1.prepare(`
+          SELECT COUNT(*) as count FROM appointments
+          WHERE appointment_date = ? AND appointment_time = ? AND id != ?
+            AND status NOT IN ('Cancelled', 'cancelled', 'Rejected', 'rejected')
+        `).bind(nextDate, nextTime, id).first("count");
+        if (bookedCount >= SLOT_CAPACITY) {
+          return res.status(400).json({ error: "This time slot is full. Please select another slot." });
+        }
+      }
+
+      const finalStatus = nextStatusRaw === "cancelled" ? "Cancelled" : (b.date || b.time ? "Pending" : existing.status);
+      await d1.prepare(`
+        UPDATE appointments SET appointment_date = ?, appointment_time = ?, status = ?, updated_at = datetime('now') WHERE id = ?
+      `).bind(nextDate, nextTime, finalStatus, id).run();
+
+      const updated = await d1.prepare(`
+        SELECT a.*, d.name as doctor_name, t.treatment_name as treatment_label, t.slug as treatment_slug
+        FROM appointments a
+        LEFT JOIN doctors d ON a.doctor_id = d.id
+        LEFT JOIN treatments t ON a.treatment_id = t.id
+        WHERE a.id = ?
+      `).bind(id).first();
+
+      const booking = formatAppointmentForUser(updated);
+      res.json({ booking, whatsapp: booking.whatsapp });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
 
   const handleListAppointments = async (_req, res) => {
     try {
@@ -1535,19 +1801,67 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
       const defaultDentists = ["Dr. Kishore Kumar, B.D.S., M.D.S.", "Dr. Priyadharshini K, B.D.S."];
       const mergedDentists = Array.from(new Set([...defaultDentists, ...dentists]));
 
-      const slots = [
-        "10:00 AM", "10:30 AM", "11:00 AM", "11:30 AM",
-        "12:00 PM", "12:30 PM", "05:00 PM", "05:30 PM",
-        "06:00 PM", "06:30 PM", "07:00 PM", "07:30 PM",
-        "08:00 PM", "08:30 PM"
-      ];
-
       res.json({
         services: Array.from(mergedServices.entries()).map(([value, label]) => ({ value, label })),
         dentists: mergedDentists,
-        slots,
-        clinicWhatsapp: "+919443729999",
+        slots: SLOTS,
+        clinicWhatsapp: "+919345743409",
       });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  /* ------------------------------------------------------------- CONTACT ENQUIRIES */
+  app.post("/api/contact-enquiries", async (req, res) => {
+    try {
+      const name = String(req.body?.name ?? "").trim();
+      const phone = String(req.body?.phone ?? "").trim();
+      const email = String(req.body?.email ?? "").trim().toLowerCase();
+      const message = String(req.body?.message ?? "").trim();
+
+      if (name.length < 2 || name.length > 120) return res.status(400).json({ error: "Enter your name (2-120 characters)." });
+      if (!phone && !email) return res.status(400).json({ error: "Add a phone number or email address so the clinic can reply." });
+      if (message.length < 5 || message.length > 4000) return res.status(400).json({ error: "Enter a message between 5 and 4,000 characters." });
+
+      await d1.prepare(
+        "INSERT INTO contact_enquiries (name, phone, email, message, status, created_at, updated_at) VALUES (?, ?, ?, ?, 'new', datetime('now'), datetime('now'))"
+      ).bind(name, phone, email, message).run();
+
+      res.status(201).json({ ok: true, message: "Your enquiry has been sent. The clinic team will get back to you." });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/admin/contact-enquiries", requireAdmin, async (_req, res) => {
+    try {
+      const items = (await d1.prepare("SELECT * FROM contact_enquiries ORDER BY id DESC LIMIT 200").all()).results || [];
+      res.json({ items: items.map((item) => ({ ...item, createdAt: item.created_at, updatedAt: item.updated_at })) });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.patch("/api/admin/contact-enquiries/:id", requireAdmin, async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const status = String(req.body?.status ?? "");
+      if (!["new", "in_progress", "resolved"].includes(status)) {
+        return res.status(400).json({ error: "Choose a valid enquiry status." });
+      }
+      await d1.prepare("UPDATE contact_enquiries SET status = ?, updated_at = datetime('now') WHERE id = ?").bind(status, id).run();
+      res.json({ ok: true });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.delete("/api/admin/contact-enquiries/:id", requireAdmin, async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      await d1.prepare("DELETE FROM contact_enquiries WHERE id = ?").bind(id).run();
+      res.json({ ok: true });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -1567,6 +1881,8 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
         LEFT JOIN treatments t ON a.treatment_id = t.id
         ORDER BY a.appointment_date DESC, a.id DESC
       `).all()).results || [];
+
+      const registeredUsers = (await d1.prepare("SELECT id, first_name, last_name, email, phone, role, created_at, last_login_at, login_count FROM users ORDER BY id DESC").all()).results || [];
 
       const formatted = rows.map((r) => {
         const ref = formatRef(r.id, r.appointment_date);
@@ -1619,8 +1935,22 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
       }
 
       const patientMap = new Map();
+      registeredUsers.forEach((u) => {
+        const key = String(u.email || u.phone || u.id).toLowerCase();
+        patientMap.set(key, {
+          id: u.id,
+          name: `${u.first_name || ""} ${u.last_name || ""}`.trim() || "Patient",
+          email: u.email || "",
+          phone: u.phone || "",
+          role: "patient",
+          joinedAt: u.created_at,
+          lastLoginAt: u.last_login_at || u.created_at,
+          loginCount: u.login_count || 1,
+        });
+      });
+
       formatted.forEach((f) => {
-        const key = f.patientPhone || f.patientName;
+        const key = String(f.patientEmail || f.patientPhone || f.patientName).toLowerCase();
         if (key && !patientMap.has(key)) {
           patientMap.set(key, {
             id: f.id,
@@ -1645,7 +1975,7 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
           checkedIn,
           completed,
           cancelled,
-          patients: patientMap.size || 1,
+          patients: patientMap.size,
           totalBookings: formatted.length,
         },
         week,
@@ -1663,40 +1993,61 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
   /* ------------------------------------------------------------- COMPATIBILITY BRIDGE: /api/admin/patients */
   app.get("/api/admin/patients", requireAdmin, async (_req, res) => {
     try {
+      const registeredUsers = (await d1.prepare("SELECT id, first_name, last_name, email, phone, role, created_at, last_login_at, login_count FROM users ORDER BY id DESC").all()).results || [];
       const rows = (await d1.prepare(`
-        SELECT
-          a.*,
-          d.name as doctor_name,
-          t.treatment_name as treatment_label
+        SELECT a.*, d.name as doctor_name, t.treatment_name as treatment_label
         FROM appointments a
         LEFT JOIN doctors d ON a.doctor_id = d.id
         LEFT JOIN treatments t ON a.treatment_id = t.id
         ORDER BY a.appointment_date DESC, a.id DESC
       `).all()).results || [];
 
-      const byPhone = new Map();
-      for (const r of rows) {
-        const key = r.phone || r.patient_name || String(r.id);
-        const entry = byPhone.get(key) || {
-          id: r.id,
-          name: r.patient_name || "Patient",
-          email: r.email || "",
-          phone: r.phone || "",
+      const byKey = new Map();
+      for (const u of registeredUsers) {
+        const emailKey = String(u.email || "").trim().toLowerCase();
+        const phoneDigits = String(u.phone || "").replace(/\D/g, "").slice(-10);
+        const key = emailKey || phoneDigits || `user-${u.id}`;
+        byKey.set(key, {
+          id: u.id,
+          name: `${u.first_name || ""} ${u.last_name || ""}`.trim() || "Patient",
+          email: u.email || "",
+          phone: u.phone || "",
           role: "patient",
           visits: 0,
           lastVisit: null,
-          joinedAt: r.created_at,
-          lastLoginAt: null,
-          loginCount: 0,
-        };
-        entry.visits += 1;
-        if (!entry.lastVisit || r.appointment_date > entry.lastVisit) {
-          entry.lastVisit = r.appointment_date;
-        }
-        byPhone.set(key, entry);
+          joinedAt: u.created_at,
+          lastLoginAt: u.last_login_at || null,
+          loginCount: u.login_count || 0,
+        });
       }
 
-      res.json({ patients: Array.from(byPhone.values()) });
+      for (const r of rows) {
+        const emailKey = String(r.email || "").trim().toLowerCase();
+        const phoneDigits = String(r.phone || "").replace(/\D/g, "").slice(-10);
+        let entry = (emailKey && byKey.get(emailKey)) || (phoneDigits && Array.from(byKey.values()).find((p) => String(p.phone || "").replace(/\D/g, "").slice(-10) === phoneDigits));
+        if (!entry) {
+          const key = emailKey || phoneDigits || r.patient_name || String(r.id);
+          entry = byKey.get(key) || {
+            id: r.id,
+            name: r.patient_name || "Patient",
+            email: r.email || "",
+            phone: r.phone || "",
+            role: "patient",
+            visits: 0,
+            lastVisit: null,
+            joinedAt: r.created_at,
+            lastLoginAt: null,
+            loginCount: 0,
+          };
+          byKey.set(key, entry);
+        }
+        entry.visits += 1;
+        if (!entry.lastVisit || (r.appointment_date && r.appointment_date > entry.lastVisit)) {
+          entry.lastVisit = r.appointment_date;
+        }
+      }
+
+      res.json({ patients: Array.from(byKey.values()) });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }

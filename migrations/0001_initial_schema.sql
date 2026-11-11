@@ -158,7 +158,35 @@ CREATE TABLE IF NOT EXISTS clinic_settings (
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- 12. Registered Patients Table
+CREATE TABLE IF NOT EXISTS users (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  first_name TEXT NOT NULL,
+  last_name TEXT NOT NULL,
+  email TEXT UNIQUE NOT NULL,
+  phone TEXT NOT NULL,
+  password_hash TEXT NOT NULL,
+  role TEXT NOT NULL DEFAULT 'patient',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  last_login_at TEXT DEFAULT (datetime('now')),
+  login_count INTEGER NOT NULL DEFAULT 1
+);
+
+-- 13. Contact Enquiries Table
+CREATE TABLE IF NOT EXISTS contact_enquiries (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  phone TEXT,
+  email TEXT,
+  message TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'new',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 -- High-performance database indexes
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone);
 CREATE INDEX IF NOT EXISTS idx_appointments_slot ON appointments(appointment_date, appointment_time, status);
 CREATE INDEX IF NOT EXISTS idx_appointments_phone ON appointments(phone);
 CREATE INDEX IF NOT EXISTS idx_doctors_status ON doctors(status, display_order);

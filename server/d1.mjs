@@ -133,6 +133,33 @@ export function getD1Database(env = {}) {
 
 export async function initD1Schema(db) {
   try {
+    await db.exec(`
+      CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        first_name TEXT NOT NULL,
+        last_name TEXT NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        phone TEXT NOT NULL,
+        password_hash TEXT NOT NULL,
+        role TEXT NOT NULL DEFAULT 'patient',
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        last_login_at TEXT DEFAULT (datetime('now')),
+        login_count INTEGER NOT NULL DEFAULT 1
+      );
+      CREATE TABLE IF NOT EXISTS contact_enquiries (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        phone TEXT,
+        email TEXT,
+        message TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'new',
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+      CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone);
+    `);
+
     const adminEmail = process.env.ADMIN_EMAIL || process.env.CLOUDFLARE_AUTH_EMAIL || "admin@srisaraswathidental.com";
     const admin = await db.prepare("SELECT id FROM admins WHERE email = ?").bind(adminEmail).first();
     if (!admin) {

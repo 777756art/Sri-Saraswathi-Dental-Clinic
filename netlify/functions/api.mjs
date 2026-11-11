@@ -66,5 +66,15 @@ app.get("/api/health", (_req, res) => {
 const SESSION_SECRET = process.env.SESSION_SECRET || "clinic-d1-secure-secret-key-2026";
 registerD1Routes(app, d1, SESSION_SECRET);
 
+// Ensure API routes always return JSON on 404 or unexpected errors
+app.use((_req, res) => {
+  res.status(404).json({ error: "API route not found." });
+});
+
+app.use((err, _req, res, _next) => {
+  const status = Number(err?.status || err?.statusCode || 500);
+  res.status(status).json({ error: err?.message || "Unexpected server error." });
+});
+
 export const handler = serverless(app);
 export default handler;
