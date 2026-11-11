@@ -66,8 +66,8 @@ export function BeforeAfterShowcaseSection() {
       <div className="container-x">
         {/* Centered Heading */}
         <div className="mx-auto max-w-2xl text-center">
-          <span className="inline-flex items-center gap-2 rounded-full border border-[#1F6878]/20 bg-[#E4F0F2] px-3.5 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[#1F6878]">
-            <Sparkles className="h-3.5 w-3.5 text-[#1F6878]" /> Proven Results
+          <span className="inline-flex items-center gap-2 rounded-full border border-[#E95A35] bg-[#E95A35] px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white shadow-[0_10px_22px_-8px_rgba(233,90,53,0.6)]">
+            <Sparkles className="h-3.5 w-3.5 text-white" /> Proven Results
           </span>
           <h2 className="mt-3 font-sans text-[32px] font-bold leading-tight tracking-[-0.035em] text-[#1F6878] sm:text-[42px]">
             Before &amp; After <span className="text-[#1F6878]">Showcase</span>

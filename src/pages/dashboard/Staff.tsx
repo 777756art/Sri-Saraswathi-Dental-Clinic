@@ -954,87 +954,88 @@ export default function StaffPage() {
                   </div>
 
                   {/* Right Column: Bio & Highlights */}
-                  <div className="max-w-[620px]">
+                  <div className="max-w-[640px]">
                     <span className="inline-flex items-center gap-2 text-[10.5px] font-bold uppercase tracking-[0.2em] text-[#1F6878]">
                       <span className="h-2 w-2 rounded-full bg-[#1F6878]" />
                       {badgeText || "Dedicated Clinical Leadership"}
                     </span>
 
-                    <h2 className="mt-3 font-sans text-[30px] sm:text-[38px] font-bold leading-[1.12] tracking-[-0.035em] text-[#1F6878]">
+                    <h2 className="mt-[20px] font-sans text-[30px] sm:text-[38px] font-bold leading-[1.15] tracking-[-0.035em] text-[#1F6878]">
                       Meet {name}.
-                      <span className="block text-[20px] sm:text-[24px] font-semibold text-[#1F6878]">
+                      <span className="mt-[8px] block text-[19px] sm:text-[23px] font-semibold leading-[1.35] text-[#1F6878]">
                         {qualification} — {designation}
                       </span>
                     </h2>
+                    <div className="mt-[14px] h-1 w-14 rounded-full bg-[#1F6878]" />
 
-                    <p className="mt-4 text-[14.5px] leading-[1.8] text-[#707574]">
+                    <p className="mt-[22px] max-w-[590px] text-[16.5px] leading-[1.8] text-[#707574] sm:text-[17px]">
                       {description || DEFAULT_DOCTOR_DATA.description}
                     </p>
 
                     {/* Three compact highlight cards */}
-                    <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                    <div className="mt-[28px] grid items-stretch gap-3.5 sm:grid-cols-3">
                       {/* Highlight Card 1: Experience & Focus */}
-                      <div className="rounded-[18px] border border-[#1F6878]/15 bg-[#E4F0F2]/75 p-3.5 transition hover:border-[#1F6878]/35">
-                        <div className="flex items-center gap-2 text-[#1F6878]">
-                          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-white text-[#1F6878] shadow-sm">
-                            <ShieldCheck className="h-3.5 w-3.5" />
+                      <div className="flex h-full flex-col rounded-[18px] border border-[#1F6878]/15 bg-[#E4F0F2]/85 p-4 transition hover:border-[#1F6878]/35">
+                        <div className="flex items-center gap-2.5 text-[#1F6878]">
+                          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-white text-[#1F6878] shadow-sm">
+                            <ShieldCheck className="h-4 w-4" />
                           </span>
-                          <h3 className="text-[12.5px] font-bold leading-tight">
+                          <h3 className="text-[13px] font-bold leading-snug">
                             {experience} {experienceTitle}
                           </h3>
                         </div>
-                        <p className="mt-2 text-[11px] leading-relaxed text-[#707574]">
+                        <p className="mt-2.5 text-[11.5px] leading-[1.65] text-[#707574]">
                           {experienceDesc}
                         </p>
                       </div>
 
                       {/* Highlight Card 2: Patient-First Care */}
-                      <div className="rounded-[18px] border border-[#1F6878]/15 bg-[#E4F0F2]/75 p-3.5 transition hover:border-[#1F6878]/35">
-                        <div className="flex items-center gap-2 text-[#1F6878]">
-                          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-white text-[#E95A35] shadow-sm">
-                            <HeartHandshake className="h-3.5 w-3.5" />
+                      <div className="flex h-full flex-col rounded-[18px] border border-[#1F6878]/15 bg-[#E4F0F2]/85 p-4 transition hover:border-[#1F6878]/35">
+                        <div className="flex items-center gap-2.5 text-[#1F6878]">
+                          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-white text-[#1F6878] shadow-sm">
+                            <HeartHandshake className="h-4 w-4" />
                           </span>
-                          <h3 className="text-[12.5px] font-bold leading-tight">
+                          <h3 className="text-[13px] font-bold leading-snug">
                             {patientFirstTitle}
                           </h3>
                         </div>
-                        <p className="mt-2 text-[11px] leading-relaxed text-[#707574]">
+                        <p className="mt-2.5 text-[11.5px] leading-[1.65] text-[#707574]">
                           {patientFirstDesc}
                         </p>
                       </div>
 
                       {/* Highlight Card 3: Advanced Dental Technology */}
-                      <div className="rounded-[18px] border border-[#1F6878]/15 bg-[#E4F0F2]/75 p-3.5 transition hover:border-[#1F6878]/35">
-                        <div className="flex items-center gap-2 text-[#1F6878]">
-                          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-white text-[#1F6878] shadow-sm">
-                            <Sparkles className="h-3.5 w-3.5" />
+                      <div className="flex h-full flex-col rounded-[18px] border border-[#1F6878]/15 bg-[#E4F0F2]/85 p-4 transition hover:border-[#1F6878]/35">
+                        <div className="flex items-center gap-2.5 text-[#1F6878]">
+                          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-white text-[#1F6878] shadow-sm">
+                            <Sparkles className="h-4 w-4" />
                           </span>
-                          <h3 className="text-[12.5px] font-bold leading-tight">
+                          <h3 className="text-[13px] font-bold leading-snug">
                             {advancedTreatmentTitle}
                           </h3>
                         </div>
-                        <p className="mt-2 text-[11px] leading-relaxed text-[#707574]">
+                        <p className="mt-2.5 text-[11.5px] leading-[1.65] text-[#707574]">
                           {advancedTreatmentDesc}
                         </p>
                       </div>
                     </div>
 
                     {/* Key trust bullets / Key features */}
-                    <div className="mt-5 flex flex-wrap gap-x-4 gap-y-2 text-[11.5px] font-medium text-[#1F6878]/85">
+                    <div className="mt-[24px] flex flex-wrap gap-x-5 gap-y-2 text-[12px] font-medium text-[#1F6878]">
                       {keyFeatures.map((feat, index) => (
                         <span key={index} className="inline-flex items-center gap-1.5">
-                          <CheckCircle2 className="h-4 w-4 text-[#1F6878]" /> {feat}
+                          <CheckCircle2 className="h-4 w-4 shrink-0 text-[#1F6878]" /> {feat}
                         </span>
                       ))}
                     </div>
 
                     {/* Two CTAs */}
-                    <div className="mt-7 flex flex-wrap items-center gap-3">
-                      <span className="inline-flex h-[46px] items-center gap-2 rounded-full bg-[#E95A35] px-6 text-[13px] font-bold text-white shadow-[0_12px_26px_-10px_rgba(233,90,53,0.55)]">
+                    <div className="mt-[30px] flex flex-wrap items-center gap-3.5">
+                      <span className="inline-flex h-[48px] items-center gap-2 rounded-full bg-[#E95A35] px-7 text-[13px] font-bold text-white shadow-[0_12px_26px_-10px_rgba(233,90,53,0.55)]">
                         <CalendarDays className="h-4 w-4" />
                         {secondaryBtnText || "Book With Doctor"}
                       </span>
-                      <span className="inline-flex h-[46px] items-center gap-2 rounded-full border border-[#1F6878]/25 bg-white px-5 text-[13px] font-bold text-[#1F6878] shadow-sm">
+                      <span className="inline-flex h-[48px] items-center gap-2 rounded-full border border-[#1F6878] bg-white px-6 text-[13px] font-bold text-[#1F6878] shadow-sm">
                         {primaryBtnText || "Explore Dentist Profile"}
                         <ArrowRight className="h-4 w-4 text-[#1F6878]" />
                       </span>
