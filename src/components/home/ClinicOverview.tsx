@@ -51,7 +51,7 @@ export function ClinicOverview() {
       <div className="relative mx-auto max-w-7xl px-4">
         <ScrollReveal>
           <div className="text-center mb-16">
-            <span className="inline-flex items-center gap-2 rounded-md bg-[#E4F0F2] px-4 py-1.5 text-sm font-medium text-[#1F6878]">
+            <span className="inline-flex items-center gap-2 rounded-full border border-[#E95A35] bg-[#E95A35] px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white shadow-[0_10px_22px_-8px_rgba(233,90,53,0.6)]">
               The AI Advantage
             </span>
             <h2 className="mt-6 font-display text-display-2 text-[#1F6878]">

@@ -95,8 +95,8 @@ export function Hero() {
         {/* Left Side – Hero Content */}
         <div className="max-w-[620px]">
           {/* Small introductory badge */}
-          <span className="inline-flex items-center gap-2 rounded-full border border-[#1F6878]/20 bg-[#E4F0F2]/90 px-3.5 py-1.5 text-[11px] font-semibold text-[#1F6878] shadow-[0_4px_16px_-8px_rgba(31,104,120,0.22)] backdrop-blur-md">
-            <span className="h-2 w-2 rounded-full bg-[#1F6878]" />
+          <span className="inline-flex items-center gap-2 rounded-full border border-[#E95A35] bg-[#E95A35] px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white shadow-[0_10px_22px_-8px_rgba(233,90,53,0.6)]">
+            <span className="h-2 w-2 rounded-full bg-white" />
             {banner?.badgeText || "Complete Dental Care for Every Generation"}
           </span>
 

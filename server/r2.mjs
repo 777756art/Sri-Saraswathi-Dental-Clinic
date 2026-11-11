@@ -10,8 +10,11 @@ import {
   S3Client,
   PutObjectCommand,
   GetObjectCommand,
+  HeadObjectCommand,
   DeleteObjectCommand,
   ListObjectsV2Command,
+  GetBucketCorsCommand,
+  PutBucketCorsCommand,
 } from "@aws-sdk/client-s3";
 
 const ROOT_DIR = process.cwd();
@@ -51,8 +54,15 @@ export const ALLOWED_MIME_TYPES = new Map([
   ["image/avif", ".avif"],
   ["image/gif", ".gif"],
   ["video/mp4", ".mp4"],
+  ["application/mp4", ".mp4"],
   ["video/webm", ".webm"],
   ["video/quicktime", ".mov"],
+  ["video/x-m4v", ".m4v"],
+  ["video/m4v", ".m4v"],
+  ["video/ogg", ".ogv"],
+  ["video/3gpp", ".3gp"],
+  ["video/x-matroska", ".mkv"],
+  ["video/matroska", ".mkv"],
 ]);
 
 const MIME_FROM_EXT = {
@@ -66,7 +76,47 @@ const MIME_FROM_EXT = {
   ".mp4": "video/mp4",
   ".webm": "video/webm",
   ".mov": "video/quicktime",
+  ".m4v": "video/x-m4v",
+  ".ogv": "video/ogg",
+  ".3gp": "video/3gpp",
+  ".mkv": "video/x-matroska",
 };
+
+/** Resolve a supported MIME type from an explicit Content-Type or filename extension fallback. */
+export function resolveMediaMimeType(rawMime, originalName = "") {
+  const normalized = String(rawMime || "").toLowerCase().split(";")[0].trim();
+  const ext = path.extname(String(originalName || "")).toLowerCase();
+  const fromExt = MIME_FROM_EXT[ext] || "";
+
+  if (!normalized || normalized === "application/octet-stream" || normalized === "binary/octet-stream") {
+    return fromExt || "application/octet-stream";
+  }
+  if (ALLOWED_MIME_TYPES.has(normalized)) {
+    return normalized;
+  }
+  return fromExt || normalized;
+}
+
+function sanitizeMetadataValue(value) {
+  return String(value ?? "")
+    .normalize("NFKD")
+    .replace(/[^\x20-\x7E]/g, "_")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 256);
+}
+
+function encodeRfc3986(value) {
+  return encodeURIComponent(value).replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
+}
+
+function hmacSha256(key, data) {
+  return crypto.createHmac("sha256", key).update(data, "utf8").digest();
+}
+
+function sha256Hex(data) {
+  return crypto.createHash("sha256").update(data, "utf8").digest("hex");
+}
 
 class LocalR2Bucket {
   constructor(baseDir) {
@@ -105,6 +155,26 @@ class LocalR2Bucket {
       etag: crypto.createHash("md5").update(buffer).digest("hex"),
       uploaded: new Date(),
       httpMetadata: { contentType },
+    };
+  }
+
+  async head(key) {
+    const filePath = this._resolvePath(key);
+    if (!fs.existsSync(filePath)) return null;
+    const stat = fs.statSync(filePath);
+    if (!stat.isFile()) return null;
+    const metaPath = filePath + ".meta.json";
+    let meta = {};
+    if (fs.existsSync(metaPath)) {
+      try {
+        meta = JSON.parse(fs.readFileSync(metaPath, "utf8"));
+      } catch {}
+    }
+    const ext = path.extname(key).toLowerCase();
+    return {
+      key,
+      size: stat.size,
+      contentType: meta.contentType || MIME_FROM_EXT[ext] || "application/octet-stream",
     };
   }
 
@@ -173,7 +243,12 @@ class LocalR2Bucket {
 
 class LiveR2Bucket {
   constructor({ accountId, accessKeyId, secretAccessKey, bucketName = "sri-saraswathi-dental-media" }) {
+    this.accountId = accountId;
+    this.accessKeyId = accessKeyId;
+    this.secretAccessKey = secretAccessKey;
     this.bucketName = bucketName;
+    this.corsReady = false;
+    this.corsPromise = null;
     this.s3 = new S3Client({
       region: "auto",
       endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
@@ -184,17 +259,177 @@ class LiveR2Bucket {
     });
   }
 
+  /** Ensure Cloudflare R2 bucket CORS allows browser PUT/GET/HEAD for direct media uploads & playback. */
+  async ensureCors() {
+    if (this.corsReady) return true;
+    if (this.corsPromise) return this.corsPromise;
+
+    const desiredRule = {
+      AllowedOrigins: ["*"],
+      AllowedMethods: ["GET", "HEAD", "PUT"],
+      AllowedHeaders: ["content-type", "content-length", "x-amz-*"],
+      ExposeHeaders: ["ETag", "Content-Length", "Content-Type", "Content-Range", "Accept-Ranges"],
+      MaxAgeSeconds: 3600,
+    };
+
+    this.corsPromise = (async () => {
+      try {
+        try {
+          const existing = await this.s3.send(new GetBucketCorsCommand({ Bucket: this.bucketName }));
+          const hasPutRule = (existing?.CORSRules || []).some(
+            (rule) =>
+              (rule.AllowedMethods || []).includes("PUT") &&
+              ((rule.AllowedOrigins || []).includes("*") || (rule.AllowedOrigins || []).length > 0),
+          );
+          if (hasPutRule) {
+            this.corsReady = true;
+            return true;
+          }
+        } catch (err) {
+          if (err?.name !== "NoSuchCORSConfiguration" && err?.$metadata?.httpStatusCode !== 404) {
+            // Continue and attempt PutBucketCors / REST API
+          }
+        }
+
+        try {
+          await this.s3.send(
+            new PutBucketCorsCommand({
+              Bucket: this.bucketName,
+              CORSConfiguration: { CORSRules: [desiredRule] },
+            }),
+          );
+          this.corsReady = true;
+          return true;
+        } catch {
+          // Fallback to Cloudflare REST API if S3 token lacks bucket-admin permission
+          const cfToken = process.env.CLOUDFLARE_API_TOKEN;
+          if (!cfToken) return false;
+          const restRes = await fetch(
+            `https://api.cloudflare.com/client/v4/accounts/${this.accountId}/r2/buckets/${this.bucketName}/cors`,
+            {
+              method: "PUT",
+              headers: {
+                Authorization: `Bearer ${cfToken}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                rules: [
+                  {
+                    allowed: {
+                      origins: ["*"],
+                      methods: ["GET", "HEAD", "PUT"],
+                      headers: ["content-type", "content-length", "x-amz-date", "x-amz-content-sha256"],
+                    },
+                    exposeHeaders: ["ETag", "Content-Length", "Content-Type", "Content-Range", "Accept-Ranges"],
+                    maxAgeSeconds: 3600,
+                  },
+                ],
+              }),
+            },
+          );
+          if (restRes.ok) {
+            this.corsReady = true;
+            return true;
+          }
+          return false;
+        }
+      } catch {
+        return false;
+      } finally {
+        if (!this.corsReady) this.corsPromise = null;
+      }
+    })();
+
+    return this.corsPromise;
+  }
+
+  /** Generate an AWS SigV4 presigned URL for direct browser R2 PUT/GET without extra SDK packages. */
+  createPresignedUrl(method, key, { expiresInSeconds = 900, contentType = "" } = {}) {
+    const cleanKey = String(key || "").replace(/^\/+/, "");
+    const host = `${this.accountId}.r2.cloudflarestorage.com`;
+    const canonicalUri = `/${[this.bucketName, ...cleanKey.split("/")].map(encodeRfc3986).join("/")}`;
+    const amzDate = new Date().toISOString().replace(/[:-]|\.\d{3}/g, "");
+    const dateStamp = amzDate.slice(0, 8);
+    const scope = `${dateStamp}/auto/s3/aws4_request`;
+
+    const signContentType = Boolean(contentType && method.toUpperCase() === "PUT");
+    const signedHeaders = signContentType ? "content-type;host" : "host";
+    const canonicalHeaders = signContentType
+      ? `content-type:${contentType}\nhost:${host}\n`
+      : `host:${host}\n`;
+
+    const queryParams = [
+      ["X-Amz-Algorithm", "AWS4-HMAC-SHA256"],
+      ["X-Amz-Credential", `${this.accessKeyId}/${scope}`],
+      ["X-Amz-Date", amzDate],
+      ["X-Amz-Expires", String(expiresInSeconds)],
+      ["X-Amz-SignedHeaders", signedHeaders],
+    ].sort((a, b) => a[0].localeCompare(b[0]));
+
+    const canonicalQueryString = queryParams
+      .map(([k, v]) => `${encodeRfc3986(k)}=${encodeRfc3986(v)}`)
+      .join("&");
+
+    const canonicalRequest = [
+      method.toUpperCase(),
+      canonicalUri,
+      canonicalQueryString,
+      canonicalHeaders,
+      signedHeaders,
+      "UNSIGNED-PAYLOAD",
+    ].join("\n");
+
+    const stringToSign = [
+      "AWS4-HMAC-SHA256",
+      amzDate,
+      scope,
+      sha256Hex(canonicalRequest),
+    ].join("\n");
+
+    const kDate = hmacSha256(`AWS4${this.secretAccessKey}`, dateStamp);
+    const kRegion = hmacSha256(kDate, "auto");
+    const kService = hmacSha256(kRegion, "s3");
+    const kSigning = hmacSha256(kService, "aws4_request");
+    const signature = hmacSha256(kSigning, stringToSign).toString("hex");
+
+    return `https://${host}${canonicalUri}?${canonicalQueryString}&X-Amz-Signature=${signature}`;
+  }
+
+  async head(key) {
+    try {
+      const res = await this.s3.send(new HeadObjectCommand({
+        Bucket: this.bucketName,
+        Key: key,
+      }));
+      const ext = path.extname(key).toLowerCase();
+      return {
+        key,
+        size: Number(res.ContentLength || 0),
+        contentType: res.ContentType || MIME_FROM_EXT[ext] || "application/octet-stream",
+        etag: res.ETag ? res.ETag.replace(/"/g, "") : "",
+      };
+    } catch (err) {
+      if (err.name === "NotFound" || err.name === "NoSuchKey" || err.$metadata?.httpStatusCode === 404) return null;
+      throw err;
+    }
+  }
+
   async put(key, buffer, options = {}) {
     const ext = path.extname(key).toLowerCase();
     const contentType = options.httpMetadata?.contentType || MIME_FROM_EXT[ext] || "application/octet-stream";
     const customMetadata = options.customMetadata || {};
+    const sanitizedMetadata = Object.fromEntries(
+      Object.entries(customMetadata)
+        .map(([k, v]) => [String(k).toLowerCase().replace(/[^a-z0-9_-]/g, ""), sanitizeMetadataValue(v)])
+        .filter(([k, v]) => Boolean(k) && Boolean(v)),
+    );
 
     await this.s3.send(new PutObjectCommand({
       Bucket: this.bucketName,
       Key: key,
       Body: buffer,
       ContentType: contentType,
-      Metadata: Object.fromEntries(Object.entries(customMetadata).map(([k, v]) => [k, String(v)])),
+      ...(Object.keys(sanitizedMetadata).length ? { Metadata: sanitizedMetadata } : {}),
     }));
 
     return {
@@ -284,7 +519,8 @@ export function getR2Bucket(env = {}) {
 
 export function generateR2Key(folder, originalName = "media.jpg", mimeType = "image/jpeg") {
   const cleanFolder = R2_FOLDERS.includes(folder) ? folder : "gallery";
-  const ext = ALLOWED_MIME_TYPES.get(mimeType) || path.extname(originalName) || ".jpg";
+  const resolvedMime = resolveMediaMimeType(mimeType, originalName);
+  const ext = ALLOWED_MIME_TYPES.get(resolvedMime) || path.extname(originalName).toLowerCase() || ".jpg";
   const base = path.basename(originalName, path.extname(originalName)).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   const uid = crypto.randomBytes(4).toString("hex");
   const filename = `${base || "asset"}-${Date.now()}-${uid}${ext}`;

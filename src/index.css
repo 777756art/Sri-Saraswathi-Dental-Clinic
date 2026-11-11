@@ -116,11 +116,11 @@
   }
 
   .eyebrow {
-    @apply inline-flex items-center gap-2 text-eyebrow uppercase text-muted-foreground;
+    @apply inline-flex items-center gap-2 rounded-full border border-[#E95A35] bg-[#E95A35] px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white shadow-[0_10px_22px_-8px_rgba(233,90,53,0.6)];
   }
 
   .eyebrow-dot {
-    @apply inline-block h-1.5 w-1.5 rounded-full bg-[#1F6878];
+    @apply inline-block h-1.5 w-1.5 rounded-full bg-white;
   }
 
   .card-surface {

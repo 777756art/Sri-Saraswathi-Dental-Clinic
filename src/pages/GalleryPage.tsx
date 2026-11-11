@@ -43,7 +43,7 @@ function ClinicGalleryGrid({ homepage = false }: { homepage?: boolean }) {
       <section className={homepage ? "bg-white px-4 py-16 sm:py-20" : "min-h-[75vh] bg-[#F5F2EB] px-4 pb-20 pt-[125px] sm:pt-[145px]"}>
         <div className="container-x">
           <div className="mx-auto max-w-2xl text-center">
-            <p className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.2em] text-[#1F6878]"><Building2 className="h-3.5 w-3.5 text-[#1F6878]" /> Clinic, up close</p>
+            <p className="inline-flex items-center gap-2 rounded-full border border-[#E95A35] bg-[#E95A35] px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white shadow-[0_10px_22px_-8px_rgba(233,90,53,0.6)]"><Building2 className="h-3.5 w-3.5 text-white" /> Clinic, up close</p>
             <h2 className="mt-3 font-display text-[31px] font-bold leading-tight tracking-[-.035em] text-[#1F6878] sm:text-[42px]">Explore Our <span className="text-[#1F6878]">Clinic.</span></h2>
             <p className="mt-3 text-[14px] leading-7 text-[#707574]">A look around the spaces and facilities shared by the clinic.</p>
           </div>

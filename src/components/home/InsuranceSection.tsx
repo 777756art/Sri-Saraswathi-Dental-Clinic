@@ -17,7 +17,7 @@ export function InsuranceSection() {
         <ScrollReveal>
           <div className="mx-auto mb-8 max-w-2xl text-center md:mb-10">
             <p className="eyebrow justify-center">
-              <ShieldCheck className="h-3.5 w-3.5 text-primary-600" />
+              <ShieldCheck className="h-3.5 w-3.5 text-white" />
               Insurance &amp; payment
             </p>
             <h2 className="mt-4 text-display-3 text-balance text-[#1F6878]">

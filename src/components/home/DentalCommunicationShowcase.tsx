@@ -7,8 +7,8 @@ export function DentalCommunicationShowcase() {
       <div className="container-x">
         {/* Centered Heading */}
         <div className="mx-auto max-w-2xl text-center">
-          <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[#E4F0F2]">
-            <Sparkles className="h-3.5 w-3.5 text-[#E4F0F2]" /> Care & Communication Flow
+          <span className="inline-flex items-center gap-2 rounded-full border border-[#E95A35] bg-[#E95A35] px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white shadow-[0_10px_22px_-8px_rgba(233,90,53,0.6)]">
+            <Sparkles className="h-3.5 w-3.5 text-white" /> Care & Communication Flow
           </span>
           <h2 className="mt-3 font-sans text-[32px] font-bold leading-tight tracking-[-0.03em] text-white sm:text-[42px]">
             Care That Listens. <span className="text-[#E4F0F2]">Guidance You Can Trust.</span>

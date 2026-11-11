@@ -48,7 +48,7 @@ export default function BlogPage() {
       <main className="min-h-screen bg-[#F5F2EB]">
         <section className="px-4 pb-11 pt-[118px] text-center sm:pb-14 sm:pt-[135px]">
           <div className="container-x">
-            <p className="inline-flex items-center gap-2 rounded-full bg-[#E4F0F2] px-3.5 py-1 text-[10px] font-bold uppercase tracking-[.2em] text-[#E95A35]">Clinic journal</p>
+            <p className="inline-flex items-center gap-2 rounded-full border border-[#E95A35] bg-[#E95A35] px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white shadow-[0_10px_22px_-8px_rgba(233,90,53,0.6)]">Clinic journal</p>
             <h1 className="mx-auto mt-3 max-w-3xl font-sans text-[32px] font-bold leading-tight tracking-[-.035em] text-[#1F6878] sm:text-[42px]">
               A little more to know about <span className="text-[#1F6878]">your smile.</span>
             </h1>

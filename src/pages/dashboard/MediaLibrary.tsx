@@ -22,7 +22,18 @@ import { MEDIA_CATEGORIES, type ClinicMediaKind, type MediaCategory } from "@/li
 const MAX_FILE_BYTES = 150 * 1024 * 1024;
 const HOSTED_RECOMMENDED_BYTES = 4.5 * 1024 * 1024;
 const ACCEPTED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/avif", "image/gif"]);
-const ACCEPTED_VIDEO_TYPES = new Set(["video/mp4", "video/webm", "video/quicktime"]);
+const ACCEPTED_VIDEO_TYPES = new Set([
+  "video/mp4",
+  "application/mp4",
+  "video/webm",
+  "video/quicktime",
+  "video/x-m4v",
+  "video/m4v",
+  "video/ogg",
+  "video/3gpp",
+  "video/x-matroska",
+  "video/matroska",
+]);
 
 type MediaItem = {
   id: number;
@@ -40,16 +51,15 @@ type MediaItem = {
 type Filter = "All" | "Photos" | "Videos";
 
 function getMediaKind(file: File): ClinicMediaKind | null {
-  const type = file.type.toLowerCase();
-  if (type) {
+  const type = file.type.toLowerCase().split(";")[0].trim();
+  if (type && type !== "application/octet-stream" && type !== "binary/octet-stream") {
     if (ACCEPTED_IMAGE_TYPES.has(type)) return "image";
     if (ACCEPTED_VIDEO_TYPES.has(type)) return "video";
-    return null;
   }
 
   const extension = file.name.split(".").pop()?.toLowerCase();
   if (["jpg", "jpeg", "png", "webp", "avif", "gif"].includes(extension ?? "")) return "image";
-  if (["mp4", "webm", "mov"].includes(extension ?? "")) return "video";
+  if (["mp4", "webm", "mov", "m4v", "ogv", "3gp", "mkv"].includes(extension ?? "")) return "video";
   return null;
 }
 
@@ -164,8 +174,8 @@ export default function MediaLibraryPage() {
           saved += 1;
         } catch (error) {
           let message = error instanceof Error ? error.message : "could not upload";
-          if (file.size > HOSTED_RECOMMENDED_BYTES) {
-            message += " (keep hosted uploads under 4.5 MB)";
+          if (file.size > HOSTED_RECOMMENDED_BYTES && message.includes("proxy")) {
+            message += " (keep fallback proxy uploads under 4.5 MB)";
           }
           rejected.push(`${file.name}: ${message}`);
         }
@@ -268,7 +278,7 @@ export default function MediaLibraryPage() {
                 ref={inputRef}
                 type="file"
                 className="sr-only"
-                accept="image/jpeg,image/png,image/webp,image/avif,image/gif,video/mp4,video/webm,video/quicktime"
+                accept="image/jpeg,image/png,image/webp,image/avif,image/gif,video/mp4,video/webm,video/quicktime,video/x-m4v,video/ogg,video/3gpp,.mp4,.mov,.webm,.m4v,.ogv,.3gp"
                 multiple
                 onChange={(event) => {
                   if (event.target.files) void saveFiles(event.target.files);

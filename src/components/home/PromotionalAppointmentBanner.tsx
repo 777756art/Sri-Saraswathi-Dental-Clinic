@@ -24,8 +24,8 @@ export function PromotionalAppointmentBanner() {
           <div className="grid items-center gap-8 lg:grid-cols-[1.1fr_0.9fr]">
             {/* Left Side: Content */}
             <div className="p-8 sm:p-12 lg:p-14">
-              <span className="inline-flex items-center gap-2 rounded-full border border-[#1F6878]/20 bg-white px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-[#1F6878]">
-                <MapPin className="h-3.5 w-3.5 text-[#1F6878]" /> Sri Saraswathi Dental Clinic · Erode
+              <span className="inline-flex items-center gap-2 rounded-full border border-[#E95A35] bg-[#E95A35] px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white shadow-[0_10px_22px_-8px_rgba(233,90,53,0.6)]">
+                <MapPin className="h-3.5 w-3.5 text-white" /> Sri Saraswathi Dental Clinic · Erode
               </span>
 
               <h2 className="mt-4 font-sans text-[28px] font-bold leading-[1.15] tracking-[-0.03em] text-[#1F6878] sm:text-[38px] lg:text-[42px]">

@@ -34,7 +34,7 @@ function BeforeAfterShowcase({ homepage = false }: { homepage?: boolean }) {
       <section className={homepage ? "bg-[#F5F2EB] px-4 py-16 text-[#1F6878] sm:py-20 lg:py-24" : "min-h-[70vh] bg-[#F5F2EB] px-4 pb-20 pt-[125px] text-[#1F6878] sm:pt-[145px]"}>
         <div className="container-x">
           <div className="mx-auto max-w-2xl text-center">
-            <p className="inline-flex items-center gap-2 rounded-full bg-[#E4F0F2] px-3.5 py-1 text-[10px] font-bold uppercase tracking-[.2em] text-[#1F6878]">Real smile transformations</p>
+            <p className="inline-flex items-center gap-2 rounded-full border border-[#E95A35] bg-[#E95A35] px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white shadow-[0_10px_22px_-8px_rgba(233,90,53,0.6)]">Real smile transformations</p>
             <h2 className="mt-3 font-display text-[32px] font-bold leading-tight tracking-[-.035em] text-[#1F6878] sm:text-[44px]">Before &amp; After <span className="text-[#1F6878]">Showcase</span></h2>
             <p className="mt-3 text-[14px] leading-7 text-[#707574]">Real smile transformations. Every smile tells a story.</p>
           </div>

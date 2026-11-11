@@ -129,8 +129,8 @@ export default function AIFeaturesPage() {
         <div className="container-x">
           <ScrollReveal>
             <div className="rounded-[18px] bg-[#1F6878] p-5 text-white shadow-[0_22px_55px_-38px_rgba(31,104,120,.6)] sm:p-8 lg:p-10">
-              <span className="inline-flex items-center gap-2 rounded-full bg-white/[0.08] px-3 py-1.5 text-[9px] font-bold uppercase tracking-[.12em] text-[#E4F0F2]">
-                <Bot className="h-3.5 w-3.5 text-[#1F6878]" /> Clinic assistant preview
+              <span className="inline-flex items-center gap-2 rounded-full border border-[#E95A35] bg-[#E95A35] px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white shadow-[0_10px_22px_-8px_rgba(233,90,53,0.6)]">
+                <Bot className="h-3.5 w-3.5 text-white" /> Clinic assistant preview
               </span>
               <h2 className="mt-3 font-display text-[24px] font-bold leading-tight tracking-[-.025em] text-white sm:text-[30px]">
                 Your smile deserves care that <span className="text-[#E4F0F2]">listens.</span>

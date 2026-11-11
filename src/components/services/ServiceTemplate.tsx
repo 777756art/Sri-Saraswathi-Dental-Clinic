@@ -56,7 +56,7 @@ export function ServiceTemplate({
             </div>
             <div className="grid items-center gap-8 lg:grid-cols-[1.08fr_.92fr] lg:gap-12">
               <div>
-                <p className="text-[9px] font-bold uppercase tracking-[.19em] text-[#1F6878]">Treatment guide · Sri Saraswathi Dental Clinic</p>
+                <p className="inline-flex items-center gap-2 rounded-full border border-[#E95A35] bg-[#E95A35] px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white shadow-[0_10px_22px_-8px_rgba(233,90,53,0.6)]">Treatment guide · Sri Saraswathi Dental Clinic</p>
                 <h1 className="mt-3 max-w-[670px] font-display text-[34px] font-bold leading-[1.1] tracking-[-.04em] text-[#1F6878] sm:text-[44px]">
                   {title} <span className="text-[#1F6878]">&amp; precision care.</span>
                 </h1>
@@ -84,8 +84,8 @@ export function ServiceTemplate({
         <section className="border-y border-[#E4F0F2] bg-white px-4 py-11 sm:py-14">
           <div className="container-x">
             <div className="max-w-xl">
-              <p className="text-[9px] font-bold uppercase tracking-[.18em] text-[#1F6878]">Expected outcomes</p>
-              <h2 className="mt-2 font-display text-[27px] font-bold text-[#1F6878] sm:text-[32px]">Benefits of <span className="text-[#1F6878]">{title}</span></h2>
+              <p className="inline-flex items-center gap-2 rounded-full border border-[#E95A35] bg-[#E95A35] px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white shadow-[0_10px_22px_-8px_rgba(233,90,53,0.6)]">Expected outcomes</p>
+              <h2 className="mt-3 font-display text-[27px] font-bold text-[#1F6878] sm:text-[32px]">Benefits of <span className="text-[#1F6878]">{title}</span></h2>
               <p className="mt-1 text-[11px] text-[#707574]">Your dentist will discuss which outcomes are realistic for your individual care.</p>
             </div>
             <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -104,8 +104,8 @@ export function ServiceTemplate({
         <section className="px-4 py-12 sm:py-16">
           <div className="container-x grid gap-5 lg:grid-cols-[.92fr_1.08fr]">
             <article className="rounded-[18px] border border-[#1F6878]/15 bg-white p-5 sm:p-7">
-              <p className="text-[9px] font-bold uppercase tracking-[.17em] text-[#1F6878]">Treatment overview</p>
-              <h2 className="mt-2 font-display text-[22px] font-bold text-[#1F6878]">What is this treatment?</h2>
+              <p className="inline-flex items-center gap-2 rounded-full border border-[#E95A35] bg-[#E95A35] px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white shadow-[0_10px_22px_-8px_rgba(233,90,53,0.6)]">Treatment overview</p>
+              <h2 className="mt-3 font-display text-[22px] font-bold text-[#1F6878]">What is this treatment?</h2>
               <p className="mt-3 text-[12px] leading-[1.8] text-[#707574]">{overview}</p>
               <div className="mt-5 flex items-start gap-2 rounded-xl bg-[#E4F0F2]/70 p-3.5">
                 <CircleHelp className="mt-0.5 h-4 w-4 shrink-0 text-[#1F6878]" />
@@ -114,7 +114,7 @@ export function ServiceTemplate({
             </article>
             <article className="rounded-[18px] border border-[#1F6878]/15 bg-white p-5 sm:p-7">
               <div className="flex items-center justify-between gap-3">
-                <div><p className="text-[9px] font-bold uppercase tracking-[.17em] text-[#1F6878]">Guided digital flow</p><h2 className="mt-2 font-display text-[22px] font-bold text-[#1F6878]">Treatment pathway</h2></div>
+                <div><p className="inline-flex items-center gap-2 rounded-full border border-[#E95A35] bg-[#E95A35] px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white shadow-[0_10px_22px_-8px_rgba(233,90,53,0.6)]">Guided digital flow</p><h2 className="mt-3 font-display text-[22px] font-bold text-[#1F6878]">Treatment pathway</h2></div>
                 <span className="rounded-full bg-[#E4F0F2] px-3 py-1 text-[8px] font-bold uppercase tracking-[.13em] text-[#1F6878]">Your plan</span>
               </div>
               <ol className="mt-5 space-y-4 border-l border-[#E4F0F2] pl-4">
@@ -146,8 +146,8 @@ export function ServiceTemplate({
         <section className="container-x pb-14 sm:pb-20">
           <div className="grid gap-5 rounded-[22px] bg-[#1F6878] p-6 text-white shadow-[0_20px_40px_-24px_rgba(31,104,120,.5)] sm:grid-cols-[1fr_auto] sm:items-center sm:p-9">
             <div>
-              <p className="text-[8px] font-bold uppercase tracking-[.16em] text-[#E4F0F2]/70">Selected treatment · {title}</p>
-              <h2 className="mt-2 font-display text-[25px] font-bold leading-tight sm:text-[30px]">Ready to take care of your smile?</h2>
+              <p className="inline-flex items-center gap-2 rounded-full border border-[#E95A35] bg-[#E95A35] px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white shadow-[0_10px_22px_-8px_rgba(233,90,53,0.6)]">Selected treatment · {title}</p>
+              <h2 className="mt-3 font-display text-[25px] font-bold leading-tight sm:text-[30px]">Ready to take care of your smile?</h2>
               <p className="mt-2 max-w-xl text-[11px] leading-relaxed text-[#E4F0F2]/75">Book a consultation to talk through your concerns, options and next steps with the clinic team.</p>
             </div>
             <div className="flex flex-col gap-2 sm:min-w-[220px]">

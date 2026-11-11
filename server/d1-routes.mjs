@@ -12,6 +12,7 @@ import {
   generateR2Key,
   getR2PublicUrl,
   safeDeleteR2File,
+  resolveMediaMimeType,
   ALLOWED_MIME_TYPES,
   R2_FOLDERS,
 } from "./r2.mjs";
@@ -160,28 +161,43 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
   /* ------------------------------------------------------------- CLOUDFLARE R2 MEDIA UPLOAD & STREAMING */
 
   // 1. Upload media directly to Cloudflare R2
+  const MAX_IMAGE_UPLOAD_BYTES = 15 * 1024 * 1024;
+  const MAX_VIDEO_UPLOAD_BYTES = 150 * 1024 * 1024;
+
+  const validateMediaUpload = (rawMime, originalName, byteLength) => {
+    const mimeType = resolveMediaMimeType(rawMime, originalName);
+    if (!ALLOWED_MIME_TYPES.has(mimeType)) {
+      return {
+        errorStatus: 415,
+        error: "Unsupported file type. Supported formats: JPG, JPEG, PNG, WEBP, AVIF, GIF, SVG, MP4, MOV, M4V, WEBM.",
+      };
+    }
+    const isVideo = mimeType.startsWith("video/") || mimeType === "application/mp4";
+    const maxSize = isVideo ? MAX_VIDEO_UPLOAD_BYTES : MAX_IMAGE_UPLOAD_BYTES;
+    if (Number.isFinite(byteLength) && byteLength > maxSize) {
+      return {
+        errorStatus: 413,
+        error: `File too large. Max size is ${isVideo ? "150MB" : "15MB"}.`,
+      };
+    }
+    return { mimeType, isVideo };
+  };
+
   const handleR2Upload = async (req, res) => {
     try {
       if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
         return res.status(400).json({ error: "Choose a file to upload." });
       }
 
-      const mimeType = String(req.query.mime || req.headers["content-type"] || "image/jpeg").toLowerCase().split(";")[0].trim();
+      const rawMime = String(req.query.mime || req.headers["content-type"] || "").trim();
       const folder = String(req.query.folder || "gallery").toLowerCase().trim();
       const originalName = String(req.query.filename || "media.jpg").trim();
 
-      if (!ALLOWED_MIME_TYPES.has(mimeType)) {
-        return res.status(415).json({
-          error: "Unsupported file type. Supported formats: JPG, JPEG, PNG, WEBP, AVIF, MP4, WEBM.",
-        });
+      const checked = validateMediaUpload(rawMime, originalName, req.body.length);
+      if ("error" in checked) {
+        return res.status(checked.errorStatus).json({ error: checked.error });
       }
-
-      // Max size: 15MB for images, 50MB for video
-      const isVideo = mimeType.startsWith("video/");
-      const maxSize = isVideo ? 50 * 1024 * 1024 : 15 * 1024 * 1024;
-      if (req.body.length > maxSize) {
-        return res.status(413).json({ error: `File too large. Max size is ${isVideo ? "50MB" : "15MB"}.` });
-      }
+      const { mimeType } = checked;
 
       const r2Key = generateR2Key(folder, originalName, mimeType);
       await r2.put(r2Key, req.body, {
@@ -203,14 +219,78 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
     }
   };
 
-  app.post("/api/upload", requireAdmin, express.raw({ type: "*/*", limit: "50mb" }), handleR2Upload);
-  app.post("/api/admin/uploads", requireAdmin, express.raw({ type: "*/*", limit: "50mb" }), handleR2Upload);
+  const handleR2Presign = async (req, res) => {
+    try {
+      const filename = String(req.body?.filename || "upload.bin").trim();
+      const folder = String(req.body?.folder || "gallery").toLowerCase().trim();
+      const rawMime = String(req.body?.mimeType || "").trim();
+      const size = Number(req.body?.size ?? 0);
+
+      if (!Number.isFinite(size) || size <= 0) {
+        return res.status(400).json({ error: "Choose a non-empty file to upload." });
+      }
+
+      const checked = validateMediaUpload(rawMime, filename, size);
+      if ("error" in checked) {
+        return res.status(checked.errorStatus).json({ error: checked.error });
+      }
+      const { mimeType } = checked;
+
+      if (typeof r2.createPresignedUrl !== "function") {
+        return res.json({ direct: false, mimeType });
+      }
+
+      await r2.ensureCors?.().catch(() => false);
+      const r2Key = generateR2Key(folder, filename, mimeType);
+      const presignedUrl = r2.createPresignedUrl("PUT", r2Key, {
+        expiresInSeconds: 900,
+        contentType: mimeType,
+      });
+
+      return res.json({
+        direct: true,
+        presignedUrl,
+        method: "PUT",
+        headers: { "Content-Type": mimeType },
+        key: r2Key,
+        url: getR2PublicUrl(r2Key),
+        mimeType,
+      });
+    } catch (err) {
+      console.error("R2 Presign Error:", err);
+      return res.status(500).json({ error: err.message || "Could not prepare direct R2 upload." });
+    }
+  };
+
+  const handleUploadMiddlewareError = (err, _req, res, next) => {
+    if (err?.status === 413 || err?.type === "entity.too.large") {
+      return res.status(413).json({
+        error: "File too large for server proxy upload. Max supported size is 150MB for video and 15MB for images.",
+      });
+    }
+    return next(err);
+  };
+
+  app.post("/api/upload/presign", requireAdmin, express.json({ limit: "16kb" }), handleR2Presign);
+  app.post("/api/admin/uploads/presign", requireAdmin, express.json({ limit: "16kb" }), handleR2Presign);
+  app.post("/api/upload", requireAdmin, express.raw({ type: "*/*", limit: "150mb" }), handleR2Upload, handleUploadMiddlewareError);
+  app.post("/api/admin/uploads", requireAdmin, express.raw({ type: "*/*", limit: "150mb" }), handleR2Upload, handleUploadMiddlewareError);
 
   // 2. Stream media directly from Cloudflare R2
   app.get(/^\/api\/media\/(.+)$/, async (req, res, next) => {
     try {
       const key = decodeURIComponent(req.params[0] || "");
       if (!key || key.includes("..")) return res.status(404).json({ error: "Media not found." });
+
+      // Redirect large files / video streams to short-lived presigned R2 URLs so byte-ranges stream straight from R2 edge
+      if (typeof r2.head === "function" && typeof r2.createPresignedUrl === "function") {
+        const meta = await r2.head(key);
+        if (meta && (meta.contentType.startsWith("video/") || meta.contentType === "application/mp4" || meta.size > 4 * 1024 * 1024)) {
+          const signedGetUrl = r2.createPresignedUrl("GET", key, { expiresInSeconds: 3600 });
+          res.setHeader("Cache-Control", "private, max-age=300");
+          return res.redirect(302, signedGetUrl);
+        }
+      }
 
       const item = await r2.get(key);
       if (item) {

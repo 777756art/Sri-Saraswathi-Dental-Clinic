@@ -151,7 +151,7 @@ function FormCard({ title, hint, children, className = "" }: { title: string; hi
   </section>;
 }
 
-const mediaIsVideo = (url: string) => /\.(mp4|webm|mov)(?:[?#].*)?$/i.test(url);
+const mediaIsVideo = (url: string) => /\.(mp4|webm|mov|m4v|ogv|3gp|mkv)(?:[?#].*)?$/i.test(url);
 const highlightIcons = [
   { value: "tooth", label: "Tooth", icon: Stethoscope },
   { value: "sparkle", label: "Sparkle", icon: Sparkles },
@@ -369,12 +369,14 @@ export function ContentManagerPanel({
           ? "blogs"
           : type === "offer"
           ? "offers"
-          : type === "reel"
+          : type === "reel" || type === "video"
           ? "reels"
           : "gallery";
       const uploaded = await api.upload(file, targetFolder);
       update(key, uploaded.url);
-      toast.success("Image uploaded to Cloudflare R2");
+      const isUploadedVideo =
+        file.type.startsWith("video/") || mediaIsVideo(file.name) || mediaIsVideo(uploaded.url);
+      toast.success(isUploadedVideo ? "Video uploaded to Cloudflare R2" : "Image uploaded to Cloudflare R2");
     } catch (cause) {
       toast.error(cause instanceof Error ? cause.message : "Could not upload this file.");
     } finally {
@@ -485,7 +487,7 @@ export function ContentManagerPanel({
   const publishedCount = items.filter((item) => item.published).length;
   const mediaAccept =
     type === "reel" || type === "video"
-      ? "video/mp4,video/webm,video/quicktime"
+      ? "video/mp4,video/webm,video/quicktime,video/x-m4v,video/ogg,video/3gpp,.mp4,.mov,.webm,.m4v,.ogv,.3gp"
       : "image/jpeg,image/png,image/webp,image/avif,image/gif";
   const submitWithPublishState = (published: boolean) => {
     publishIntent.current = published;
@@ -859,7 +861,7 @@ export function ContentManagerPanel({
                   <TextArea className="mt-4" label="Caption / description" rows={3} maxLength={400} value={draft.subtitle} onChange={(event) => update("subtitle", event.target.value)} placeholder="What should patients know about this clip?" />
                 </FormCard>
                 <FormCard title="Primary video file" hint="Upload a short vertical reel or a clinic video.">
-                  <MediaField label="Video file" hint="MP4, MOV or WEBM. Vertical 9:16 works best for reels." accept="video/mp4,video/webm,video/quicktime" value={draft.mediaUrl} onChange={(value) => update("mediaUrl", value)} onUpload={(file) => void upload("mediaUrl", file)} uploading={uploading === "mediaUrl"} />
+                  <MediaField label="Video file" hint="MP4, MOV, M4V or WEBM (up to 150 MB). Vertical 9:16 works best for reels." accept={mediaAccept} value={draft.mediaUrl} onChange={(value) => update("mediaUrl", value)} onUpload={(file) => void upload("mediaUrl", file)} uploading={uploading === "mediaUrl"} />
                 </FormCard>
                 <FormCard title="Vertical thumbnail" hint="A poster image is used before the video starts playing.">
                   <MediaField label="Poster image" hint="Recommended: 1080 × 1920 px." accept="image/jpeg,image/png,image/webp,image/avif,image/gif" value={draft.mobileMediaUrl} onChange={(value) => update("mobileMediaUrl", value)} onUpload={(file) => void upload("mobileMediaUrl", file)} uploading={uploading === "mobileMediaUrl"} />

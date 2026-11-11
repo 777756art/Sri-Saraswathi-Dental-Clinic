@@ -216,10 +216,27 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   }
 
   if (!response.ok) {
-    const message =
-      data && typeof data === "object" && "error" in data
-        ? String((data as { error: unknown }).error)
-        : "Something went wrong. Please try again.";
+    let message = "";
+    if (data && typeof data === "object") {
+      if ("error" in data && (data as { error: unknown }).error) {
+        message = String((data as { error: unknown }).error);
+      } else if ("message" in data && (data as { message: unknown }).message) {
+        message = String((data as { message: unknown }).message);
+      }
+    } else if (typeof data === "string" && data.trim() && !data.trim().startsWith("<") && data.trim().length < 240) {
+      message = data.trim();
+    }
+    if (!message) {
+      if (response.status === 413) {
+        message = "File is too large for server proxy upload. Try a smaller file or verify R2 direct upload.";
+      } else if (response.status === 502 || response.status === 504) {
+        message = "Upload gateway timed out. Please try again.";
+      } else {
+        message = response.statusText
+          ? `Request failed (${response.status} ${response.statusText}).`
+          : "Something went wrong. Please try again.";
+      }
+    }
     throw new ApiError(response.status, message);
   }
 
@@ -240,17 +257,95 @@ export const api = {
   patch: <T>(path: string, body: unknown) =>
     request<T>(path, { method: "PATCH", body: JSON.stringify(body) }),
   delete: <T>(path: string) => request<T>(path, { method: "DELETE" }),
-  upload: (file: File, folder: string = "gallery") => {
+  upload: async (file: File, folder: string = "gallery") => {
+    if (!file || file.size === 0) {
+      throw new ApiError(400, "Choose a non-empty file to upload.");
+    }
+
+    const EXT_MIME: Record<string, string> = {
+      jpg: "image/jpeg",
+      jpeg: "image/jpeg",
+      png: "image/png",
+      webp: "image/webp",
+      avif: "image/avif",
+      gif: "image/gif",
+      svg: "image/svg+xml",
+      mp4: "video/mp4",
+      webm: "video/webm",
+      mov: "video/quicktime",
+      m4v: "video/x-m4v",
+      ogv: "video/ogg",
+      "3gp": "video/3gpp",
+      mkv: "video/x-matroska",
+    };
+
+    const ext = file.name.split(".").pop()?.toLowerCase() || "";
+    const rawMime = (file.type || "").toLowerCase().split(";")[0].trim();
+    const mimeType =
+      !rawMime || rawMime === "application/octet-stream" || rawMime === "binary/octet-stream"
+        ? EXT_MIME[ext] || (folder === "reels" ? "video/mp4" : "image/jpeg")
+        : rawMime;
+
+    let directUploadReason = "";
+    try {
+      const presign = await request<{
+        direct: boolean;
+        presignedUrl?: string;
+        headers?: Record<string, string>;
+        key?: string;
+        url?: string;
+        mimeType?: string;
+      }>("/api/admin/uploads/presign", {
+        method: "POST",
+        body: JSON.stringify({
+          filename: file.name || "upload.bin",
+          mimeType,
+          folder: folder || "gallery",
+          size: file.size,
+        }),
+      });
+
+      if (presign.direct && presign.presignedUrl && presign.url) {
+        const directRes = await fetch(presign.presignedUrl, {
+          method: "PUT",
+          body: file,
+          headers: presign.headers || { "Content-Type": presign.mimeType || mimeType },
+        });
+        if (directRes.ok) {
+          return {
+            url: presign.url,
+            mimeType: presign.mimeType || mimeType,
+            size: file.size,
+            key: presign.key,
+            success: true,
+          };
+        }
+        directUploadReason = `Direct cloud upload returned ${directRes.status}`;
+      }
+    } catch (error) {
+      if (error instanceof ApiError && error.status !== 404 && error.status !== 405 && error.status < 500) {
+        throw error;
+      }
+      directUploadReason = error instanceof Error ? error.message : "Direct cloud upload unavailable";
+    }
+
     const query = new URLSearchParams({
-      mime: file.type || "image/jpeg",
-      filename: file.name || "upload.jpg",
+      mime: mimeType,
+      filename: file.name || "upload.bin",
       folder: folder || "gallery",
     });
-    return request<{ url: string; mimeType: string; size: number; key?: string; success?: boolean }>(`/api/admin/uploads?${query}`, {
-      method: "POST",
-      body: file,
-      headers: { "Content-Type": "application/octet-stream" },
-    });
+    try {
+      return await request<{ url: string; mimeType: string; size: number; key?: string; success?: boolean }>(`/api/admin/uploads?${query}`, {
+        method: "POST",
+        body: file,
+        headers: { "Content-Type": "application/octet-stream" },
+      });
+    } catch (fallbackError) {
+      if (directUploadReason && fallbackError instanceof ApiError && fallbackError.status === 413) {
+        throw new ApiError(413, `Video is too large for proxy upload (${directUploadReason}).`);
+      }
+      throw fallbackError;
+    }
   },
 };
 

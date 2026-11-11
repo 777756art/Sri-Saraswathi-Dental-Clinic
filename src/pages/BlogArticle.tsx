@@ -170,7 +170,7 @@ export default function BlogArticlePage() {
           <section className="border-t border-[#1F6878]/12 bg-[#E4F0F2]/35 py-12 md:py-16">
             <div className="container-x">
               <div className="flex items-end justify-between gap-4">
-                <div><p className="text-[9px] font-bold uppercase tracking-[.18em] text-[#E95A35]">Recommended reading</p><h2 className="mt-2 font-display text-[26px] font-bold text-[#1F6878]">Keep exploring <span className="text-[#1F6878]">your smile</span></h2></div>
+                <div><p className="inline-flex items-center gap-2 rounded-full border border-[#E95A35] bg-[#E95A35] px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white shadow-[0_10px_22px_-8px_rgba(233,90,53,0.6)]">Recommended reading</p><h2 className="mt-3 font-display text-[26px] font-bold text-[#1F6878]">Keep exploring <span className="text-[#1F6878]">your smile</span></h2></div>
                 <Link to="/blog" className="text-[11px] font-bold text-[#1F6878] hover:text-[#E95A35]">Browse all articles <ArrowRight className="inline h-3 w-3" /></Link>
               </div>
               <div className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

@@ -74,10 +74,10 @@ export function DentalReels() {
       <div className="container-x">
         {/* Centred Heading */}
         <div className="mx-auto max-w-2xl text-center">
-          <span className="inline-flex items-center gap-2 rounded-full border border-[#1F6878]/20 bg-[#E4F0F2] px-3.5 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[#1F6878]">
-            <Video className="h-3.5 w-3.5 text-[#1F6878]" /> Watch Our Dental Reels
+          <span className="inline-flex items-center gap-2 rounded-full border border-[#E95A35] bg-[#E95A35] px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white shadow-[0_10px_22px_-8px_rgba(233,90,53,0.6)]">
+            <Video className="h-3.5 w-3.5 text-white" /> Watch Our Dental Reels
           </span>
-          <h2 className="mt-3 font-sans text-[32px] font-bold leading-tight tracking-[-0.035em] text-[#1F6878] sm:text-[42px]">
+          <h2 className="mt-4 font-sans text-[32px] font-bold leading-tight tracking-[-0.035em] text-[#1F6878] sm:text-[42px]">
             Smile Stories, <span className="text-[#1F6878]">In Motion.</span>
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-[14px] leading-relaxed text-[#707574] sm:text-[15px]">
@@ -95,13 +95,23 @@ export function DentalReels() {
               aria-label={`Watch ${reel.title}`}
               className="group relative aspect-[9/16] w-[220px] flex-none snap-center overflow-hidden rounded-[24px] border border-[#dce4e5] bg-[#1F6878] text-left shadow-[0_14px_35px_-20px_rgba(31,104,120,0.4)] transition duration-300 hover:-translate-y-1.5 hover:shadow-[0_20px_45px_-20px_rgba(31,104,120,0.35)] sm:w-[240px]"
             >
-              <img
-                src={reel.thumbnail}
-                alt={reel.title}
-                loading="lazy"
-                decoding="async"
-                className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-[1.05]"
-              />
+              {/\.(mp4|webm|mov|m4v|ogv|3gp|mkv)(?:[?#].*)?$/i.test(reel.thumbnail) ? (
+                <video
+                  src={`${reel.thumbnail}#t=0.1`}
+                  muted
+                  playsInline
+                  preload="metadata"
+                  className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-[1.05]"
+                />
+              ) : (
+                <img
+                  src={reel.thumbnail}
+                  alt={reel.title}
+                  loading="lazy"
+                  decoding="async"
+                  className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-[1.05]"
+                />
+              )}
               <div className="absolute inset-0 bg-gradient-to-t from-[#1F6878]/90 via-[#1F6878]/30 to-black/25" />
 
               {/* Category pill */}
