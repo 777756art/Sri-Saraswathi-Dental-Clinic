@@ -7,13 +7,14 @@ import {
   Pause,
   Play,
   Sparkles,
-  Video,
   Volume2,
   VolumeX,
   X,
 } from "lucide-react";
 import { useSiteContent } from "@/components/home/SiteContentSections";
 import { resolveApiAsset } from "@/lib/api";
+
+const CLINIC_INSTAGRAM_URL = "https://www.instagram.com/srisaraswathidental";
 
 interface ReelCardItem {
   id: number;
@@ -30,6 +31,7 @@ export function DentalReels() {
   const [selected, setSelected] = useState<ReelCardItem | null>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
+  const [isScrollable, setIsScrollable] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
 
   // Modal player controls synced with native <video> element
@@ -74,8 +76,9 @@ export function DentalReels() {
     const el = trackRef.current;
     if (!el) return;
     const maxScroll = Math.max(0, el.scrollWidth - el.clientWidth);
-    setCanScrollLeft(el.scrollLeft > 6);
-    setCanScrollRight(maxScroll - el.scrollLeft > 6);
+    setIsScrollable(maxScroll > 4);
+    setCanScrollLeft(el.scrollLeft > 4);
+    setCanScrollRight(maxScroll - el.scrollLeft > 4);
   }, []);
 
   useEffect(() => {
@@ -104,7 +107,8 @@ export function DentalReels() {
     const el = trackRef.current;
     if (!el) return;
     const firstCard = el.querySelector<HTMLElement>("[data-reel-card]");
-    const step = firstCard ? firstCard.offsetWidth + 24 : Math.max(300, el.clientWidth * 0.72);
+    const computedGap = Number.parseFloat(window.getComputedStyle(el).columnGap || window.getComputedStyle(el).gap || "24") || 24;
+    const step = firstCard ? firstCard.offsetWidth + computedGap : 256;
     el.scrollBy({
       left: direction * step,
       behavior: "smooth",
@@ -187,154 +191,260 @@ export function DentalReels() {
     <section
       id="reels"
       data-testid="reels-section"
-      className="bg-[#F5F2EB] px-4 py-16 sm:py-20 lg:py-24"
+      className="relative overflow-hidden bg-[#F5F2EB] py-12 sm:py-14 lg:py-16"
       aria-label={reelsSettings.heading || "Trending Reels & Videos"}
     >
-      <div className="container-x">
-        {/* Centered Header + Desktop Carousel Controls */}
+      {/* Subtle Pale Blue Organic Wave Accents matching Clinic Palette */}
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 1440 160"
+        preserveAspectRatio="none"
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-20 w-full opacity-75 sm:h-24 lg:h-28"
+      >
+        <path
+          d="M0,112 C240,36 520,148 820,96 C1080,52 1280,104 1440,68 L1440,160 L0,160 Z"
+          fill="#E4F0F2"
+        />
+        <path
+          d="M0,132 C320,76 620,160 940,114 C1180,80 1320,122 1440,94 L1440,160 L0,160 Z"
+          fill="#CFE5EA"
+          opacity="0.65"
+        />
+      </svg>
+
+      <div className="container-x relative z-10">
+        {/* Centered Header */}
         <div className="mx-auto max-w-2xl text-center">
-          <span className="inline-flex items-center gap-2 rounded-full border border-[#E95A35] bg-[#E95A35] px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white shadow-[0_10px_22px_-8px_rgba(233,90,53,0.55)]">
-            <Video className="h-3.5 w-3.5 text-white" /> Clinic Reels &amp; Stories
-          </span>
-          <h2 className="mt-4 font-sans text-[32px] font-bold leading-tight tracking-[-0.03em] text-[#1F6878] sm:text-[42px]">
+          <h2 className="font-sans text-[28px] font-bold leading-tight tracking-[-0.03em] text-[#1F6878] sm:text-[36px]">
             {reelsSettings.heading || "Trending Reels & Videos"}
           </h2>
-          <p className="mx-auto mt-3 max-w-xl text-[15px] leading-relaxed text-[#707574] sm:text-[16px]">
+          <p className="mx-auto mt-2 max-w-xl text-[14px] leading-relaxed text-[#707574] sm:text-[15px]">
             {reelsSettings.subtitle ||
               "Watch real patient experiences, dental care videos, clinic moments and educational content."}
           </p>
         </div>
 
-        {/* Navigation Arrows Row */}
-        {!loading && reels.length > 0 && (
-          <div className="mt-8 flex items-center justify-end gap-2.5">
-            <button
-              type="button"
-              data-testid="reels-prev-btn"
-              onClick={() => scrollByCard(-1)}
-              disabled={!canScrollLeft}
-              aria-label="Previous videos"
-              className="grid h-10 w-10 place-items-center rounded-full border border-[#1F6878]/25 bg-white text-[#1F6878] shadow-sm transition hover:border-[#1F6878] hover:bg-[#E4F0F2] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-white"
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </button>
-            <button
-              type="button"
-              data-testid="reels-next-btn"
-              onClick={() => scrollByCard(1)}
-              disabled={!canScrollRight}
-              aria-label="Next videos"
-              className="grid h-10 w-10 place-items-center rounded-full border border-[#1F6878]/25 bg-white text-[#1F6878] shadow-sm transition hover:border-[#1F6878] hover:bg-[#E4F0F2] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-white"
-            >
-              <ChevronRight className="h-5 w-5" />
-            </button>
-          </div>
-        )}
-
-        {/* Horizontal Carousel */}
-        {loading ? (
-          <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {[0, 1, 2].map((skeleton) => (
-              <div
-                key={skeleton}
-                className="aspect-[9/16] w-full animate-pulse rounded-[24px] border border-[#dce4e5] bg-[#E4F0F2]/70"
-              />
-            ))}
-          </div>
-        ) : (
-          <div
-            ref={trackRef}
-            data-testid="reels-carousel-track"
-            onScroll={updateScrollState}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={endMouseDrag}
-            onMouseLeave={endMouseDrag}
-            className={`mt-4 flex gap-5 overflow-x-auto pb-3 pt-1 select-none [scrollbar-width:none] sm:gap-6 [&::-webkit-scrollbar]:hidden ${
-              isDragging ? "cursor-grabbing scroll-auto" : "cursor-grab scroll-smooth snap-x snap-mandatory"
-            }`}
+        {/* Compact 4-Card Carousel Frame with Side Navigation Arrows */}
+        <div className="relative mx-auto mt-7 max-w-[1048px] md:px-11">
+          {/* Decorative Corner Accents Flanking Desktop Cards */}
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 28 28"
+            className="pointer-events-none absolute left-4 -top-2 hidden h-6 w-6 text-[#1F6878] lg:block"
           >
-            {reels.map((reel) => {
-              const hasExplicitThumb = Boolean(reel.thumbnail);
-              const isVideoThumb = hasExplicitThumb && /\.(mp4|webm|mov|m4v)(?:[?#].*)?$/i.test(reel.thumbnail);
+            <path
+              d="M22 8 L10 4 M20 14 L6 13 M21 20 L11 22"
+              stroke="currentColor"
+              strokeWidth="2.4"
+              strokeLinecap="round"
+              fill="none"
+            />
+          </svg>
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 28 28"
+            className="pointer-events-none absolute right-4 -top-2 hidden h-6 w-6 text-[#1F6878] lg:block"
+          >
+            <path
+              d="M6 8 L18 4 M8 14 L22 13 M7 20 L17 22"
+              stroke="currentColor"
+              strokeWidth="2.4"
+              strokeLinecap="round"
+              fill="none"
+            />
+          </svg>
 
-              return (
-                <button
-                  key={reel.id}
-                  type="button"
-                  data-reel-card
-                  onClick={() => handleCardClick(reel)}
-                  aria-label={`Play ${reel.title}`}
-                  className="group relative aspect-[9/16] w-[80%] flex-none snap-start overflow-hidden rounded-[24px] border border-[#dce4e5] bg-[#15191B] text-left shadow-[0_18px_40px_-24px_rgba(31,104,120,0.45)] transition duration-300 hover:-translate-y-1.5 hover:shadow-[0_24px_48px_-22px_rgba(31,104,120,0.4)] sm:w-[calc((100%-24px)/2)] lg:w-[calc((100%-48px)/3)]"
+          {/* Compact Mobile-Only Top Arrows */}
+          {!loading && reels.length > 0 && (
+            <div className="mb-2.5 flex items-center justify-end gap-1.5 md:hidden">
+              <button
+                type="button"
+                onClick={() => scrollByCard(-1)}
+                disabled={!canScrollLeft}
+                aria-label="Previous videos"
+                className="grid h-8 w-8 place-items-center rounded-full border border-[#1F6878]/20 bg-white text-[#1F6878] shadow-sm transition hover:border-[#1F6878] hover:bg-[#E4F0F2] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-white"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollByCard(1)}
+                disabled={!canScrollRight}
+                aria-label="Next videos"
+                className="grid h-8 w-8 place-items-center rounded-full border border-[#1F6878]/20 bg-white text-[#1F6878] shadow-sm transition hover:border-[#1F6878] hover:bg-[#E4F0F2] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-white"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+
+          {/* Side-Flanking Prev/Next Arrows (Tablet & Desktop) */}
+          {!loading && reels.length > 0 && (
+            <>
+              <button
+                type="button"
+                data-testid="reels-prev-btn"
+                onClick={() => scrollByCard(-1)}
+                disabled={!canScrollLeft}
+                aria-label="Previous reels"
+                className="hidden md:grid absolute left-0 top-1/2 z-20 h-8 w-8 -translate-y-1/2 place-items-center rounded-full border border-[#dce4e5] bg-white text-[#1F6878] shadow-[0_6px_16px_-4px_rgba(31,104,120,0.22)] transition hover:border-[#1F6878] hover:bg-[#E4F0F2] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-white"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                data-testid="reels-next-btn"
+                onClick={() => scrollByCard(1)}
+                disabled={!canScrollRight}
+                aria-label="Next reels"
+                className="hidden md:grid absolute right-0 top-1/2 z-20 h-8 w-8 -translate-y-1/2 place-items-center rounded-full border border-[#dce4e5] bg-white text-[#1F6878] shadow-[0_6px_16px_-4px_rgba(31,104,120,0.22)] transition hover:border-[#1F6878] hover:bg-[#E4F0F2] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-white"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </>
+          )}
+
+          {loading ? (
+            <div className="flex justify-center gap-5 overflow-hidden lg:gap-6">
+              {[0, 1, 2, 3].map((skeleton) => (
+                <div
+                  key={skeleton}
+                  className="w-[232px] flex-none overflow-hidden rounded-[16px] border border-[#dce4e5] bg-white sm:w-[220px] lg:w-[222px]"
                 >
-                  {/* Video Poster or Metadata Frame */}
-                  {hasExplicitThumb && !isVideoThumb ? (
-                    <img
-                      src={reel.thumbnail}
-                      alt={reel.title}
-                      loading="lazy"
-                      decoding="async"
-                      draggable={false}
-                      className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-[1.04]"
-                    />
-                  ) : (
-                    <video
-                      src={reel.videoUrl ? `${reel.videoUrl}#t=0.15` : undefined}
-                      muted
-                      playsInline
-                      preload="metadata"
-                      aria-hidden="true"
-                      className="pointer-events-none absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-[1.04]"
-                    />
-                  )}
-
-                  {/* Readability Gradient */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#15191B]/95 via-[#15191B]/25 to-black/25" />
-
-                  {/* Top Badges: Only display category if assigned by admin; Featured pill when marked */}
-                  <div className="absolute left-4 right-4 top-4 flex flex-wrap items-center justify-between gap-2">
-                    {reel.category ? (
-                      <span
-                        data-testid="reel-category-badge"
-                        className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-[#1F6878]/80 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[#E4F0F2] backdrop-blur-md"
-                      >
-                        <Video className="h-3 w-3 text-[#E4F0F2]" />
-                        {reel.category}
-                      </span>
-                    ) : (
-                      <span />
-                    )}
-
-                    {reel.featured && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-[#E95A35] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-white shadow-sm">
-                        <Sparkles className="h-3 w-3" /> Featured
-                      </span>
-                    )}
+                  <div className="aspect-[9/16] w-full animate-pulse bg-[#E4F0F2]/80" />
+                  <div className="space-y-1 px-3 py-2">
+                    <div className="h-3 w-3/4 animate-pulse rounded bg-[#E4F0F2]" />
+                    <div className="h-2.5 w-1/2 animate-pulse rounded bg-[#F5F2EB]" />
                   </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div
+              ref={trackRef}
+              data-testid="reels-carousel-track"
+              onScroll={updateScrollState}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={endMouseDrag}
+              onMouseLeave={endMouseDrag}
+              className={`flex gap-5 overflow-x-auto pb-2 pt-1 select-none [scrollbar-width:none] sm:gap-5 lg:gap-6 [&::-webkit-scrollbar]:hidden ${
+                isScrollable ? "justify-start" : "sm:justify-center"
+              } ${
+                isDragging ? "cursor-grabbing scroll-auto" : "cursor-grab scroll-smooth snap-x snap-mandatory"
+              }`}
+            >
+              {reels.map((reel) => {
+                const hasExplicitThumb = Boolean(reel.thumbnail);
+                const isVideoThumb = hasExplicitThumb && /\.(mp4|webm|mov|m4v)(?:[?#].*)?$/i.test(reel.thumbnail);
 
-                  {/* Center Play Button */}
-                  <div className="pointer-events-none absolute inset-0 grid place-items-center">
-                    <span className="grid h-15 w-15 place-items-center rounded-full border-2 border-white/60 bg-[#1F6878]/65 text-white shadow-2xl backdrop-blur-md transition duration-300 group-hover:scale-110 group-hover:border-[#E95A35] group-hover:bg-[#E95A35]">
-                      <Play className="ml-0.5 h-6 w-6 fill-current" />
-                    </span>
-                  </div>
+                return (
+                  <button
+                    key={reel.id}
+                    type="button"
+                    data-reel-card
+                    onClick={() => handleCardClick(reel)}
+                    aria-label={`Play ${reel.title}`}
+                    className="group flex w-[232px] flex-none snap-start flex-col overflow-hidden rounded-[16px] border border-[#e1e9ea] bg-white text-left shadow-[0_8px_22px_-12px_rgba(31,104,120,0.2)] transition duration-300 hover:-translate-y-1 hover:border-[#1F6878]/35 hover:shadow-[0_14px_28px_-12px_rgba(31,104,120,0.28)] sm:w-[220px] lg:w-[222px]"
+                  >
+                    {/* Compact 9:16 Portrait Video Box (222x395px desktop, 220x391px tablet, 232x412px mobile) */}
+                    <div
+                      data-reel-video-box
+                      className="relative aspect-[9/16] w-full overflow-hidden bg-[#15191B]"
+                    >
+                      {hasExplicitThumb && !isVideoThumb ? (
+                        <img
+                          src={reel.thumbnail}
+                          alt={reel.title}
+                          loading="lazy"
+                          decoding="async"
+                          draggable={false}
+                          className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+                        />
+                      ) : (
+                        <video
+                          src={reel.videoUrl ? `${reel.videoUrl}#t=0.15` : undefined}
+                          muted
+                          playsInline
+                          preload="metadata"
+                          aria-hidden="true"
+                          className="pointer-events-none h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+                        />
+                      )}
 
-                  {/* Bottom Title & Optional Description */}
-                  <div className="absolute inset-x-4 bottom-5">
-                    <h3 className="font-sans text-[18px] font-bold leading-snug text-white drop-shadow-sm sm:text-[19px]">
-                      {reel.title}
-                    </h3>
-                    {reel.description && (
-                      <p className="mt-1.5 line-clamp-2 text-[12.5px] leading-relaxed text-white/80">
-                        {reel.description}
-                      </p>
-                    )}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        )}
+                      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/20" />
+
+                      {/* Top Badges: Show Category ONLY when assigned by admin */}
+                      <div className="absolute inset-x-2 top-2 flex flex-wrap items-center justify-between gap-1">
+                        {reel.category ? (
+                          <span
+                            data-testid="reel-category-badge"
+                            className="inline-flex items-center rounded-full border border-white/25 bg-[#1F6878]/85 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-[#E4F0F2] backdrop-blur-md"
+                          >
+                            {reel.category}
+                          </span>
+                        ) : (
+                          <span />
+                        )}
+
+                        {reel.featured && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-[#E95A35] px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-white shadow-sm">
+                            <Sparkles className="h-2.5 w-2.5" /> Featured
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Centered Compact Play Button */}
+                      <div className="pointer-events-none absolute inset-0 grid place-items-center">
+                        <span className="grid h-9 w-9 place-items-center rounded-full border-[1.5px] border-white/90 bg-[#15191B]/35 text-white shadow-md backdrop-blur-sm transition duration-300 group-hover:scale-110 group-hover:border-[#E95A35] group-hover:bg-[#E95A35]">
+                          <Play className="ml-0.5 h-3.5 w-3.5 fill-white text-white" />
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Compact White Card Content Below Video */}
+                    <div className="px-3 py-2">
+                      <h3 className="line-clamp-1 font-sans text-[13px] font-bold leading-snug text-[#1F6878] transition-colors group-hover:text-[#E95A35]">
+                        {reel.title}
+                      </h3>
+                      {reel.description && (
+                        <p className="mt-0.5 line-clamp-1 text-[11px] leading-snug text-[#707574]">
+                          {reel.description}
+                        </p>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Centered Compact Coral Follow Us on Instagram CTA */}
+        <div className="mt-6 flex justify-center">
+          <a
+            href={CLINIC_INSTAGRAM_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            data-testid="follow-instagram-btn"
+            className="inline-flex items-center gap-1.5 rounded-full bg-[#E95A35] px-4.5 py-2 text-[12px] font-semibold leading-5 text-white shadow-[0_10px_20px_-8px_rgba(233,90,53,0.6)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#d14824] hover:shadow-[0_14px_24px_-8px_rgba(233,90,53,0.72)]"
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              className="h-3.5 w-3.5 shrink-0 fill-none stroke-current"
+              strokeWidth="2.1"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+              <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+              <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+            </svg>
+            <span>Follow Us on Instagram</span>
+            <ChevronRight className="h-3.5 w-3.5 text-white" />
+          </a>
+        </div>
       </div>
 
       {/* Single-Video Modal Player */}
@@ -344,6 +454,7 @@ export function DentalReels() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.16 }}
             role="dialog"
             aria-modal="true"
             aria-label={selected.title}
