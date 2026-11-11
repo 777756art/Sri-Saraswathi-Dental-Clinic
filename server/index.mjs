@@ -1825,7 +1825,7 @@ app.post("/api/bookings", requireAuth, async (req, res, next) => {
 
     const row = await createBooking({
       user,
-      patientName: user.first_name + " " + user.last_name,
+      patientName: String(body.patientName || body.patient_name || `${user.first_name} ${user.last_name}`).trim(),
       patientPhone: String(body.phone || user.phone),
       patientEmail: String(body.email || user.email),
       service: String(body.service || ""),

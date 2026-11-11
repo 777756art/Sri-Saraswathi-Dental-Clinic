@@ -47,7 +47,7 @@ export default function BookingPage() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [availability, setAvailability] = useState<Availability | null>(null);
   const [slotsLoading, setSlotsLoading] = useState(false);
-  const [details, setDetails] = useState({ phone: "", email: "", dob: "", dentist: "", source: "", notes: "" });
+  const [details, setDetails] = useState({ patientName: "", phone: "", email: "", dob: "", dentist: "", source: "", notes: "" });
   const [submitting, setSubmitting] = useState(false);
   const [confirmed, setConfirmed] = useState<Booking | null>(null);
 
@@ -56,7 +56,13 @@ export default function BookingPage() {
       .get<Meta>("/api/meta")
       .then((data) => {
         setMeta(data);
-        setDetails((prev) => ({ ...prev, phone: user?.phone ?? prev.phone, email: user?.email ?? prev.email }));
+        const accountName = `${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim();
+        setDetails((prev) => ({
+          ...prev,
+          patientName: prev.patientName || accountName,
+          phone: prev.phone || user?.phone || "",
+          email: prev.email || user?.email || "",
+        }));
         const requested = requestedService
           ? data.services.find((item) => item.value === requestedService || item.label.toLowerCase() === requestedService.toLowerCase())
           : undefined;
@@ -115,8 +121,13 @@ export default function BookingPage() {
         : true;
 
   const submit = async () => {
+    const patientName = details.patientName.trim();
     const phone = details.phone.trim();
     const email = details.email.trim();
+    if (patientName.length < 2) {
+      toast.error("Please enter the patient's full name.");
+      return;
+    }
     if (phone.replace(/\D/g, "").length < 10) {
       toast.error("Please enter a valid 10-digit mobile number.");
       return;
@@ -129,6 +140,7 @@ export default function BookingPage() {
     setSubmitting(true);
     try {
       const data = await api.post<{ booking: Booking }>("/api/bookings", {
+        patientName,
         service,
         date: selectedISO,
         time: selectedTime,
@@ -417,7 +429,13 @@ export default function BookingPage() {
                     We use these to confirm your visit and send WhatsApp updates.
                   </p>
                   <div className="mt-6 grid gap-4 sm:grid-cols-2">
-                    <Input label="Patient" value={`${user.firstName} ${user.lastName}`} disabled />
+                    <Input
+                      label="Patient"
+                      required
+                      value={details.patientName}
+                      onChange={(e) => setDetails({ ...details, patientName: e.target.value })}
+                      placeholder="Patient full name"
+                    />
                     <Input
                       label="Phone (WhatsApp)"
                       type="tel"
