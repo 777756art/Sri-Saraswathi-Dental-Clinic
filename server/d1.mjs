@@ -217,6 +217,22 @@ export async function initD1Schema(db) {
       CREATE INDEX IF NOT EXISTS idx_site_content_legacy ON site_content(legacy_table, legacy_id);
     `);
 
+    const schemaUpgrades = [
+      "ALTER TABLE site_content ADD COLUMN file_size INTEGER NOT NULL DEFAULT 0",
+      "ALTER TABLE site_content ADD COLUMN mime_type TEXT NOT NULL DEFAULT ''",
+      "ALTER TABLE reels ADD COLUMN file_size INTEGER NOT NULL DEFAULT 0",
+    ];
+    for (const stmt of schemaUpgrades) {
+      try {
+        await db.prepare(stmt).run();
+      } catch (alterErr) {
+        const msg = String(alterErr?.message || alterErr || "").toLowerCase();
+        if (!msg.includes("duplicate column") && !msg.includes("no such table")) {
+          console.warn("Schema upgrade notice:", alterErr?.message || alterErr);
+        }
+      }
+    }
+
     // One-time seed of legacy tables into site_content so existing D1 items remain editable in CMS
     const seededMeta = await db.prepare("SELECT value FROM d1_meta WHERE key = 'site_content_seeded'").first();
     if (!seededMeta) {

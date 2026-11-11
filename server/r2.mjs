@@ -15,6 +15,9 @@ import {
   ListObjectsV2Command,
   GetBucketCorsCommand,
   PutBucketCorsCommand,
+  CreateMultipartUploadCommand,
+  CompleteMultipartUploadCommand,
+  AbortMultipartUploadCommand,
 } from "@aws-sdk/client-s3";
 
 const ROOT_DIR = process.cwd();
@@ -239,6 +242,57 @@ class LocalR2Bucket {
     }
     return { objects, truncated: false };
   }
+
+  _multipartDir(uploadId) {
+    const safeId = String(uploadId || "").replace(/[^a-zA-Z0-9_-]/g, "");
+    return path.join(this.baseDir, ".multipart", safeId);
+  }
+
+  async createMultipartUpload(key, contentType = "video/mp4") {
+    const uploadId = crypto.randomUUID();
+    const dir = this._multipartDir(uploadId);
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(
+      path.join(dir, "manifest.json"),
+      JSON.stringify({ key: String(key || "").replace(/^\/+/, ""), contentType }),
+      "utf8",
+    );
+    return uploadId;
+  }
+
+  async uploadPart(uploadId, partNumber, buffer) {
+    const dir = this._multipartDir(uploadId);
+    if (!fs.existsSync(dir)) {
+      throw new Error("Multipart upload session not found.");
+    }
+    const partPath = path.join(dir, `part-${Number(partNumber)}`);
+    fs.writeFileSync(partPath, buffer);
+    return crypto.createHash("md5").update(buffer).digest("hex");
+  }
+
+  async completeMultipartUpload(key, uploadId, parts = []) {
+    const dir = this._multipartDir(uploadId);
+    const manifestPath = path.join(dir, "manifest.json");
+    if (!fs.existsSync(manifestPath)) {
+      throw new Error("Multipart upload session not found.");
+    }
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    const sorted = [...parts].sort((a, b) => Number(a.partNumber) - Number(b.partNumber));
+    const buffers = sorted.map((p) => fs.readFileSync(path.join(dir, `part-${Number(p.partNumber)}`)));
+    const combined = Buffer.concat(buffers);
+    const saved = await this.put(key || manifest.key, combined, {
+      httpMetadata: { contentType: manifest.contentType },
+    });
+    fs.rmSync(dir, { recursive: true, force: true });
+    return saved;
+  }
+
+  async abortMultipartUpload(_key, uploadId) {
+    const dir = this._multipartDir(uploadId);
+    if (fs.existsSync(dir)) {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  }
 }
 
 class LiveR2Bucket {
@@ -276,11 +330,12 @@ class LiveR2Bucket {
       try {
         try {
           const existing = await this.s3.send(new GetBucketCorsCommand({ Bucket: this.bucketName }));
-          const hasPutRule = (existing?.CORSRules || []).some(
-            (rule) =>
-              (rule.AllowedMethods || []).includes("PUT") &&
-              ((rule.AllowedOrigins || []).includes("*") || (rule.AllowedOrigins || []).length > 0),
-          );
+          const hasPutRule = (existing?.CORSRules || []).some((rule) => {
+            const methods = (rule.AllowedMethods || []).map((m) => String(m).toUpperCase());
+            const origins = rule.AllowedOrigins || [];
+            const exposed = (rule.ExposeHeaders || []).map((h) => String(h).toLowerCase());
+            return methods.includes("PUT") && origins.length > 0 && exposed.includes("etag");
+          });
           if (hasPutRule) {
             this.corsReady = true;
             return true;
@@ -343,8 +398,8 @@ class LiveR2Bucket {
     return this.corsPromise;
   }
 
-  /** Generate an AWS SigV4 presigned URL for direct browser R2 PUT/GET without extra SDK packages. */
-  createPresignedUrl(method, key, { expiresInSeconds = 900, contentType = "" } = {}) {
+  /** Generate an AWS SigV4 presigned URL for direct browser R2 PUT/GET/UploadPart without extra SDK packages. */
+  createPresignedUrl(method, key, { expiresInSeconds = 900, contentType = "", extraQuery = {} } = {}) {
     const cleanKey = String(key || "").replace(/^\/+/, "");
     const host = `${this.accountId}.r2.cloudflarestorage.com`;
     const canonicalUri = `/${[this.bucketName, ...cleanKey.split("/")].map(encodeRfc3986).join("/")}`;
@@ -364,7 +419,8 @@ class LiveR2Bucket {
       ["X-Amz-Date", amzDate],
       ["X-Amz-Expires", String(expiresInSeconds)],
       ["X-Amz-SignedHeaders", signedHeaders],
-    ].sort((a, b) => a[0].localeCompare(b[0]));
+      ...Object.entries(extraQuery).map(([k, v]) => [k, String(v)]),
+    ].sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0));
 
     const canonicalQueryString = queryParams
       .map(([k, v]) => `${encodeRfc3986(k)}=${encodeRfc3986(v)}`)
@@ -393,6 +449,71 @@ class LiveR2Bucket {
     const signature = hmacSha256(kSigning, stringToSign).toString("hex");
 
     return `https://${host}${canonicalUri}?${canonicalQueryString}&X-Amz-Signature=${signature}`;
+  }
+
+  createPresignedPartUrl(key, uploadId, partNumber, { expiresInSeconds = 3600 } = {}) {
+    return this.createPresignedUrl("PUT", key, {
+      expiresInSeconds,
+      extraQuery: {
+        partNumber: String(partNumber),
+        uploadId: String(uploadId),
+      },
+    });
+  }
+
+  async createMultipartUpload(key, contentType = "video/mp4") {
+    const cleanKey = String(key || "").replace(/^\/+/, "");
+    const res = await this.s3.send(
+      new CreateMultipartUploadCommand({
+        Bucket: this.bucketName,
+        Key: cleanKey,
+        ContentType: contentType || "video/mp4",
+      }),
+    );
+    if (!res?.UploadId) {
+      throw new Error("R2 did not return an UploadId for multipart upload.");
+    }
+    return res.UploadId;
+  }
+
+  async completeMultipartUpload(key, uploadId, parts = []) {
+    const cleanKey = String(key || "").replace(/^\/+/, "");
+    const normalizedParts = [...parts]
+      .filter((p) => Number(p?.partNumber) >= 1 && p?.etag)
+      .sort((a, b) => Number(a.partNumber) - Number(b.partNumber))
+      .map((p) => {
+        const rawEtag = String(p.etag).trim();
+        return {
+          PartNumber: Number(p.partNumber),
+          ETag: rawEtag.startsWith('"') ? rawEtag : `"${rawEtag}"`,
+        };
+      });
+    const res = await this.s3.send(
+      new CompleteMultipartUploadCommand({
+        Bucket: this.bucketName,
+        Key: cleanKey,
+        UploadId: String(uploadId),
+        MultipartUpload: { Parts: normalizedParts },
+      }),
+    );
+    const meta = await this.head(cleanKey);
+    return {
+      key: cleanKey,
+      size: meta?.size || 0,
+      etag: res?.ETag ? res.ETag.replace(/"/g, "") : meta?.etag || "",
+      httpMetadata: { contentType: meta?.contentType || "video/mp4" },
+    };
+  }
+
+  async abortMultipartUpload(key, uploadId) {
+    const cleanKey = String(key || "").replace(/^\/+/, "");
+    await this.s3.send(
+      new AbortMultipartUploadCommand({
+        Bucket: this.bucketName,
+        Key: cleanKey,
+        UploadId: String(uploadId),
+      }),
+    );
   }
 
   async head(key) {

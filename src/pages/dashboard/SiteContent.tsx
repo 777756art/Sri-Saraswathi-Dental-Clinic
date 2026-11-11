@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Navigate, useSearchParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ContentManagerPanel, type ContentField } from "@/components/dashboard/ContentManager";
 import type { SiteContentType } from "@/lib/api";
@@ -26,20 +26,6 @@ const groups: {
     fields: ["title", "category", "subtitle", "body", "mediaUrl", "badgeText", "displayOrder", "homepageHighlight", "published"],
   },
   {
-    type: "reel",
-    label: "Reels & Short Videos",
-    description: "Patient education stories and vertical clinic reels.",
-    addLabel: "Add reel",
-    fields: ["title", "subtitle", "category", "excerpt", "mediaUrl", "mobileMediaUrl", "displayOrder", "homepageHighlight", "published"],
-  },
-  {
-    type: "video",
-    label: "Videos",
-    description: "Clinic and treatment videos shown on the website.",
-    addLabel: "Add video",
-    fields: ["title", "subtitle", "category", "excerpt", "mediaUrl", "mobileMediaUrl", "displayOrder", "homepageHighlight", "published"],
-  },
-  {
     type: "achievement",
     label: "Doctors’ Achievements",
     description: "Publish verified awards, certifications and professional milestones.",
@@ -62,6 +48,9 @@ export default function WebsiteContentPage() {
   useEffect(() => {
     if (groups.some((item) => item.type === requestedType)) setActive(requestedType!);
   }, [requestedType]);
+  if (requestedType === "reel" || requestedType === "video") {
+    return <Navigate to="/dashboard/reels" replace />;
+  }
   const group = groups.find((item) => item.type === active) ?? groups[0];
 
   return (

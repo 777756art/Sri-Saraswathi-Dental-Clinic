@@ -27,6 +27,7 @@ import {
   Settings,
   Stethoscope,
   Users,
+  Video,
   X,
 } from "lucide-react";
 
@@ -44,7 +45,7 @@ const sidebarGroups: { label: string; links: DashboardNavLink[] }[] = [
     { label: "Doctors", href: "/dashboard/staff", icon: Users },
     { label: "Treatments", href: "/dashboard/treatments", icon: Stethoscope },
     { label: "Treatment Highlights", href: "/dashboard/content", search: "?type=badge", icon: Images },
-    { label: "Reels & Videos", href: "/dashboard/content", search: "?type=reel", icon: Images },
+    { label: "Reels & Videos", href: "/dashboard/reels", icon: Video },
     { label: "Offer Banners", href: "/dashboard/offers", icon: Megaphone },
     { label: "Gallery", href: "/dashboard/smile-gallery", icon: Image },
     { label: "Clinic Photos", href: "/dashboard/content", search: "?type=image", icon: Images },

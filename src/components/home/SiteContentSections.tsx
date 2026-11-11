@@ -2,44 +2,69 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import { Activity, ArrowUpRight, BadgeCheck, Clock3, Eye, Heart, Play, Shield, Sparkles, Star, Stethoscope, Video, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { api, resolveApiAsset, type SiteContent, type SiteContentType } from "@/lib/api";
+import { api, resolveApiAsset, type ReelsSectionSettings, type SiteContent, type SiteContentType } from "@/lib/api";
+import { DEFAULT_REELS_SECTION_SETTINGS } from "@/lib/reels";
 import { formatArticleDate } from "@/lib/blog";
 import { clinicImages } from "@/lib/images";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 
-type SiteContentState = { items: SiteContent[]; loading: boolean };
-const SiteContentContext = createContext<SiteContentState>({ items: [], loading: true });
+type SiteContentState = {
+  items: SiteContent[];
+  reelsSettings: ReelsSectionSettings;
+  loading: boolean;
+};
+const SiteContentContext = createContext<SiteContentState>({
+  items: [],
+  reelsSettings: DEFAULT_REELS_SECTION_SETTINGS,
+  loading: true,
+});
 
 export function SiteContentProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<SiteContent[]>([]);
+  const [reelsSettings, setReelsSettings] = useState<ReelsSectionSettings>(DEFAULT_REELS_SECTION_SETTINGS);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
-    api
-      .get<{ items: SiteContent[] }>("/api/content")
-      .then((data) => {
-        if (active) setItems(Array.isArray(data.items) ? data.items : []);
-      })
-      .catch(() => {
-        if (active) setItems([]);
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
+    const fetchContent = () => {
+      api
+        .get<{ items: SiteContent[]; reelsSettings?: ReelsSectionSettings }>("/api/content")
+        .then((data) => {
+          if (!active) return;
+          setItems(Array.isArray(data.items) ? data.items : []);
+          if (data.reelsSettings) {
+            setReelsSettings({
+              enabled: Boolean(data.reelsSettings.enabled),
+              heading: data.reelsSettings.heading || DEFAULT_REELS_SECTION_SETTINGS.heading,
+              subtitle: data.reelsSettings.subtitle || DEFAULT_REELS_SECTION_SETTINGS.subtitle,
+            });
+          }
+        })
+        .catch(() => {
+          if (active) setItems([]);
+        })
+        .finally(() => {
+          if (active) setLoading(false);
+        });
+    };
+
+    fetchContent();
+    const onUpdated = () => fetchContent();
+    window.addEventListener("site-content-updated", onUpdated);
     return () => {
       active = false;
+      window.removeEventListener("site-content-updated", onUpdated);
     };
   }, []);
 
-  const value = useMemo(() => ({ items, loading }), [items, loading]);
+  const value = useMemo(() => ({ items, reelsSettings, loading }), [items, reelsSettings, loading]);
   return <SiteContentContext.Provider value={value}>{children}</SiteContentContext.Provider>;
 }
 
 export function useSiteContent(type?: SiteContentType) {
   const content = useContext(SiteContentContext);
   const items = type ? content.items.filter((item) => item.type === type) : content.items;
-  return { items, loading: content.loading };
+  return { items, reelsSettings: content.reelsSettings, loading: content.loading };
 }
 
 function ContentLink({ item, children, className }: { item: SiteContent; children: ReactNode; className: string }) {

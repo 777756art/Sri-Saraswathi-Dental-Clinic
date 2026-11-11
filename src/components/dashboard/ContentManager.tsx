@@ -301,7 +301,7 @@ export function ContentManagerPanel({
   const openCreate = () => {
     setEditing(null);
     const relatedTreatment = type === "badge" ? new URLSearchParams(window.location.search).get("treatment") ?? "" : "";
-    setDraft({ ...emptyDraft(), author: type === "blog" ? "Sri Saraswathi Dental Clinic" : "", homepageHighlight: type === "badge", category: relatedTreatment });
+    setDraft({ ...emptyDraft(), author: type === "blog" ? "Sri Saraswathi Dental Clinic" : "", homepageHighlight: type === "badge" || type === "reel" || type === "video", category: relatedTreatment });
     setModalOpen(true);
   };
 
@@ -395,7 +395,15 @@ export function ContentManagerPanel({
     }
     for (const key of requiredMedia) {
       if (!draft[key]) {
-        toast.error(key === "beforeImage" ? "Add the before image." : key === "afterImage" ? "Add the after image." : "Add the required image.");
+        toast.error(
+          key === "beforeImage"
+            ? "Add the before image."
+            : key === "afterImage"
+              ? "Add the after image."
+              : contentType === "reel" || contentType === "video"
+                ? "Add a video file."
+                : "Add the required image."
+        );
         return;
       }
     }
@@ -872,7 +880,7 @@ export function ContentManagerPanel({
                   <label className="block text-xs font-semibold text-[#1F6878]">Publish status
                     <select value={draft.published ? "published" : "draft"} onChange={(event) => update("published", event.target.value === "published")} className="mt-1.5 h-11 w-full rounded-xl border border-[#1F6878]/20 bg-white px-3.5 text-sm font-normal text-[#1F6878] outline-none focus:border-[#1F6878] focus:ring-4 focus:ring-[#1F6878]/15"><option value="draft">Draft (staged only)</option><option value="published">Published</option></select>
                   </label>
-                  <label className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-[#1F6878]/15 bg-[#F5F2EB] px-3.5 py-3 text-xs font-medium text-[#1F6878]"><span><span className="block">Show on homepage</span><span className="mt-1 block text-[10px] font-normal text-[#707574]">Only published reels with this enabled appear on the homepage.</span></span><input type="checkbox" disabled={!draft.published} checked={draft.published && draft.homepageHighlight} onChange={(event) => update("homepageHighlight", event.target.checked)} className="h-4 w-4 accent-[#1F6878]" /></label>
+                  <label className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-[#1F6878]/15 bg-[#F5F2EB] px-3.5 py-3 text-xs font-medium text-[#1F6878]"><span><span className="block">Show on homepage</span><span className="mt-1 block text-[10px] font-normal text-[#707574]">Only published reels with this enabled appear on the homepage.</span></span><input type="checkbox" checked={draft.homepageHighlight} onChange={(event) => update("homepageHighlight", event.target.checked)} className="h-4 w-4 accent-[#1F6878]" /></label>
                   <Input className="mt-4" label="Display carousel order" type="number" min={0} max={9999} value={draft.displayOrder} onChange={(event) => update("displayOrder", Number(event.target.value))} helperText="Priority 1 appears first." />
                 </FormCard>
                 {draft.mediaUrl && <div className="mx-auto max-w-[230px] overflow-hidden rounded-[24px] border border-[#1F6878]/30 bg-[#154C58] p-2 shadow-soft"><div className="aspect-[9/16] overflow-hidden rounded-[18px] bg-black">{mediaIsVideo(draft.mediaUrl) ? <video src={resolveApiAsset(draft.mediaUrl)} poster={draft.mobileMediaUrl ? resolveApiAsset(draft.mobileMediaUrl) : undefined} controls playsInline className="h-full w-full object-cover" /> : <img src={resolveApiAsset(draft.mobileMediaUrl || draft.mediaUrl)} alt="" className="h-full w-full object-cover" />}</div><p className="px-2 py-3 text-center text-xs font-medium text-white">{draft.title || "Reel preview"}</p></div>}

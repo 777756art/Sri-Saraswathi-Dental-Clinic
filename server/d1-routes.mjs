@@ -162,9 +162,191 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
 
   // 1. Upload media directly to Cloudflare R2
   const MAX_IMAGE_UPLOAD_BYTES = 15 * 1024 * 1024;
-  const MAX_VIDEO_UPLOAD_BYTES = 150 * 1024 * 1024;
+  const MAX_SERVER_VIDEO_UPLOAD_BYTES = 150 * 1024 * 1024;
+  const REELS_STORAGE_QUOTA_BYTES = 2 * 1024 * 1024 * 1024; // 2GB (2048MB) total Reels & Videos quota
+  const MULTIPART_PART_SIZE_BYTES = 8 * 1024 * 1024; // 8MB chunks (>= 5MB R2/S3 part minimum)
+  const DEFAULT_REELS_SECTION_SETTINGS = {
+    enabled: true,
+    heading: "Trending Reels & Videos",
+    subtitle: "Watch real patient experiences, dental care videos, clinic moments and educational content.",
+  };
 
-  const validateMediaUpload = (rawMime, originalName, byteLength) => {
+  const formatBytesLabel = (bytes) => {
+    const val = Math.max(0, Number(bytes || 0));
+    if (val >= 1024 * 1024 * 1024) return `${(val / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+    if (val >= 1024 * 1024) return `${(val / (1024 * 1024)).toFixed(1)} MB`;
+    if (val >= 1024) return `${(val / 1024).toFixed(0)} KB`;
+    return `${val} B`;
+  };
+
+  const extractR2KeyFromUrl = (url) => {
+    const s = String(url || "").trim();
+    if (!s) return "";
+    const apiMatch = s.match(/\/api\/media\/(.+?)(?:\?.*)?$/);
+    if (apiMatch) {
+      try {
+        return decodeURIComponent(apiMatch[1]);
+      } catch {
+        return apiMatch[1];
+      }
+    }
+    const publicDomain = (process.env.R2_PUBLIC_DOMAIN || "").replace(/\/+$/, "");
+    if (publicDomain && s.startsWith(`${publicDomain}/`)) {
+      const raw = s.slice(publicDomain.length + 1).split("?")[0];
+      try {
+        return decodeURIComponent(raw);
+      } catch {
+        return raw;
+      }
+    }
+    return "";
+  };
+
+  const resolveVideoObjectMeta = async (mediaUrl, fallbackSize = 0, fallbackMime = "") => {
+    const key = extractR2KeyFromUrl(mediaUrl);
+    if (key && typeof r2.head === "function") {
+      try {
+        const meta = await r2.head(key);
+        if (meta) {
+          return {
+            key,
+            fileSize: Math.max(0, Number(meta.size || fallbackSize || 0)),
+            mimeType: meta.contentType || String(fallbackMime || ""),
+          };
+        }
+      } catch {}
+    }
+    return {
+      key,
+      fileSize: Math.max(0, Number(fallbackSize || 0)),
+      mimeType: String(fallbackMime || ""),
+    };
+  };
+
+  const getReelsStorageUsage = async ({ excludeContentId = null } = {}) => {
+    const rows =
+      (
+        await d1
+          .prepare("SELECT id, media_url, file_size, mime_type, legacy_table, legacy_id FROM site_content WHERE type IN ('reel', 'video')")
+          .all()
+      ).results || [];
+
+    let usedBytes = 0;
+    let videoCount = 0;
+    const countedKeys = new Set();
+
+    for (const row of rows) {
+      if (excludeContentId && Number(row.id) === Number(excludeContentId)) {
+        continue;
+      }
+      const key = extractR2KeyFromUrl(row.media_url);
+      const dedupeToken = key || (row.media_url ? `url:${row.media_url}` : `id:${row.id}`);
+      if (countedKeys.has(dedupeToken)) {
+        continue;
+      }
+      if (row.media_url) {
+        countedKeys.add(dedupeToken);
+        videoCount += 1;
+      }
+
+      let size = Math.max(0, Number(row.file_size || 0));
+      if (size === 0 && key && typeof r2.head === "function") {
+        try {
+          const meta = await r2.head(key);
+          if (meta && Number(meta.size || 0) > 0) {
+            size = Number(meta.size);
+            const resolvedMime = row.mime_type || meta.contentType || "";
+            await d1
+              .prepare("UPDATE site_content SET file_size = ?, mime_type = ? WHERE id = ?")
+              .bind(size, resolvedMime, Number(row.id))
+              .run()
+              .catch(() => {});
+            if (row.legacy_table === "reels" && row.legacy_id) {
+              await d1
+                .prepare("UPDATE reels SET file_size = ? WHERE id = ?")
+                .bind(size, Number(row.legacy_id))
+                .run()
+                .catch(() => {});
+            }
+          }
+        } catch {}
+      }
+      usedBytes += size;
+    }
+
+    const availableBytes = Math.max(0, REELS_STORAGE_QUOTA_BYTES - usedBytes);
+    const usedPercent = Number(Math.min(100, (usedBytes / REELS_STORAGE_QUOTA_BYTES) * 100).toFixed(2));
+    return {
+      usedBytes,
+      quotaBytes: REELS_STORAGE_QUOTA_BYTES,
+      availableBytes,
+      usedPercent,
+      videoCount,
+    };
+  };
+
+  const checkReelsQuota = async (incomingBytes, { excludeContentId = null } = {}) => {
+    const incoming = Math.max(0, Number(incomingBytes || 0));
+    const storage = await getReelsStorageUsage({ excludeContentId });
+    if (incoming > REELS_STORAGE_QUOTA_BYTES || storage.usedBytes + incoming > REELS_STORAGE_QUOTA_BYTES) {
+      return {
+        ok: false,
+        storage,
+        error:
+          storage.availableBytes <= 0
+            ? "Video storage is full (2 GB limit reached). Please delete existing videos to free storage before uploading."
+            : `Upload exceeds your remaining Reels video storage (${formatBytesLabel(storage.availableBytes)} available of 2 GB total). Please delete older videos or choose a smaller video.`,
+      };
+    }
+    return { ok: true, storage };
+  };
+
+  const getReelsSectionSettings = async () => {
+    try {
+      const row = await d1.prepare("SELECT value FROM d1_meta WHERE key = 'reels_section_settings'").first();
+      if (!row?.value) return { ...DEFAULT_REELS_SECTION_SETTINGS };
+      const parsed = JSON.parse(row.value);
+      return {
+        enabled: parsed.enabled !== undefined ? Boolean(parsed.enabled) : true,
+        heading:
+          typeof parsed.heading === "string" && parsed.heading.trim()
+            ? parsed.heading.trim()
+            : DEFAULT_REELS_SECTION_SETTINGS.heading,
+        subtitle:
+          typeof parsed.subtitle === "string" && parsed.subtitle.trim()
+            ? parsed.subtitle.trim()
+            : DEFAULT_REELS_SECTION_SETTINGS.subtitle,
+      };
+    } catch {
+      return { ...DEFAULT_REELS_SECTION_SETTINGS };
+    }
+  };
+
+  const saveReelsSectionSettings = async (patch = {}) => {
+    const current = await getReelsSectionSettings();
+    const next = {
+      enabled: patch.enabled !== undefined ? Boolean(patch.enabled) : current.enabled,
+      heading:
+        patch.heading !== undefined && String(patch.heading).trim()
+          ? String(patch.heading).trim()
+          : DEFAULT_REELS_SECTION_SETTINGS.heading,
+      subtitle:
+        patch.subtitle !== undefined && String(patch.subtitle).trim()
+          ? String(patch.subtitle).trim()
+          : DEFAULT_REELS_SECTION_SETTINGS.subtitle,
+    };
+    await d1
+      .prepare(
+        `INSERT INTO d1_meta (key, value, updated_at)
+         VALUES ('reels_section_settings', ?, datetime('now'))
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')`
+      )
+      .bind(JSON.stringify(next))
+      .run();
+    return next;
+  };
+
+  const validateMediaUpload = (rawMime, originalName, byteLength, { direct = false } = {}) => {
     const mimeType = resolveMediaMimeType(rawMime, originalName);
     if (!ALLOWED_MIME_TYPES.has(mimeType)) {
       return {
@@ -173,11 +355,19 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
       };
     }
     const isVideo = mimeType.startsWith("video/") || mimeType === "application/mp4";
-    const maxSize = isVideo ? MAX_VIDEO_UPLOAD_BYTES : MAX_IMAGE_UPLOAD_BYTES;
+    const maxSize = isVideo
+      ? direct
+        ? REELS_STORAGE_QUOTA_BYTES
+        : MAX_SERVER_VIDEO_UPLOAD_BYTES
+      : MAX_IMAGE_UPLOAD_BYTES;
     if (Number.isFinite(byteLength) && byteLength > maxSize) {
       return {
         errorStatus: 413,
-        error: `File too large. Max size is ${isVideo ? "150MB" : "15MB"}.`,
+        error: isVideo
+          ? direct
+            ? "Video file exceeds the 2 GB maximum storage quota."
+            : "File too large for direct server upload. Use chunked/direct upload or keep under 150MB."
+          : "File too large. Max size is 15MB.",
       };
     }
     return { mimeType, isVideo };
@@ -192,12 +382,24 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
       const rawMime = String(req.query.mime || req.headers["content-type"] || "").trim();
       const folder = String(req.query.folder || "gallery").toLowerCase().trim();
       const originalName = String(req.query.filename || "media.jpg").trim();
+      const replaceContentId = req.query.replaceContentId ? Number(req.query.replaceContentId) : null;
 
-      const checked = validateMediaUpload(rawMime, originalName, req.body.length);
+      const checked = validateMediaUpload(rawMime, originalName, req.body.length, { direct: false });
       if ("error" in checked) {
         return res.status(checked.errorStatus).json({ error: checked.error });
       }
-      const { mimeType } = checked;
+      const { mimeType, isVideo } = checked;
+
+      if (isVideo) {
+        const quota = await checkReelsQuota(req.body.length, { excludeContentId: replaceContentId });
+        if (!quota.ok) {
+          return res.status(413).json({
+            error: quota.error,
+            code: "STORAGE_QUOTA_EXCEEDED",
+            storage: quota.storage,
+          });
+        }
+      }
 
       const r2Key = generateR2Key(folder, originalName, mimeType);
       await r2.put(r2Key, req.body, {
@@ -225,16 +427,28 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
       const folder = String(req.body?.folder || "gallery").toLowerCase().trim();
       const rawMime = String(req.body?.mimeType || "").trim();
       const size = Number(req.body?.size ?? 0);
+      const replaceContentId = req.body?.replaceContentId ? Number(req.body.replaceContentId) : null;
 
       if (!Number.isFinite(size) || size <= 0) {
         return res.status(400).json({ error: "Choose a non-empty file to upload." });
       }
 
-      const checked = validateMediaUpload(rawMime, filename, size);
+      const checked = validateMediaUpload(rawMime, filename, size, { direct: true });
       if ("error" in checked) {
         return res.status(checked.errorStatus).json({ error: checked.error });
       }
-      const { mimeType } = checked;
+      const { mimeType, isVideo } = checked;
+
+      if (isVideo) {
+        const quota = await checkReelsQuota(size, { excludeContentId: replaceContentId });
+        if (!quota.ok) {
+          return res.status(413).json({
+            error: quota.error,
+            code: "STORAGE_QUOTA_EXCEEDED",
+            storage: quota.storage,
+          });
+        }
+      }
 
       if (typeof r2.createPresignedUrl !== "function") {
         return res.json({ direct: false, mimeType });
@@ -243,7 +457,7 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
       await r2.ensureCors?.().catch(() => false);
       const r2Key = generateR2Key(folder, filename, mimeType);
       const presignedUrl = r2.createPresignedUrl("PUT", r2Key, {
-        expiresInSeconds: 900,
+        expiresInSeconds: 3600,
         contentType: mimeType,
       });
 
@@ -265,7 +479,7 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
   const handleUploadMiddlewareError = (err, _req, res, next) => {
     if (err?.status === 413 || err?.type === "entity.too.large") {
       return res.status(413).json({
-        error: "File too large for server proxy upload. Max supported size is 150MB for video and 15MB for images.",
+        error: "File too large for server proxy upload. Please use direct/chunked upload or keep under 150MB.",
       });
     }
     return next(err);
@@ -275,6 +489,179 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
   app.post("/api/admin/uploads/presign", requireAdmin, express.json({ limit: "16kb" }), handleR2Presign);
   app.post("/api/upload", requireAdmin, express.raw({ type: "*/*", limit: "150mb" }), handleR2Upload, handleUploadMiddlewareError);
   app.post("/api/admin/uploads", requireAdmin, express.raw({ type: "*/*", limit: "150mb" }), handleR2Upload, handleUploadMiddlewareError);
+
+  // Multipart / chunked direct R2 video uploads (enforces 2GB total section quota)
+  app.post("/api/admin/uploads/multipart/init", requireAdmin, express.json({ limit: "16kb" }), async (req, res) => {
+    try {
+      const filename = String(req.body?.filename || "reel.mp4").trim();
+      const folder = String(req.body?.folder || "reels").toLowerCase().trim();
+      const rawMime = String(req.body?.mimeType || "").trim();
+      const size = Number(req.body?.size ?? 0);
+      const replaceContentId = req.body?.replaceContentId ? Number(req.body.replaceContentId) : null;
+
+      if (!Number.isFinite(size) || size <= 0) {
+        return res.status(400).json({ error: "Choose a valid non-empty video file." });
+      }
+
+      const checked = validateMediaUpload(rawMime, filename, size, { direct: true });
+      if ("error" in checked) {
+        return res.status(checked.errorStatus).json({ error: checked.error });
+      }
+      if (!checked.isVideo) {
+        return res.status(415).json({ error: "Only supported video formats (MP4, MOV, WebM) can use video multipart upload." });
+      }
+
+      const quota = await checkReelsQuota(size, { excludeContentId: replaceContentId });
+      if (!quota.ok) {
+        return res.status(413).json({
+          error: quota.error,
+          code: "STORAGE_QUOTA_EXCEEDED",
+          storage: quota.storage,
+        });
+      }
+
+      if (typeof r2.createMultipartUpload !== "function") {
+        return res.status(501).json({ error: "Multipart upload is not supported by storage adapter." });
+      }
+
+      await r2.ensureCors?.().catch(() => false);
+      const r2Key = generateR2Key(folder, filename, checked.mimeType);
+      const uploadId = await r2.createMultipartUpload(r2Key, checked.mimeType);
+      const totalParts = Math.max(1, Math.ceil(size / MULTIPART_PART_SIZE_BYTES));
+
+      return res.json({
+        uploadId,
+        key: r2Key,
+        url: getR2PublicUrl(r2Key),
+        mimeType: checked.mimeType,
+        partSize: MULTIPART_PART_SIZE_BYTES,
+        totalParts,
+        directMultipart: typeof r2.createPresignedPartUrl === "function",
+        storage: quota.storage,
+      });
+    } catch (err) {
+      console.error("Multipart init error:", err);
+      return res.status(500).json({ error: err.message || "Could not initialize chunked upload." });
+    }
+  });
+
+  app.post("/api/admin/uploads/multipart/sign-part", requireAdmin, express.json({ limit: "16kb" }), async (req, res) => {
+    try {
+      const key = String(req.body?.key || "").replace(/^\/+/, "").trim();
+      const uploadId = String(req.body?.uploadId || "").trim();
+      const partNumber = Number(req.body?.partNumber || 0);
+
+      if (!key || key.includes("..") || !uploadId || !Number.isInteger(partNumber) || partNumber < 1 || partNumber > 10000) {
+        return res.status(400).json({ error: "Invalid multipart part parameters." });
+      }
+
+      if (typeof r2.createPresignedPartUrl === "function") {
+        await r2.ensureCors?.().catch(() => false);
+        const uploadUrl = r2.createPresignedPartUrl(key, uploadId, partNumber, { expiresInSeconds: 3600 });
+        return res.json({ direct: true, uploadUrl, method: "PUT", partNumber });
+      }
+
+      return res.json({
+        direct: false,
+        uploadUrl: `/api/admin/uploads/multipart/part?uploadId=${encodeURIComponent(uploadId)}&partNumber=${partNumber}`,
+        method: "PUT",
+        partNumber,
+      });
+    } catch (err) {
+      return res.status(500).json({ error: err.message || "Could not sign upload chunk." });
+    }
+  });
+
+  app.put(
+    "/api/admin/uploads/multipart/part",
+    requireAdmin,
+    express.raw({ type: "*/*", limit: "20mb" }),
+    async (req, res) => {
+      try {
+        const uploadId = String(req.query?.uploadId || "").trim();
+        const partNumber = Number(req.query?.partNumber || 0);
+        if (!uploadId || !Number.isInteger(partNumber) || partNumber < 1 || !Buffer.isBuffer(req.body) || req.body.length === 0) {
+          return res.status(400).json({ error: "Invalid video chunk." });
+        }
+        if (typeof r2.uploadPart !== "function") {
+          return res.status(400).json({ error: "Direct R2 part URL must be used in live storage mode." });
+        }
+        const etag = await r2.uploadPart(uploadId, partNumber, req.body);
+        res.setHeader("ETag", `"${etag}"`);
+        return res.json({ ok: true, partNumber, etag });
+      } catch (err) {
+        return res.status(500).json({ error: err.message || "Failed to store video chunk." });
+      }
+    },
+    handleUploadMiddlewareError
+  );
+
+  app.post("/api/admin/uploads/multipart/complete", requireAdmin, express.json({ limit: "256kb" }), async (req, res) => {
+    try {
+      const key = String(req.body?.key || "").replace(/^\/+/, "").trim();
+      const uploadId = String(req.body?.uploadId || "").trim();
+      const parts = Array.isArray(req.body?.parts) ? req.body.parts : [];
+      const replaceContentId = req.body?.replaceContentId ? Number(req.body.replaceContentId) : null;
+
+      if (!key || key.includes("..") || !uploadId || parts.length === 0) {
+        return res.status(400).json({ error: "Missing multipart completion payload." });
+      }
+
+      const completed = await r2.completeMultipartUpload(key, uploadId, parts);
+      const headMeta = typeof r2.head === "function" ? await r2.head(key).catch(() => null) : null;
+      const actualSize = Math.max(0, Number(headMeta?.size || completed?.size || 0));
+      const mimeType = headMeta?.contentType || completed?.httpMetadata?.contentType || "video/mp4";
+
+      const quota = await checkReelsQuota(actualSize, { excludeContentId: replaceContentId });
+      if (!quota.ok) {
+        await safeDeleteR2File(r2, key);
+        return res.status(413).json({
+          error: quota.error,
+          code: "STORAGE_QUOTA_EXCEEDED",
+          storage: quota.storage,
+        });
+      }
+
+      return res.status(201).json({
+        success: true,
+        key,
+        url: getR2PublicUrl(key),
+        size: actualSize,
+        mimeType,
+        etag: completed?.etag || headMeta?.etag || "",
+      });
+    } catch (err) {
+      console.error("Multipart complete error:", err);
+      return res.status(500).json({ error: err.message || "Failed to finalize chunked video upload." });
+    }
+  });
+
+  app.post("/api/admin/uploads/multipart/abort", requireAdmin, express.json({ limit: "16kb" }), async (req, res) => {
+    try {
+      const key = String(req.body?.key || "").replace(/^\/+/, "").trim();
+      const uploadId = String(req.body?.uploadId || "").trim();
+      if (key && uploadId && !key.includes("..") && typeof r2.abortMultipartUpload === "function") {
+        await r2.abortMultipartUpload(key, uploadId).catch(() => {});
+      }
+      return res.json({ ok: true });
+    } catch {
+      return res.json({ ok: true });
+    }
+  });
+
+  app.post("/api/admin/uploads/cleanup", requireAdmin, express.json({ limit: "32kb" }), async (req, res) => {
+    try {
+      const urls = Array.isArray(req.body?.urls) ? req.body.urls.map(String) : [];
+      const keys = Array.isArray(req.body?.keys) ? req.body.keys.map((k) => `/api/media/${String(k).replace(/^\/+/, "")}`) : [];
+      const allUrls = Array.from(new Set([...urls, ...keys].filter(Boolean)));
+      if (allUrls.length > 0) {
+        await deleteUnreferencedR2Media(allUrls, null);
+      }
+      return res.json({ ok: true });
+    } catch {
+      return res.json({ ok: true });
+    }
+  });
 
   // 2. Stream media directly from Cloudflare R2
   app.get(/^\/api\/media\/(.+)$/, async (req, res, next) => {
@@ -1193,29 +1580,6 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
     return `${Math.max(1, Math.ceil(words / 200))} min read`;
   };
 
-  const extractR2KeyFromUrl = (url) => {
-    const s = String(url || "").trim();
-    if (!s) return "";
-    const apiMatch = s.match(/\/api\/media\/(.+?)(?:\?.*)?$/);
-    if (apiMatch) {
-      try {
-        return decodeURIComponent(apiMatch[1]);
-      } catch {
-        return apiMatch[1];
-      }
-    }
-    const publicDomain = (process.env.R2_PUBLIC_DOMAIN || "").replace(/\/+$/, "");
-    if (publicDomain && s.startsWith(`${publicDomain}/`)) {
-      const raw = s.slice(publicDomain.length + 1).split("?")[0];
-      try {
-        return decodeURIComponent(raw);
-      } catch {
-        return raw;
-      }
-    }
-    return "";
-  };
-
   const deleteUnreferencedR2Media = async (urls, excludeContentId = null) => {
     const keys = Array.from(new Set(urls.map(extractR2KeyFromUrl).filter(Boolean)));
     for (const key of keys) {
@@ -1319,6 +1683,9 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
       before_image: beforeImage,
       after_image: afterImage,
       display_order: displayOrder,
+      fileSize: Number(row.file_size || 0),
+      mimeType: row.mime_type || "",
+      featured: String(row.badge_text || "").trim().toLowerCase() === "featured",
       createdAt: row.created_at || "",
       updatedAt: row.updated_at || "",
     };
@@ -1379,7 +1746,7 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
       email: pickStr(b.email, existing?.email || ""),
       homepageHighlight: parseBool(
         b.homepageHighlight ?? b.homepage_highlight,
-        existing ? Boolean(existing.homepage_highlight) : type === "hero"
+        existing ? Boolean(existing.homepage_highlight) : (type === "hero" || type === "reel" || type === "video")
       ),
       patientConsent: parseBool(
         b.patientConsent ?? b.patient_consent,
@@ -1390,6 +1757,11 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
         existing ? Boolean(existing.published) : true
       ),
       displayOrder: displayRaw !== undefined ? Number(displayRaw) || 0 : Number(existing?.display_order || 0),
+      fileSize:
+        b.fileSize !== undefined || b.file_size !== undefined
+          ? Math.max(0, Number(b.fileSize ?? b.file_size) || 0)
+          : Math.max(0, Number(existing?.file_size || 0)),
+      mimeType: pickStr(b.mimeType ?? b.mime_type, existing?.mime_type || ""),
     };
   };
 
@@ -1595,11 +1967,12 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
         const status = row.published ? "active" : "inactive";
         const vKey = extractR2KeyFromUrl(row.media_url) || null;
         const tKey = extractR2KeyFromUrl(row.mobile_media_url) || null;
+        const fileSize = Math.max(0, Number(row.file_size || 0));
         if (legacyTable === "reels" && legacyId) {
           await d1.prepare(`
             UPDATE reels SET
               title = ?, description = ?, video_key = ?, video_url = ?, thumbnail_key = ?, thumbnail_url = ?,
-              homepage_visibility = ?, status = ?, display_order = ?
+              homepage_visibility = ?, status = ?, display_order = ?, file_size = ?
             WHERE id = ?
           `).bind(
             row.title || "Dental Reel",
@@ -1611,12 +1984,13 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
             row.homepage_highlight ? 1 : 0,
             status,
             Number(row.display_order || 0),
+            fileSize,
             legacyId
           ).run();
         } else {
           const info = await d1.prepare(`
-            INSERT INTO reels (title, description, video_key, video_url, thumbnail_key, thumbnail_url, homepage_visibility, status, display_order, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+            INSERT INTO reels (title, description, video_key, video_url, thumbnail_key, thumbnail_url, homepage_visibility, status, display_order, file_size, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
           `).bind(
             row.title || "Dental Reel",
             row.excerpt || "",
@@ -1626,7 +2000,8 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
             row.mobile_media_url || "",
             row.homepage_highlight ? 1 : 0,
             status,
-            Number(row.display_order || 0)
+            Number(row.display_order || 0),
+            fileSize
           ).run();
           await setLegacyRef("reels", info.meta.last_row_id);
         }
@@ -1996,6 +2371,89 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
 
   /* ------------------------------------------------------------- 9. REELS (with R2 Video & Thumbnail) */
 
+  app.get("/api/reels/settings", async (_req, res) => {
+    try {
+      res.json({ settings: await getReelsSectionSettings() });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/admin/reels/storage", requireAdmin, async (_req, res) => {
+    try {
+      const [storage, settings] = await Promise.all([
+        getReelsStorageUsage(),
+        getReelsSectionSettings(),
+      ]);
+      res.json({ storage, settings });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.patch("/api/admin/reels/settings", requireAdmin, async (req, res) => {
+    try {
+      const b = req.body || {};
+      const settings = await saveReelsSectionSettings({
+        enabled: b.enabled,
+        heading: b.heading,
+        subtitle: b.subtitle,
+      });
+      res.json({ settings });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.patch("/api/admin/reels/reorder", requireAdmin, async (req, res) => {
+    try {
+      const b = req.body || {};
+      const orders = Array.isArray(b.orders)
+        ? b.orders
+            .map((entry) => ({
+              id: Number(entry?.id),
+              displayOrder: Number(entry?.displayOrder ?? entry?.display_order ?? 0),
+            }))
+            .filter((entry) => Number.isFinite(entry.id) && entry.id > 0)
+        : Array.isArray(b.orderedIds)
+          ? b.orderedIds
+              .map((rawId, idx) => ({ id: Number(rawId), displayOrder: idx }))
+              .filter((entry) => Number.isFinite(entry.id) && entry.id > 0)
+          : [];
+
+      if (orders.length === 0) {
+        return res.status(400).json({ error: "Provide at least one item order to update." });
+      }
+
+      for (const entry of orders) {
+        await d1
+          .prepare("UPDATE site_content SET display_order = ?, updated_at = datetime('now') WHERE id = ? AND type IN ('reel', 'video')")
+          .bind(entry.displayOrder, entry.id)
+          .run();
+        const row = await d1
+          .prepare("SELECT legacy_table, legacy_id FROM site_content WHERE id = ?")
+          .bind(entry.id)
+          .first();
+        if (row?.legacy_table === "reels" && row?.legacy_id) {
+          await d1
+            .prepare("UPDATE reels SET display_order = ? WHERE id = ?")
+            .bind(entry.displayOrder, Number(row.legacy_id))
+            .run();
+        }
+      }
+
+      const rows =
+        (
+          await d1
+            .prepare("SELECT * FROM site_content WHERE type IN ('reel', 'video') ORDER BY display_order ASC, id DESC")
+            .all()
+        ).results || [];
+      res.json({ ok: true, items: rows.map(serializeSiteContent) });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   app.get("/api/reels", async (_req, res) => {
     try {
       const rows = (await d1.prepare("SELECT * FROM reels WHERE status = 'active' AND homepage_visibility = 1 ORDER BY display_order ASC, id DESC").all()).results;
@@ -2250,6 +2708,21 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
       if (type && !SITE_CONTENT_TYPES.includes(type)) {
         return res.status(400).json({ error: "Invalid content type." });
       }
+
+      if (type === "reel" || type === "video") {
+        const storage = await getReelsStorageUsage();
+        const [rowsRes, settings] = await Promise.all([
+          d1.prepare("SELECT * FROM site_content WHERE type IN ('reel', 'video') ORDER BY display_order ASC, id DESC").all(),
+          getReelsSectionSettings(),
+        ]);
+        const rows = rowsRes.results || [];
+        return res.json({
+          items: rows.map(serializeSiteContent),
+          storage,
+          reelsSettings: settings,
+        });
+      }
+
       const rows = type
         ? (await d1.prepare("SELECT * FROM site_content WHERE type = ? ORDER BY display_order ASC, id DESC").bind(type).all()).results || []
         : (await d1.prepare("SELECT * FROM site_content ORDER BY display_order ASC, id DESC").all()).results || [];
@@ -2268,11 +2741,37 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
       }
 
       const data = normalizeSiteContentInput(b, null, type);
+      if (b.featured !== undefined && b.badgeText === undefined && b.badge_text === undefined) {
+        data.badgeText = parseBool(b.featured) ? "Featured" : "";
+      }
+
       if (!data.title && !data.mediaUrl && !data.beforeImage && !data.afterImage) {
         return res.status(400).json({ error: "Please enter a title or upload media." });
       }
       if (data.published && (type === "gallery" || type === "testimonial") && !data.patientConsent) {
         return res.status(400).json({ error: "Patient consent is required before publishing this entry." });
+      }
+
+      const isReelType = type === "reel" || type === "video";
+      if (isReelType) {
+        if (!data.mediaUrl) {
+          return res.status(400).json({ error: "Please upload a video file." });
+        }
+        const resolved = await resolveVideoObjectMeta(data.mediaUrl, data.fileSize, data.mimeType);
+        data.fileSize = resolved.fileSize;
+        data.mimeType = resolved.mimeType;
+
+        const quota = await checkReelsQuota(data.fileSize);
+        if (!quota.ok) {
+          if (data.mediaUrl) {
+            await deleteUnreferencedR2Media([data.mediaUrl], null).catch(() => {});
+          }
+          return res.status(413).json({
+            error: quota.error,
+            code: "STORAGE_QUOTA_EXCEEDED",
+            storage: quota.storage,
+          });
+        }
       }
 
       const slug = await uniqueSiteContentSlug(type, b.slug || data.title || type);
@@ -2288,6 +2787,7 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
           price, sessions, duration, available_for_booking,
           qualification, specialization, years_experience, registration_number,
           phone, email, homepage_highlight, patient_consent, published, display_order,
+          file_size, mime_type,
           created_at, updated_at
         ) VALUES (
           ?, ?, ?, ?, ?, ?, ?, ?,
@@ -2298,6 +2798,7 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
           ?, ?, ?, ?,
           ?, ?, ?, ?,
           ?, ?, ?, ?, ?, ?,
+          ?, ?,
           datetime('now'), datetime('now')
         )
       `).bind(
@@ -2341,13 +2842,16 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
         data.homepageHighlight ? 1 : 0,
         data.patientConsent ? 1 : 0,
         data.published ? 1 : 0,
-        data.displayOrder
+        data.displayOrder,
+        data.fileSize,
+        data.mimeType
       ).run();
 
       const created = await d1.prepare("SELECT * FROM site_content WHERE id = ?").bind(info.meta.last_row_id).first();
       await syncSiteContentToLegacyTables(created);
       const finalRow = await d1.prepare("SELECT * FROM site_content WHERE id = ?").bind(info.meta.last_row_id).first();
-      res.status(201).json({ item: serializeSiteContent(finalRow || created) });
+      const storage = isReelType ? await getReelsStorageUsage() : undefined;
+      res.status(201).json({ item: serializeSiteContent(finalRow || created), ...(storage ? { storage } : {}) });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -2370,12 +2874,43 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
           ? String(b.type).trim()
           : existing.type;
       const data = normalizeSiteContentInput(b, existing, type);
+      if (b.featured !== undefined && b.badgeText === undefined && b.badge_text === undefined) {
+        data.badgeText = parseBool(b.featured)
+          ? "Featured"
+          : String(existing.badge_text || "").toLowerCase() === "featured"
+            ? ""
+            : existing.badge_text || "";
+      }
 
       if (!data.title && !data.mediaUrl && !data.beforeImage && !data.afterImage) {
         return res.status(400).json({ error: "Please enter a title or upload media." });
       }
       if (data.published && (type === "gallery" || type === "testimonial") && !data.patientConsent) {
         return res.status(400).json({ error: "Patient consent is required before publishing this entry." });
+      }
+
+      const isReelType = type === "reel" || type === "video";
+      if (isReelType) {
+        if (!data.mediaUrl) {
+          return res.status(400).json({ error: "Please upload a video file." });
+        }
+        const mediaChanged = data.mediaUrl !== existing.media_url;
+        if (mediaChanged || !existing.file_size || b.fileSize !== undefined || b.file_size !== undefined) {
+          const resolved = await resolveVideoObjectMeta(data.mediaUrl, data.fileSize, data.mimeType);
+          data.fileSize = resolved.fileSize;
+          if (resolved.mimeType) data.mimeType = resolved.mimeType;
+        }
+        const quota = await checkReelsQuota(data.fileSize, { excludeContentId: id });
+        if (!quota.ok) {
+          if (mediaChanged && data.mediaUrl) {
+            await deleteUnreferencedR2Media([data.mediaUrl], id).catch(() => {});
+          }
+          return res.status(413).json({
+            error: quota.error,
+            code: "STORAGE_QUOTA_EXCEEDED",
+            storage: quota.storage,
+          });
+        }
       }
 
       const rawSlug = b.slug !== undefined ? String(b.slug).trim() : "";
@@ -2402,6 +2937,7 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
           price = ?, sessions = ?, duration = ?, available_for_booking = ?,
           qualification = ?, specialization = ?, years_experience = ?, registration_number = ?,
           phone = ?, email = ?, homepage_highlight = ?, patient_consent = ?, published = ?, display_order = ?,
+          file_size = ?, mime_type = ?,
           updated_at = datetime('now')
         WHERE id = ?
       `).bind(
@@ -2446,6 +2982,8 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
         data.patientConsent ? 1 : 0,
         data.published ? 1 : 0,
         data.displayOrder,
+        data.fileSize,
+        data.mimeType,
         id
       ).run();
 
@@ -2456,7 +2994,8 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
       const updated = await d1.prepare("SELECT * FROM site_content WHERE id = ?").bind(id).first();
       await syncSiteContentToLegacyTables(updated);
       const finalRow = await d1.prepare("SELECT * FROM site_content WHERE id = ?").bind(id).first();
-      res.json({ item: serializeSiteContent(finalRow || updated) });
+      const storage = isReelType ? await getReelsStorageUsage() : undefined;
+      res.json({ item: serializeSiteContent(finalRow || updated), ...(storage ? { storage } : {}) });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -2480,7 +3019,9 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
         id
       );
 
-      res.json({ ok: true, id });
+      const isReelType = existing.type === "reel" || existing.type === "video";
+      const storage = isReelType ? await getReelsStorageUsage() : undefined;
+      res.json({ ok: true, id, ...(storage ? { storage } : {}) });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -2495,6 +3036,8 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
         rows = (await d1.prepare("SELECT * FROM site_content WHERE published = 1 ORDER BY display_order ASC, id DESC").all()).results || [];
       } else if (rawType === "before_after" || rawType === "before-after" || rawType === "transformation") {
         rows = (await d1.prepare("SELECT * FROM site_content WHERE type IN ('gallery', 'before_after') AND published = 1 ORDER BY display_order ASC, id DESC").all()).results || [];
+      } else if (rawType === "reel" || rawType === "video") {
+        rows = (await d1.prepare("SELECT * FROM site_content WHERE type IN ('reel', 'video') AND published = 1 ORDER BY display_order ASC, id DESC").all()).results || [];
       } else if (SITE_CONTENT_TYPES.includes(rawType)) {
         rows = (await d1.prepare("SELECT * FROM site_content WHERE type = ? AND published = 1 ORDER BY display_order ASC, id DESC").bind(rawType).all()).results || [];
       }
@@ -2513,7 +3056,14 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
         return true;
       });
 
-      res.json({ items: visible.map(serializeSiteContent) });
+      const reelsSettings = !rawType || rawType === "reel" || rawType === "video"
+        ? await getReelsSectionSettings()
+        : undefined;
+
+      res.json({
+        items: visible.map(serializeSiteContent),
+        ...(reelsSettings ? { reelsSettings } : {}),
+      });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
