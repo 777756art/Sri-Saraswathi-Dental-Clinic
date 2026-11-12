@@ -41,6 +41,7 @@ const DashboardInventory = lazy(() => import("@/pages/dashboard/Inventory"));
 const DashboardMarketing = lazy(() => import("@/pages/dashboard/Marketing"));
 const DashboardOffers = lazy(() => import("@/pages/dashboard/Offers"));
 const DashboardReelsVideos = lazy(() => import("@/pages/dashboard/ReelsVideos"));
+const DashboardGoogleReviews = lazy(() => import("@/pages/dashboard/GoogleReviews"));
 const DashboardPatients = lazy(() => import("@/pages/dashboard/Patients"));
 const DashboardSettings = lazy(() => import("@/pages/dashboard/Settings"));
 const DashboardSmileGallery = lazy(() => import("@/pages/dashboard/SmileGallery"));
@@ -110,6 +111,7 @@ function AppRoutes() {
           <Route path="/dashboard/media" element={<DashboardMedia />} />
           <Route path="/dashboard/offers" element={<DashboardOffers />} />
           <Route path="/dashboard/reels" element={<DashboardReelsVideos />} />
+          <Route path="/dashboard/google-reviews" element={<DashboardGoogleReviews />} />
           <Route path="/dashboard/patients" element={<DashboardPatients />} />
           <Route path="/dashboard/settings" element={<DashboardSettings />} />
           <Route path="/dashboard/smile-gallery" element={<DashboardSmileGallery />} />

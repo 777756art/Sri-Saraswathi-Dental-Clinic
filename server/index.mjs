@@ -9,6 +9,27 @@ import { DatabaseSync } from "node:sqlite";
 import { GridFSBucket, MongoClient } from "mongodb";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const ROOT_DIR = path.resolve(__dirname, "..");
+
+for (const envName of [".env", ".env.local", ".env.api"]) {
+  const envFile = path.join(ROOT_DIR, envName);
+  if (!fs.existsSync(envFile)) continue;
+  for (const rawLine of fs.readFileSync(envFile, "utf8").split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#")) continue;
+    const eqIndex = line.indexOf("=");
+    if (eqIndex <= 0) continue;
+    const key = line.slice(0, eqIndex).trim();
+    let val = line.slice(eqIndex + 1).trim();
+    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+      val = val.slice(1, -1);
+    }
+    if (process.env[key] === undefined) {
+      process.env[key] = val;
+    }
+  }
+}
+
 const PORT = Number(process.env.PORT || 4102);
 
 const CLINIC = {

@@ -57,10 +57,10 @@ export function DentalReels() {
       .filter(
         (item) =>
           (item.type === "reel" || item.type === "video") &&
-          item.published &&
-          item.homepageHighlight &&
+          Boolean(item.published) &&
           Boolean(item.mediaUrl || item.mobileMediaUrl)
       )
+      .sort((a, b) => a.displayOrder - b.displayOrder || b.id - a.id)
       .map((item) => ({
         id: item.id,
         title: item.title || "Dental Care Reel",

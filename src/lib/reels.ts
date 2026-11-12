@@ -80,7 +80,7 @@ export async function captureVideoThumbnail(file: File): Promise<File | null> {
   const video = document.createElement("video");
   video.muted = true;
   video.playsInline = true;
-  video.preload = "metadata";
+  video.preload = "auto";
 
   const cleanup = () => {
     video.removeAttribute("src");
@@ -154,4 +154,27 @@ export async function captureVideoThumbnail(file: File): Promise<File | null> {
     video.onerror = () => finish(null);
     video.src = objectUrl;
   });
+}
+
+export const SITE_CONTENT_SYNC_CHANNEL = "ssd-site-content-sync";
+export const SITE_CONTENT_SYNC_KEY = "ssd_site_content_version";
+
+/** Broadcasts live CMS changes to both same-tab listeners and open public website tabs. */
+export function notifySiteContentUpdated(): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new Event("site-content-updated"));
+  try {
+    localStorage.setItem(SITE_CONTENT_SYNC_KEY, String(Date.now()));
+  } catch {
+    // Ignore storage quota / private mode restrictions
+  }
+  if (typeof BroadcastChannel !== "undefined") {
+    try {
+      const ch = new BroadcastChannel(SITE_CONTENT_SYNC_CHANNEL);
+      ch.postMessage({ type: "updated", at: Date.now() });
+      ch.close();
+    } catch {
+      // Ignore unsupported BroadcastChannel contexts
+    }
+  }
 }

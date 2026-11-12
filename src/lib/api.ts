@@ -38,7 +38,7 @@ export type Booking = {
   sms?: { patient: string | null };
 };
 
-export const SITE_CONTENT_TYPES = ["hero", "blog", "offer", "gallery", "reel", "video", "image", "badge", "treatment", "doctor", "achievement", "testimonial", "before_after"] as const;
+export const SITE_CONTENT_TYPES = ["hero", "blog", "offer", "gallery", "reel", "video", "image", "badge", "treatment", "doctor", "achievement", "testimonial", "before_after", "google_review"] as const;
 export type SiteContentType = (typeof SITE_CONTENT_TYPES)[number];
 
 export type SiteContent = {
@@ -110,6 +110,71 @@ export type ReelsStorageUsage = {
   availableBytes: number;
   usedPercent: number;
   videoCount: number;
+};
+
+export type GoogleReviewSource = "google_api";
+
+export type GoogleReviewItem = {
+  id: number;
+  author: string;
+  rating: number;
+  comment: string;
+  reviewDate: string;
+  relativeTime: string;
+  source: GoogleReviewSource;
+  authorPhotoUrl: string;
+  reviewUrl: string;
+  published: boolean;
+  displayOrder: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type GoogleReviewsStatus = "synced" | "api_key_missing" | "place_id_missing" | "sync_error" | "empty";
+
+export type GoogleReviewsConfig = {
+  googleReviewsUrl: string;
+  googleMapsUri: string;
+  writeReviewUrl: string;
+  effectiveWriteReviewUrl: string;
+  placeId: string;
+  businessName: string;
+  overallRating: number | null;
+  totalReviews: number | null;
+  lastSyncedAt: string;
+  lastSyncError: string;
+  syncSource: "google_api" | "unconfigured";
+};
+
+export type GoogleReviewsResponse = {
+  status: GoogleReviewsStatus;
+  apiConfigured: boolean;
+  cached?: boolean;
+  issue?: string;
+  maxApiReviewsNotice?: string;
+  config: GoogleReviewsConfig;
+  reviews: GoogleReviewItem[];
+};
+
+export type AdminGoogleReviewsResponse = GoogleReviewsResponse & {
+  envPlaceIdConfigured: boolean;
+  cacheMinutes: number;
+};
+
+export const DEFAULT_GOOGLE_REVIEWS_URL = "https://share.google/SOW6zQnrpqeVVJPPh";
+
+export const DEFAULT_GOOGLE_REVIEWS_CONFIG: GoogleReviewsConfig = {
+  googleReviewsUrl: DEFAULT_GOOGLE_REVIEWS_URL,
+  googleMapsUri: "",
+  writeReviewUrl: "",
+  effectiveWriteReviewUrl: DEFAULT_GOOGLE_REVIEWS_URL,
+  placeId: "",
+  businessName: "Sri Saraswathi Dental Clinic",
+  overallRating: null,
+  totalReviews: null,
+  lastSyncedAt: "",
+  lastSyncError: "",
+  syncSource: "unconfigured",
 };
 
 export type ResumableUploadProgress = {
@@ -240,7 +305,10 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
         ...init.headers,
       },
     });
-  } catch {
+  } catch (err) {
+    if ((err instanceof DOMException && err.name === "AbortError") || init?.signal?.aborted) {
+      throw new DOMException("Upload cancelled", "AbortError");
+    }
     throw new ApiError(0, "Clinic account service is unreachable. Please try again shortly.");
   }
 
@@ -398,6 +466,36 @@ function xhrPut({
 }
 
 const MULTIPART_THRESHOLD_BYTES = 8 * 1024 * 1024;
+const MULTIPART_CONCURRENCY = 3;
+
+function buildUploadResumeStorageKey(file: File, folder: string, replaceContentId?: number) {
+  return `ssd-reel-upload:${folder}:${replaceContentId ?? "new"}:${file.name}:${file.size}:${file.lastModified}`;
+}
+
+function readPersistedResumeState(storageKey: string): ResumableResumeState | undefined {
+  if (typeof sessionStorage === "undefined") return undefined;
+  try {
+    const raw = sessionStorage.getItem(storageKey);
+    if (!raw) return undefined;
+    const parsed = JSON.parse(raw) as ResumableResumeState;
+    return parsed?.uploadId && parsed?.key ? parsed : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function writePersistedResumeState(storageKey: string, state: ResumableResumeState | null) {
+  if (typeof sessionStorage === "undefined") return;
+  try {
+    if (!state) {
+      sessionStorage.removeItem(storageKey);
+    } else {
+      sessionStorage.setItem(storageKey, JSON.stringify(state));
+    }
+  } catch {
+    // Ignore storage quota or private mode restrictions
+  }
+}
 
 export const api = {
   get: <T>(path: string, init?: RequestInit) => request<T>(path, init),
@@ -406,10 +504,35 @@ export const api = {
   patch: <T>(path: string, body: unknown) =>
     request<T>(path, { method: "PATCH", body: JSON.stringify(body) }),
   delete: <T>(path: string) => request<T>(path, { method: "DELETE" }),
+  getGoogleReviews: () =>
+    request<GoogleReviewsResponse>("/api/google-reviews", { cache: "no-store" }),
+  getAdminGoogleReviews: () =>
+    request<AdminGoogleReviewsResponse>("/api/admin/google-reviews", { cache: "no-store" }),
+  updateGoogleReviewsConfig: (payload: Partial<Pick<GoogleReviewsConfig, "googleReviewsUrl" | "writeReviewUrl" | "placeId" | "businessName">>) =>
+    request<{ config: GoogleReviewsConfig; apiConfigured: boolean }>("/api/admin/google-reviews/config", {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+  syncGoogleReviews: (placeId?: string) =>
+    request<{
+      status: GoogleReviewsStatus;
+      config: GoogleReviewsConfig;
+      reviews: GoogleReviewItem[];
+      importedCount: number;
+      apiConfigured: boolean;
+    }>("/api/admin/google-reviews/sync", {
+      method: "POST",
+      body: JSON.stringify(placeId ? { placeId } : {}),
+    }),
   cleanupUnreferencedMedia: (urls: string[]) =>
     request<{ ok: boolean }>("/api/admin/uploads/cleanup", {
       method: "POST",
       body: JSON.stringify({ urls: urls.filter(Boolean) }),
+    }).catch(() => ({ ok: false })),
+  abortMultipartUpload: (key: string, uploadId: string) =>
+    request<{ ok: boolean }>("/api/admin/uploads/multipart/abort", {
+      method: "POST",
+      body: JSON.stringify({ key, uploadId }),
     }).catch(() => ({ ok: false })),
   uploadVideoResumable: async (
     file: File,
@@ -418,6 +541,7 @@ export const api = {
       replaceContentId,
       signal,
       resumeState,
+      abortOnCancel = false,
       onProgress,
       onResumeStateChange,
     }: {
@@ -425,8 +549,9 @@ export const api = {
       replaceContentId?: number;
       signal?: AbortSignal;
       resumeState?: ResumableResumeState;
+      abortOnCancel?: boolean;
       onProgress?: (progress: ResumableUploadProgress) => void;
-      onResumeStateChange?: (state: ResumableResumeState) => void;
+      onResumeStateChange?: (state: ResumableResumeState | undefined) => void;
     } = {}
   ) => {
     if (!file || file.size === 0) {
@@ -437,9 +562,14 @@ export const api = {
     }
 
     const mimeType = detectMediaMimeType(file, folder);
+    const resumeStorageKey = buildUploadResumeStorageKey(file, folder, replaceContentId);
+    const initialResume = resumeState?.uploadId ? resumeState : readPersistedResumeState(resumeStorageKey);
+    let maxReportedLoaded = 0;
+
     const report = (loadedBytes: number, phase: ResumableUploadProgress["phase"]) => {
       if (!onProgress) return;
-      const clampedLoaded = Math.min(file.size, Math.max(0, loadedBytes));
+      const clampedLoaded = Math.min(file.size, Math.max(maxReportedLoaded, loadedBytes));
+      maxReportedLoaded = clampedLoaded;
       const rawPct = file.size > 0 ? Math.round((clampedLoaded / file.size) * 100) : 0;
       const percent = phase === "finalizing" ? Math.max(99, rawPct) : Math.min(99, rawPct);
       onProgress({
@@ -453,12 +583,12 @@ export const api = {
 
     report(0, "preparing");
 
-    const useMultipart = file.size > MULTIPART_THRESHOLD_BYTES || Boolean(resumeState?.uploadId);
+    const useMultipart = file.size > MULTIPART_THRESHOLD_BYTES || Boolean(initialResume?.uploadId);
 
     if (useMultipart) {
       let state: ResumableResumeState = {
-        ...resumeState,
-        completedParts: [...(resumeState?.completedParts || [])],
+        ...initialResume,
+        completedParts: [...(initialResume?.completedParts || [])],
       };
 
       try {
@@ -490,6 +620,7 @@ export const api = {
             totalParts: initRes.totalParts,
             completedParts: [],
           };
+          writePersistedResumeState(resumeStorageKey, state);
           onResumeStateChange?.(state);
         }
 
@@ -498,75 +629,96 @@ export const api = {
         const completedMap = new Map<number, string>(
           (state.completedParts || []).map((p) => [p.partNumber, p.etag])
         );
+        const inFlightBytes = new Map<number, number>();
 
-        const getUploadedBytesCount = () => {
+        const computeTotalLoaded = () => {
           let sum = 0;
           for (const partNo of completedMap.keys()) {
             const start = (partNo - 1) * partSize;
             const end = Math.min(file.size, start + partSize);
             sum += Math.max(0, end - start);
           }
+          for (const [partNo, loaded] of inFlightBytes.entries()) {
+            if (!completedMap.has(partNo)) sum += loaded;
+          }
           return sum;
         };
 
+        report(computeTotalLoaded(), "uploading");
+
+        const pendingPartNumbers: number[] = [];
         for (let partNumber = 1; partNumber <= totalParts; partNumber += 1) {
-          if (signal?.aborted) {
-            throw new DOMException("Upload cancelled", "AbortError");
+          if (!completedMap.has(partNumber)) {
+            pendingPartNumbers.push(partNumber);
           }
-          if (completedMap.has(partNumber)) {
-            report(getUploadedBytesCount(), "uploading");
-            continue;
-          }
+        }
 
-          const start = (partNumber - 1) * partSize;
-          const end = Math.min(file.size, start + partSize);
-          const chunk = file.slice(start, end);
-          const baseLoaded = getUploadedBytesCount();
-
-          const signed = await request<{
-            direct: boolean;
-            uploadUrl: string;
-          }>("/api/admin/uploads/multipart/sign-part", {
-            method: "POST",
-            signal,
-            body: JSON.stringify({
-              key: state.key,
-              uploadId: state.uploadId,
-              partNumber,
-            }),
-          });
-
-          const targetUrl = signed.direct ? signed.uploadUrl : `${API_BASE_URL}${signed.uploadUrl}`;
-          const putRes = await xhrPut({
-            url: targetUrl,
-            body: chunk,
-            headers: signed.direct ? {} : { "Content-Type": "application/octet-stream" },
-            withCredentials: !signed.direct,
-            signal,
-            onProgress: (loaded) => {
-              report(baseLoaded + Math.min(loaded, chunk.size), "uploading");
-            },
-          });
-
-          let partEtag = putRes.etag;
-          if (!partEtag && putRes.responseText) {
-            try {
-              const parsed = JSON.parse(putRes.responseText);
-              if (parsed?.etag) partEtag = String(parsed.etag);
-            } catch {
-              // ignore
+        let cursor = 0;
+        const workerCount = Math.min(MULTIPART_CONCURRENCY, Math.max(1, pendingPartNumbers.length));
+        const uploadPartWorker = async () => {
+          while (cursor < pendingPartNumbers.length) {
+            if (signal?.aborted) {
+              throw new DOMException("Upload cancelled", "AbortError");
             }
-          }
-          if (!partEtag) {
-            throw new Error("Storage did not expose chunk ETag. Check bucket CORS ExposeHeaders for ETag.");
-          }
+            const partNumber = pendingPartNumbers[cursor];
+            cursor += 1;
 
-          completedMap.set(partNumber, partEtag);
-          state.completedParts = Array.from(completedMap.entries())
-            .sort((a, b) => a[0] - b[0])
-            .map(([pNo, etag]) => ({ partNumber: pNo, etag }));
-          onResumeStateChange?.({ ...state });
-          report(getUploadedBytesCount(), "uploading");
+            const start = (partNumber - 1) * partSize;
+            const end = Math.min(file.size, start + partSize);
+            const chunk = file.slice(start, end);
+
+            const signed = await request<{
+              direct: boolean;
+              uploadUrl: string;
+            }>("/api/admin/uploads/multipart/sign-part", {
+              method: "POST",
+              signal,
+              body: JSON.stringify({
+                key: state.key,
+                uploadId: state.uploadId,
+                partNumber,
+              }),
+            });
+
+            const targetUrl = signed.direct ? signed.uploadUrl : `${API_BASE_URL}${signed.uploadUrl}`;
+            const putRes = await xhrPut({
+              url: targetUrl,
+              body: chunk,
+              headers: signed.direct ? {} : { "Content-Type": "application/octet-stream" },
+              withCredentials: !signed.direct,
+              signal,
+              onProgress: (loaded) => {
+                inFlightBytes.set(partNumber, Math.min(loaded, chunk.size));
+                report(computeTotalLoaded(), "uploading");
+              },
+            });
+
+            let partEtag = putRes.etag;
+            if (!partEtag && putRes.responseText) {
+              try {
+                const parsed = JSON.parse(putRes.responseText);
+                if (parsed?.etag) partEtag = String(parsed.etag);
+              } catch {
+                // ignore
+              }
+            }
+            if (!partEtag) {
+              throw new Error("Storage did not expose chunk ETag. Check bucket CORS ExposeHeaders for ETag.");
+            }
+
+            inFlightBytes.delete(partNumber);
+            completedMap.set(partNumber, partEtag);
+            state.completedParts = Array.from(completedMap.entries())
+              .sort((a, b) => a[0] - b[0])
+              .map(([pNo, etag]) => ({ partNumber: pNo, etag }));
+            writePersistedResumeState(resumeStorageKey, state);
+            onResumeStateChange?.({ ...state });
+            report(computeTotalLoaded(), "uploading");
+          }
+        };
+
+        if (pendingPartNumbers.length > 0) {
+          await Promise.all(Array.from({ length: workerCount }, () => uploadPartWorker()));
         }
 
         report(file.size, "finalizing");
@@ -587,6 +739,8 @@ export const api = {
           }),
         });
 
+        writePersistedResumeState(resumeStorageKey, null);
+        onResumeStateChange?.(undefined);
         onProgress?.({
           loadedBytes: file.size,
           totalBytes: file.size,
@@ -603,11 +757,21 @@ export const api = {
           success: true,
         };
       } catch (err) {
-        if (err instanceof DOMException && err.name === "AbortError" && state.key && state.uploadId) {
-          request("/api/admin/uploads/multipart/abort", {
-            method: "POST",
-            body: JSON.stringify({ key: state.key, uploadId: state.uploadId }),
-          }).catch(() => {});
+        if (err instanceof DOMException && err.name === "AbortError") {
+          if (abortOnCancel && state.key && state.uploadId) {
+            writePersistedResumeState(resumeStorageKey, null);
+            onResumeStateChange?.(undefined);
+            request("/api/admin/uploads/multipart/abort", {
+              method: "POST",
+              body: JSON.stringify({ key: state.key, uploadId: state.uploadId }),
+            }).catch(() => {});
+          }
+        } else if (
+          err instanceof Error &&
+          /session not found|NoSuchUpload/i.test(err.message)
+        ) {
+          writePersistedResumeState(resumeStorageKey, null);
+          onResumeStateChange?.(undefined);
         }
         throw err;
       }

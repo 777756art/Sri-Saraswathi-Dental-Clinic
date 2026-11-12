@@ -14,7 +14,6 @@ import {
   safeDeleteR2File,
   resolveMediaMimeType,
   ALLOWED_MIME_TYPES,
-  R2_FOLDERS,
 } from "./r2.mjs";
 
 const COOKIE_NAME = "sc_session";
@@ -344,6 +343,545 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
       .bind(JSON.stringify(next))
       .run();
     return next;
+  };
+
+  /* ------------------------------------------------------------- GOOGLE BUSINESS PROFILE REVIEWS */
+  const DEFAULT_GOOGLE_REVIEWS_URL = "https://share.google/SOW6zQnrpqeVVJPPh";
+  const GOOGLE_REVIEWS_CONFIG_KEY = "google_reviews_config";
+  const DEFAULT_GOOGLE_REVIEWS_CONFIG = {
+    googleReviewsUrl: DEFAULT_GOOGLE_REVIEWS_URL,
+    googleMapsUri: "",
+    writeReviewUrl: "",
+    placeId: "",
+    businessName: "Sri Saraswathi Dental Clinic",
+    overallRating: null,
+    totalReviews: null,
+    lastSyncedAt: "",
+    lastSyncError: "",
+    syncSource: "unconfigured",
+  };
+
+  let googleReviewsMemoryCache = null;
+  let inFlightGoogleSyncPromise = null;
+
+  const isValidHttpUrl = (value) => {
+    const raw = String(value || "").trim();
+    if (!raw) return false;
+    try {
+      const parsed = new URL(raw);
+      return parsed.protocol === "http:" || parsed.protocol === "https:";
+    } catch {
+      return false;
+    }
+  };
+
+  const getServerGoogleApiKey = () =>
+    String(
+      process.env.GOOGLE_PLACES_API_KEY ||
+        process.env.GOOGLE_MAPS_API_KEY ||
+        process.env.GOOGLE_API_KEY ||
+        ""
+    ).trim();
+
+  const getGooglePlacesV1Origin = () =>
+    String(process.env.GOOGLE_PLACES_API_BASE_URL || "https://places.googleapis.com")
+      .trim()
+      .replace(/\/$/, "");
+
+  const getGoogleMapsApiOrigin = () =>
+    String(process.env.GOOGLE_MAPS_API_BASE_URL || "https://maps.googleapis.com")
+      .trim()
+      .replace(/\/$/, "");
+
+  const getGoogleReviewsSyncIntervalMs = () => {
+    const mins = Number(process.env.GOOGLE_REVIEWS_CACHE_MINUTES || 360);
+    const safeMins = Number.isFinite(mins) && mins >= 5 ? mins : 360;
+    return safeMins * 60 * 1000;
+  };
+
+  const extractPlaceIdFromUrlString = (rawUrl) => {
+    const value = String(rawUrl || "").trim();
+    if (!value) return "";
+    try {
+      const parsed = new URL(value);
+      const qPlaceId =
+        parsed.searchParams.get("place_id") ||
+        parsed.searchParams.get("placeid") ||
+        parsed.searchParams.get("query_place_id");
+      if (qPlaceId && /^ChIJ[A-Za-z0-9_-]{8,}$/.test(qPlaceId.trim())) {
+        return qPlaceId.trim();
+      }
+    } catch {
+      // Ignore non-URL strings
+    }
+    const chijMatch = value.match(/(ChIJ[A-Za-z0-9_-]{12,})/);
+    return chijMatch ? chijMatch[1] : "";
+  };
+
+  const deriveEffectiveWriteReviewUrl = (cfg) => {
+    if (isValidHttpUrl(cfg.writeReviewUrl)) return cfg.writeReviewUrl.trim();
+    const pid = String(cfg.placeId || process.env.GOOGLE_PLACE_ID || "").trim();
+    if (pid) return `https://search.google.com/local/writereview?placeid=${encodeURIComponent(pid)}`;
+    if (isValidHttpUrl(cfg.googleMapsUri)) return cfg.googleMapsUri.trim();
+    return isValidHttpUrl(cfg.googleReviewsUrl) ? cfg.googleReviewsUrl.trim() : DEFAULT_GOOGLE_REVIEWS_URL;
+  };
+
+  const parseRatingValue = (raw) => {
+    if (raw === null || raw === undefined || raw === "") return null;
+    const n = Number(raw);
+    if (!Number.isFinite(n) || n < 1 || n > 5) return null;
+    return Math.round(n * 10) / 10;
+  };
+
+  const parseCountValue = (raw) => {
+    if (raw === null || raw === undefined || raw === "") return null;
+    const n = Math.round(Number(raw));
+    if (!Number.isFinite(n) || n < 0) return null;
+    return n;
+  };
+
+  const getGoogleReviewsConfig = async () => {
+    let parsed = {};
+    try {
+      const row = await d1.prepare("SELECT value FROM d1_meta WHERE key = ?").bind(GOOGLE_REVIEWS_CONFIG_KEY).first();
+      if (row?.value) parsed = JSON.parse(row.value) || {};
+    } catch {
+      parsed = {};
+    }
+
+    const placeId = String(process.env.GOOGLE_PLACE_ID || parsed.placeId || "").trim();
+    const googleReviewsUrl = isValidHttpUrl(parsed.googleReviewsUrl)
+      ? parsed.googleReviewsUrl.trim()
+      : DEFAULT_GOOGLE_REVIEWS_URL;
+    const googleMapsUri = isValidHttpUrl(parsed.googleMapsUri) ? parsed.googleMapsUri.trim() : "";
+    const writeReviewUrl = isValidHttpUrl(parsed.writeReviewUrl) ? parsed.writeReviewUrl.trim() : "";
+
+    const cfg = {
+      googleReviewsUrl,
+      googleMapsUri,
+      writeReviewUrl,
+      placeId,
+      businessName:
+        typeof parsed.businessName === "string" && parsed.businessName.trim()
+          ? parsed.businessName.trim()
+          : DEFAULT_GOOGLE_REVIEWS_CONFIG.businessName,
+      overallRating: parseRatingValue(parsed.overallRating),
+      totalReviews: parseCountValue(parsed.totalReviews),
+      lastSyncedAt: typeof parsed.lastSyncedAt === "string" ? parsed.lastSyncedAt : "",
+      lastSyncError: typeof parsed.lastSyncError === "string" ? parsed.lastSyncError : "",
+      syncSource: parsed.syncSource === "google_api" ? "google_api" : "unconfigured",
+    };
+
+    return {
+      ...cfg,
+      effectiveWriteReviewUrl: deriveEffectiveWriteReviewUrl(cfg),
+    };
+  };
+
+  const saveGoogleReviewsConfig = async (patch = {}) => {
+    const current = await getGoogleReviewsConfig();
+    const nextGoogleUrl =
+      patch.googleReviewsUrl !== undefined
+        ? isValidHttpUrl(patch.googleReviewsUrl)
+          ? String(patch.googleReviewsUrl).trim()
+          : DEFAULT_GOOGLE_REVIEWS_URL
+        : current.googleReviewsUrl;
+
+    const nextMapsUri =
+      patch.googleMapsUri !== undefined
+        ? isValidHttpUrl(patch.googleMapsUri)
+          ? String(patch.googleMapsUri).trim()
+          : ""
+        : current.googleMapsUri;
+
+    const nextWriteUrl =
+      patch.writeReviewUrl !== undefined
+        ? isValidHttpUrl(patch.writeReviewUrl)
+          ? String(patch.writeReviewUrl).trim()
+          : ""
+        : current.writeReviewUrl;
+
+    const nextPlaceId =
+      patch.placeId !== undefined ? String(patch.placeId || "").trim() : current.placeId;
+
+    const nextRating =
+      patch.overallRating !== undefined ? parseRatingValue(patch.overallRating) : current.overallRating;
+
+    const nextTotal =
+      patch.totalReviews !== undefined ? parseCountValue(patch.totalReviews) : current.totalReviews;
+
+    const next = {
+      googleReviewsUrl: nextGoogleUrl,
+      googleMapsUri: nextMapsUri,
+      writeReviewUrl: nextWriteUrl,
+      placeId: nextPlaceId,
+      businessName:
+        patch.businessName !== undefined && String(patch.businessName).trim()
+          ? String(patch.businessName).trim()
+          : current.businessName,
+      overallRating: nextRating,
+      totalReviews: nextTotal,
+      lastSyncedAt: patch.lastSyncedAt !== undefined ? String(patch.lastSyncedAt || "") : current.lastSyncedAt,
+      lastSyncError: patch.lastSyncError !== undefined ? String(patch.lastSyncError || "") : current.lastSyncError,
+      syncSource: patch.syncSource === "google_api" ? "google_api" : patch.syncSource === "unconfigured" ? "unconfigured" : current.syncSource,
+    };
+
+    await d1
+      .prepare(
+        `INSERT INTO d1_meta (key, value, updated_at)
+         VALUES (?, ?, datetime('now'))
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')`
+      )
+      .bind(GOOGLE_REVIEWS_CONFIG_KEY, JSON.stringify(next))
+      .run();
+
+    googleReviewsMemoryCache = null;
+
+    return {
+      ...next,
+      effectiveWriteReviewUrl: deriveEffectiveWriteReviewUrl(next),
+    };
+  };
+
+  const serializeGoogleReviewRow = (row) => {
+    let meta = {};
+    try {
+      meta = row.seo_description ? JSON.parse(row.seo_description) : {};
+    } catch {
+      meta = {};
+    }
+    const rawRating = Number(row.rating_score);
+    const rating = Number.isFinite(rawRating) && rawRating >= 1 && rawRating <= 5 ? Math.round(rawRating) : 5;
+    return {
+      id: Number(row.id),
+      author: row.author || row.title || "",
+      rating,
+      comment: row.body || row.excerpt || "",
+      reviewDate: row.published_at || "",
+      relativeTime: typeof meta.relativeTime === "string" ? meta.relativeTime : row.subtitle || "",
+      source: "google_api",
+      authorPhotoUrl: row.media_url || (typeof meta.authorPhotoUrl === "string" ? meta.authorPhotoUrl : ""),
+      reviewUrl: row.link_url || "",
+      published: Boolean(row.published),
+      displayOrder: Number(row.display_order || 0),
+      createdAt: row.created_at || "",
+      updatedAt: row.updated_at || "",
+    };
+  };
+
+  const resolveGooglePlaceId = async (apiKey, config) => {
+    const explicitId = String(config.placeId || process.env.GOOGLE_PLACE_ID || "").trim();
+    if (explicitId) return { placeId: explicitId, businessName: config.businessName, googleMapsUri: config.googleMapsUri };
+
+    const fromConfigUrl = extractPlaceIdFromUrlString(config.googleReviewsUrl);
+    if (fromConfigUrl) return { placeId: fromConfigUrl, businessName: config.businessName, googleMapsUri: config.googleMapsUri };
+
+    // Inspect single-hop redirect Location header (no HTML scraping) if a share link redirects with a Place ID
+    if (isValidHttpUrl(config.googleReviewsUrl)) {
+      try {
+        const headRes = await fetch(config.googleReviewsUrl, { method: "HEAD", redirect: "manual" });
+        const loc = headRes.headers.get("location");
+        const fromLoc = extractPlaceIdFromUrlString(loc);
+        if (fromLoc) return { placeId: fromLoc, businessName: config.businessName, googleMapsUri: config.googleMapsUri };
+      } catch {
+        // Ignore network/shortlink resolution failure and continue to official Places API Text Search
+      }
+    }
+
+    // Build accurate search query from clinic settings stored in D1
+    let clinicRow = null;
+    try {
+      clinicRow = await d1.prepare("SELECT clinic_name, address FROM clinic_settings WHERE id = 1").first();
+    } catch {
+      clinicRow = null;
+    }
+    const queryCandidates = [
+      [
+        clinicRow?.clinic_name || config.businessName || "Sri Saraswathi Dental Clinic",
+        clinicRow?.address || "866 Soli Complex Surampatti Four Rd Erode Tamil Nadu 638009",
+      ]
+        .filter(Boolean)
+        .join(", "),
+      "Sri Saraswathi Dental Clinic, EVN Road, Erode",
+      "Sree Saraswathi Dental Clinic, 866 Soli Complex, Surampatti Four Rd, Erode, Tamil Nadu 638009",
+      "Sri Saraswathi Dental Clinic Erode",
+    ];
+
+    const v1Origin = getGooglePlacesV1Origin();
+    for (const textQuery of queryCandidates) {
+      const searchRes = await fetch(`${v1Origin}/v1/places:searchText`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Goog-Api-Key": apiKey,
+          "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.googleMapsUri",
+        },
+        body: JSON.stringify({
+          textQuery,
+          languageCode: "en",
+          maxResultCount: 3,
+        }),
+      });
+
+      if (searchRes.ok) {
+        const searchJson = await searchRes.json().catch(() => ({}));
+        const matched = Array.isArray(searchJson?.places) ? searchJson.places.find((p) => p?.id) : null;
+        if (matched?.id) {
+          return {
+            placeId: String(matched.id).trim(),
+            businessName: String(matched.displayName?.text || config.businessName || "").trim(),
+            googleMapsUri: String(matched.googleMapsUri || config.googleMapsUri || "").trim(),
+          };
+        }
+      }
+    }
+
+    // Fallback to official Legacy Find Place API
+    const legacyOrigin = getGoogleMapsApiOrigin();
+    const findUrl = `${legacyOrigin}/maps/api/place/findplacefromtext/json?input=${encodeURIComponent(
+      queryCandidates[0]
+    )}&inputtype=textquery&fields=place_id,name&key=${encodeURIComponent(apiKey)}`;
+    const findRes = await fetch(findUrl, { headers: { Accept: "application/json" } });
+    const findJson = await findRes.json().catch(() => ({}));
+    const candidate = Array.isArray(findJson?.candidates) ? findJson.candidates.find((c) => c?.place_id) : null;
+    if (findRes.ok && candidate?.place_id) {
+      return {
+        placeId: String(candidate.place_id).trim(),
+        businessName: String(candidate.name || config.businessName || "").trim(),
+        googleMapsUri: config.googleMapsUri || "",
+      };
+    }
+
+    throw new Error(
+      findJson?.error_message ||
+        "Could not resolve Google Place ID automatically via Places API. Verify API key permissions or set GOOGLE_PLACE_ID."
+    );
+  };
+
+  const fetchOfficialGooglePlaceReviews = async (placeId, apiKey) => {
+    const cleanPlaceId = String(placeId || "").trim();
+    const cleanKey = String(apiKey || "").trim();
+    if (!cleanPlaceId || !cleanKey) {
+      throw new Error("Both Google Place ID and server GOOGLE_PLACES_API_KEY are required.");
+    }
+
+    // 1. Official Places API (New) v1
+    const v1Origin = getGooglePlacesV1Origin();
+    const v1Url = `${v1Origin}/v1/places/${encodeURIComponent(cleanPlaceId)}?languageCode=en`;
+    const v1Res = await fetch(v1Url, {
+      method: "GET",
+      headers: {
+        "X-Goog-Api-Key": cleanKey,
+        "X-Goog-FieldMask": "id,displayName,rating,userRatingCount,googleMapsUri,reviews",
+        Accept: "application/json",
+      },
+    });
+
+    if (v1Res.ok) {
+      const payload = await v1Res.json();
+      const reviews = Array.isArray(payload.reviews)
+        ? payload.reviews
+            .map((rev, idx) => {
+              const author = String(rev?.authorAttribution?.displayName || "").trim();
+              const comment = String(rev?.text?.text || rev?.originalText?.text || "").trim();
+              const rating = Math.max(1, Math.min(5, Math.round(Number(rev?.rating) || 5)));
+              const publishTime = String(rev?.publishTime || "").trim();
+              const relativeTime = String(rev?.relativePublishTimeDescription || "").trim();
+              const reviewSlugSeed = rev?.name || `${author}-${publishTime}-${idx}`;
+              const externalHash = crypto.createHash("sha256").update(String(reviewSlugSeed)).digest("hex").slice(0, 14);
+              return {
+                slug: `gapi-${externalHash}`,
+                author,
+                rating,
+                comment,
+                reviewDate: publishTime ? publishTime.slice(0, 10) : "",
+                relativeTime,
+                authorPhotoUrl: String(rev?.authorAttribution?.photoUri || "").trim(),
+                reviewUrl: String(rev?.authorAttribution?.uri || payload?.googleMapsUri || "").trim(),
+              };
+            })
+            .filter((r) => r.author && r.comment)
+        : [];
+
+      return {
+        placeId: String(payload?.id || cleanPlaceId).trim(),
+        businessName: String(payload?.displayName?.text || "").trim(),
+        overallRating: parseRatingValue(payload?.rating),
+        totalReviews: parseCountValue(payload?.userRatingCount),
+        googleMapsUri: String(payload?.googleMapsUri || "").trim(),
+        reviews,
+      };
+    }
+
+    // 2. Fallback to Official Legacy Place Details REST API
+    const legacyOrigin = getGoogleMapsApiOrigin();
+    const legacyUrl = `${legacyOrigin}/maps/api/place/details/json?place_id=${encodeURIComponent(
+      cleanPlaceId
+    )}&fields=place_id,name,rating,user_ratings_total,url,reviews&language=en&reviews_sort=most_relevant&key=${encodeURIComponent(
+      cleanKey
+    )}`;
+    const legacyRes = await fetch(legacyUrl, { headers: { Accept: "application/json" } });
+    const legacyJson = await legacyRes.json().catch(() => ({}));
+    if (!legacyRes.ok || legacyJson.status !== "OK") {
+      const v1ErrJson = await v1Res.json().catch(() => ({}));
+      const apiErrMsg =
+        v1ErrJson?.error?.message ||
+        legacyJson?.error_message ||
+        legacyJson?.status ||
+        `Google Places API returned HTTP ${v1Res.status}`;
+      throw new Error(`Google Places API sync failed: ${apiErrMsg}`);
+    }
+
+    const resObj = legacyJson.result || {};
+    const reviews = Array.isArray(resObj.reviews)
+      ? resObj.reviews
+          .map((rev, idx) => {
+            const author = String(rev?.author_name || "").trim();
+            const comment = String(rev?.text || "").trim();
+            const rating = Math.max(1, Math.min(5, Math.round(Number(rev?.rating) || 5)));
+            const reviewDate = rev?.time ? new Date(Number(rev.time) * 1000).toISOString().slice(0, 10) : "";
+            const relativeTime = String(rev?.relative_time_description || "").trim();
+            const seed = `${author}-${rev?.time || idx}`;
+            const externalHash = crypto.createHash("sha256").update(seed).digest("hex").slice(0, 14);
+            return {
+              slug: `gapi-${externalHash}`,
+              author,
+              rating,
+              comment,
+              reviewDate,
+              relativeTime,
+              authorPhotoUrl: String(rev?.profile_photo_url || "").trim(),
+              reviewUrl: String(rev?.author_url || resObj?.url || "").trim(),
+            };
+          })
+          .filter((r) => r.author && r.comment)
+      : [];
+
+    return {
+      placeId: String(resObj?.place_id || cleanPlaceId).trim(),
+      businessName: String(resObj?.name || "").trim(),
+      overallRating: parseRatingValue(resObj?.rating),
+      totalReviews: parseCountValue(resObj?.user_ratings_total),
+      googleMapsUri: String(resObj?.url || "").trim(),
+      reviews,
+    };
+  };
+
+  const syncGoogleReviewsFromApi = async (placeIdOverride = "") => {
+    const apiKey = getServerGoogleApiKey();
+    if (!apiKey) {
+      throw new Error(
+        "GOOGLE_PLACES_API_KEY is not configured in server/Hostinger environment variables."
+      );
+    }
+
+    if (inFlightGoogleSyncPromise) {
+      return inFlightGoogleSyncPromise;
+    }
+
+    inFlightGoogleSyncPromise = (async () => {
+      const current = await getGoogleReviewsConfig();
+      const targetConfig = placeIdOverride
+        ? { ...current, placeId: String(placeIdOverride).trim() }
+        : current;
+
+      const resolved = await resolveGooglePlaceId(apiKey, targetConfig);
+      const remote = await fetchOfficialGooglePlaceReviews(resolved.placeId, apiKey);
+      const finalPlaceId = remote.placeId || resolved.placeId;
+      const finalMapsUri = remote.googleMapsUri || resolved.googleMapsUri || current.googleMapsUri;
+
+      // Replace stored Google reviews cleanly with the latest official Google API response
+      await d1.prepare("DELETE FROM site_content WHERE type = 'google_review'").run();
+
+      let importedCount = 0;
+      for (let i = 0; i < remote.reviews.length; i += 1) {
+        const r = remote.reviews[i];
+        const seoMeta = JSON.stringify({
+          source: "google_api",
+          relativeTime: r.relativeTime,
+          authorPhotoUrl: r.authorPhotoUrl,
+          externalId: r.slug,
+        });
+
+        await d1
+          .prepare(
+            `INSERT INTO site_content (
+               type, slug, title, subtitle, author, excerpt, body,
+               media_url, link_url, rating_score, rating_verified,
+               published_at, seo_description, patient_consent, published, display_order,
+               created_at, updated_at
+             ) VALUES (
+               'google_review', ?, ?, ?, ?, ?, ?,
+               ?, ?, ?, 1,
+               ?, ?, 1, 1, ?,
+               datetime('now'), datetime('now')
+             )`
+          )
+          .bind(
+            r.slug,
+            r.author,
+            r.relativeTime || "Google Review",
+            r.author,
+            r.comment,
+            r.comment,
+            r.authorPhotoUrl,
+            r.reviewUrl || finalMapsUri || current.googleReviewsUrl,
+            String(r.rating),
+            r.reviewDate,
+            seoMeta,
+            i
+          )
+          .run();
+        importedCount += 1;
+      }
+
+      const nextConfig = await saveGoogleReviewsConfig({
+        placeId: finalPlaceId,
+        googleMapsUri: finalMapsUri,
+        businessName: remote.businessName || resolved.businessName || current.businessName,
+        overallRating: remote.overallRating,
+        totalReviews: remote.totalReviews,
+        lastSyncedAt: new Date().toISOString(),
+        lastSyncError: "",
+        syncSource: "google_api",
+      });
+
+      const rows =
+        (
+          await d1
+            .prepare("SELECT * FROM site_content WHERE type = 'google_review' ORDER BY display_order ASC, id DESC")
+            .all()
+        ).results || [];
+
+      const result = {
+        config: nextConfig,
+        reviews: rows.map(serializeGoogleReviewRow),
+        importedCount,
+      };
+      googleReviewsMemoryCache = {
+        expiresAt: Date.now() + 15 * 60 * 1000,
+        payload: {
+          status: result.reviews.length > 0 ? "synced" : "empty",
+          apiConfigured: true,
+          cached: false,
+          maxApiReviewsNotice: "Google Places API returns up to 5 most relevant reviews per business.",
+          config: nextConfig,
+          reviews: result.reviews,
+        },
+      };
+      return result;
+    })();
+
+    try {
+      return await inFlightGoogleSyncPromise;
+    } catch (err) {
+      await saveGoogleReviewsConfig({
+        lastSyncError: err instanceof Error ? err.message : "Unable to sync Google reviews",
+      }).catch(() => {});
+      throw err;
+    } finally {
+      inFlightGoogleSyncPromise = null;
+    }
   };
 
   const validateMediaUpload = (rawMime, originalName, byteLength, { direct = false } = {}) => {
@@ -1556,6 +2094,7 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
     "achievement",
     "testimonial",
     "before_after",
+    "google_review",
   ];
 
   const getTodayIsoIST = () =>
@@ -2456,6 +2995,7 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
 
   app.get("/api/reels", async (_req, res) => {
     try {
+      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
       const rows = (await d1.prepare("SELECT * FROM reels WHERE status = 'active' AND homepage_visibility = 1 ORDER BY display_order ASC, id DESC").all()).results;
       res.json({ reels: rows });
     } catch (err) {
@@ -3029,6 +3569,7 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
 
   app.get("/api/content", async (req, res) => {
     try {
+      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
       const rawType = req.query.type ? String(req.query.type).trim() : "";
       let rows = [];
 
@@ -3353,6 +3894,206 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
       res.json({ patients: Array.from(byKey.values()) });
     } catch (err) {
       res.status(500).json({ error: err.message });
+    }
+  });
+
+  /* ------------------------------------------------------------- GOOGLE BUSINESS PROFILE REVIEWS API */
+  const handleGetPublicGoogleReviews = async (_req, res) => {
+    try {
+      const apiKey = getServerGoogleApiKey();
+      const apiConfigured = Boolean(apiKey);
+
+      if (!apiConfigured) {
+        googleReviewsMemoryCache = null;
+        res.setHeader("Cache-Control", "no-store");
+        const config = await getGoogleReviewsConfig();
+        return res.json({
+          status: "api_key_missing",
+          apiConfigured: false,
+          cached: false,
+          issue:
+            "Missing server environment variable GOOGLE_PLACES_API_KEY. Configure it on your server / Hostinger Node.js environment to load live Google Places reviews automatically.",
+          maxApiReviewsNotice: "Google Places API returns up to 5 most relevant reviews per business.",
+          config: {
+            ...config,
+            overallRating: null,
+            totalReviews: null,
+            syncSource: "unconfigured",
+          },
+          reviews: [],
+        });
+      }
+
+      if (googleReviewsMemoryCache && googleReviewsMemoryCache.expiresAt > Date.now()) {
+        res.setHeader("Cache-Control", "public, max-age=300");
+        return res.json({
+          ...googleReviewsMemoryCache.payload,
+          cached: true,
+        });
+      }
+
+      let config = await getGoogleReviewsConfig();
+      const syncIntervalMs = getGoogleReviewsSyncIntervalMs();
+      const existingRows =
+        (
+          await d1
+            .prepare(
+              "SELECT * FROM site_content WHERE type = 'google_review' AND published = 1 AND seo_description LIKE '%\"google_api\"%' ORDER BY display_order ASC, id DESC"
+            )
+            .all()
+        ).results || [];
+
+      const isStale =
+        !config.lastSyncedAt ||
+        !Number.isFinite(Date.parse(config.lastSyncedAt)) ||
+        Date.now() - Date.parse(config.lastSyncedAt) > syncIntervalMs ||
+        existingRows.length === 0;
+
+      if (isStale) {
+        try {
+          const synced = await syncGoogleReviewsFromApi();
+          config = synced.config;
+          const payload = {
+            status: synced.reviews.length > 0 ? "synced" : "empty",
+            apiConfigured: true,
+            cached: false,
+            issue: "",
+            maxApiReviewsNotice: "Google Places API returns up to 5 most relevant reviews per business.",
+            config,
+            reviews: synced.reviews,
+          };
+          res.setHeader("Cache-Control", "public, max-age=300");
+          return res.json(payload);
+        } catch {
+          config = await getGoogleReviewsConfig();
+        }
+      }
+
+      const cachedReviews = existingRows.map(serializeGoogleReviewRow);
+      const missingPlaceId =
+        !config.placeId && (!config.lastSyncError || /Place ID/i.test(config.lastSyncError));
+      const payload = {
+        status:
+          cachedReviews.length > 0
+            ? "synced"
+            : missingPlaceId
+              ? "place_id_missing"
+              : config.lastSyncError
+                ? "sync_error"
+                : "empty",
+        apiConfigured: true,
+        cached: cachedReviews.length > 0,
+        issue:
+          cachedReviews.length > 0
+            ? ""
+            : missingPlaceId
+              ? "Google Place ID could not be resolved automatically. Set GOOGLE_PLACE_ID in server environment variables or Admin -> Google Reviews."
+              : config.lastSyncError
+                ? "Unable to fetch live reviews from Google Places API right now."
+                : "",
+        maxApiReviewsNotice: "Google Places API returns up to 5 most relevant reviews per business.",
+        config,
+        reviews: cachedReviews,
+      };
+      if (cachedReviews.length > 0) {
+        googleReviewsMemoryCache = {
+          expiresAt: Date.now() + 15 * 60 * 1000,
+          payload,
+        };
+      }
+      res.setHeader("Cache-Control", cachedReviews.length > 0 ? "public, max-age=300" : "no-store");
+      return res.json(payload);
+    } catch (err) {
+      console.error("[GET /api/google-reviews] Error:", err);
+      res.status(500).json({ error: err.message });
+    }
+  };
+
+  app.get("/api/google-reviews", handleGetPublicGoogleReviews);
+  app.get("/api/google-place-details", handleGetPublicGoogleReviews);
+
+  app.get("/api/admin/google-reviews", requireAdmin, async (_req, res) => {
+    try {
+      res.setHeader("Cache-Control", "no-store");
+      const config = await getGoogleReviewsConfig();
+      const apiConfigured = Boolean(getServerGoogleApiKey());
+      const rows = apiConfigured
+        ? (
+            await d1
+              .prepare(
+                "SELECT * FROM site_content WHERE type = 'google_review' AND seo_description LIKE '%\"google_api\"%' ORDER BY display_order ASC, id DESC"
+              )
+              .all()
+          ).results || []
+        : [];
+
+      res.json({
+        status: !apiConfigured
+          ? "api_key_missing"
+          : rows.length > 0
+            ? "synced"
+            : config.lastSyncError
+              ? "sync_error"
+              : "empty",
+        config,
+        reviews: rows.map(serializeGoogleReviewRow),
+        apiConfigured,
+        envPlaceIdConfigured: Boolean(String(process.env.GOOGLE_PLACE_ID || "").trim()),
+        cacheMinutes: Math.round(getGoogleReviewsSyncIntervalMs() / 60000),
+      });
+    } catch (err) {
+      console.error("[GET /api/admin/google-reviews] Error:", err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.patch("/api/admin/google-reviews/config", requireAdmin, async (req, res) => {
+    try {
+      const body = req.body || {};
+
+      if (body.googleReviewsUrl !== undefined && String(body.googleReviewsUrl).trim() !== "") {
+        if (!isValidHttpUrl(body.googleReviewsUrl)) {
+          return res.status(400).json({ error: "Enter a valid http/https Google Reviews URL." });
+        }
+      }
+      if (body.writeReviewUrl !== undefined && String(body.writeReviewUrl).trim() !== "") {
+        if (!isValidHttpUrl(body.writeReviewUrl)) {
+          return res.status(400).json({ error: "Enter a valid http/https Write-a-Review URL." });
+        }
+      }
+
+      const updated = await saveGoogleReviewsConfig({
+        googleReviewsUrl: body.googleReviewsUrl,
+        writeReviewUrl: body.writeReviewUrl,
+        placeId: body.placeId,
+        businessName: body.businessName,
+      });
+
+      res.json({
+        config: updated,
+        apiConfigured: Boolean(getServerGoogleApiKey()),
+      });
+    } catch (err) {
+      console.error("[PATCH /api/admin/google-reviews/config] Error:", err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/admin/google-reviews/sync", requireAdmin, async (req, res) => {
+    try {
+      const result = await syncGoogleReviewsFromApi(req.body?.placeId);
+      res.json({
+        status: result.reviews.length > 0 ? "synced" : "empty",
+        ...result,
+        apiConfigured: Boolean(getServerGoogleApiKey()),
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unable to sync Google reviews";
+      const status =
+        message.includes("not configured") || message.includes("Place ID") || message.includes("required")
+          ? 400
+          : 502;
+      res.status(status).json({ error: message });
     }
   });
 

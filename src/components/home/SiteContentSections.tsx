@@ -3,7 +3,7 @@ import { Activity, ArrowUpRight, BadgeCheck, Clock3, Eye, Heart, Play, Shield, S
 import { AnimatePresence, motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { api, resolveApiAsset, type ReelsSectionSettings, type SiteContent, type SiteContentType } from "@/lib/api";
-import { DEFAULT_REELS_SECTION_SETTINGS } from "@/lib/reels";
+import { DEFAULT_REELS_SECTION_SETTINGS, SITE_CONTENT_SYNC_CHANNEL, SITE_CONTENT_SYNC_KEY } from "@/lib/reels";
 import { formatArticleDate } from "@/lib/blog";
 import { clinicImages } from "@/lib/images";
 import { SectionHeading } from "@/components/ui/SectionHeading";
@@ -26,9 +26,16 @@ export function SiteContentProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let active = true;
-    const fetchContent = () => {
+    let lastFetchAt = 0;
+
+    const fetchContent = (force = false) => {
+      const now = Date.now();
+      if (!force && now - lastFetchAt < 1200) return;
+      lastFetchAt = now;
       api
-        .get<{ items: SiteContent[]; reelsSettings?: ReelsSectionSettings }>("/api/content")
+        .get<{ items: SiteContent[]; reelsSettings?: ReelsSectionSettings }>("/api/content", {
+          cache: "no-store",
+        })
         .then((data) => {
           if (!active) return;
           setItems(Array.isArray(data.items) ? data.items : []);
@@ -48,12 +55,38 @@ export function SiteContentProvider({ children }: { children: ReactNode }) {
         });
     };
 
-    fetchContent();
-    const onUpdated = () => fetchContent();
+    fetchContent(true);
+    const onUpdated = () => fetchContent(true);
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") fetchContent(false);
+    };
+    const onFocus = () => fetchContent(false);
+    const onStorage = (evt: StorageEvent) => {
+      if (evt.key === SITE_CONTENT_SYNC_KEY) fetchContent(true);
+    };
+
     window.addEventListener("site-content-updated", onUpdated);
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibility);
+
+    let channel: BroadcastChannel | null = null;
+    if (typeof BroadcastChannel !== "undefined") {
+      try {
+        channel = new BroadcastChannel(SITE_CONTENT_SYNC_CHANNEL);
+        channel.onmessage = () => fetchContent(true);
+      } catch {
+        channel = null;
+      }
+    }
+
     return () => {
       active = false;
       window.removeEventListener("site-content-updated", onUpdated);
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibility);
+      channel?.close();
     };
   }, []);
 

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link as RouterLink } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -9,10 +10,11 @@ import { Badge } from "@/components/ui/Badge";
 import toast from "react-hot-toast";
 import { Save, Shield, Bell, Palette, Link, MessageSquare } from "lucide-react";
 import { WhatsAppAutomationSettings } from "@/components/dashboard/WhatsAppAutomationSettings";
+import { api } from "@/lib/api";
 import { useClinicSettings } from "@/lib/clinic-settings";
 
 const initialIntegrations = [
-  { name: "Google Business Profile", desc: "Sync reviews and manage listings", connected: true },
+  { name: "Google Business Profile", desc: "Sync reviews via official Google Places API or manage manual fallback", connected: false },
   { name: "Razorpay Payments", desc: "UPI, cards and netbanking collection", connected: true },
   { name: "Twilio SMS/WhatsApp", desc: "Automated patient messaging", connected: true },
   { name: "LiveKit Video", desc: "Tele-dentistry consultations", connected: false },
@@ -62,6 +64,30 @@ export default function SettingsPage() {
     Object.fromEntries(notificationPrefs.map((item) => [item, true])),
   );
   const [integrations, setIntegrations] = useState(initialIntegrations);
+  const [googleStatusLabel, setGoogleStatusLabel] = useState<string>("Checking...");
+
+  useEffect(() => {
+    api
+      .getAdminGoogleReviews()
+      .then((res) => {
+        const apiReady = Boolean(res?.apiConfigured && res?.status === "synced");
+        setIntegrations((prev) =>
+          prev.map((item) =>
+            item.name === "Google Business Profile" ? { ...item, connected: apiReady } : item
+          )
+        );
+        if (apiReady) {
+          setGoogleStatusLabel("API Connected");
+        } else if (res?.apiConfigured) {
+          setGoogleStatusLabel("API Key Active");
+        } else {
+          setGoogleStatusLabel("API Key Missing");
+        }
+      })
+      .catch(() => {
+        setGoogleStatusLabel("Not Connected");
+      });
+  }, []);
   const [twoFA, setTwoFA] = useState(false);
   const [showLogs, setShowLogs] = useState(false);
 
@@ -245,11 +271,25 @@ export default function SettingsPage() {
                     <div className="flex items-center gap-3">
                       <div className="flex items-center gap-2">
                         <span className={`h-2 w-2 rounded-full ${int.connected ? "bg-[#1F6878]" : "bg-secondary-300"}`} />
-                        <span className="text-sm text-muted-foreground">{int.connected ? "Connected" : "Not Connected"}</span>
+                        <span className="text-sm text-muted-foreground">
+                          {int.name === "Google Business Profile"
+                            ? googleStatusLabel
+                            : int.connected
+                              ? "Connected"
+                              : "Not Connected"}
+                        </span>
                       </div>
-                      <Button variant="outline" size="sm" onClick={() => toggleIntegration(int.name)}>
-                        {int.connected ? "Disconnect" : "Connect"}
-                      </Button>
+                      {int.name === "Google Business Profile" ? (
+                        <RouterLink to="/dashboard/google-reviews">
+                          <Button variant="outline" size="sm">
+                            Manage Reviews
+                          </Button>
+                        </RouterLink>
+                      ) : (
+                        <Button variant="outline" size="sm" onClick={() => toggleIntegration(int.name)}>
+                          {int.connected ? "Disconnect" : "Connect"}
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ))}

@@ -10,10 +10,11 @@ import {
   Eye,
   EyeOff,
   Film,
+  GripVertical,
   HardDrive,
-  Home,
   ImagePlus,
   Loader2,
+  Pause,
   Pencil,
   Play,
   RefreshCw,
@@ -49,6 +50,7 @@ import {
   formatFileSizeMB,
   formatStorageBytes,
   isSupportedVideoFile,
+  notifySiteContentUpdated,
 } from "@/lib/reels";
 
 interface UploadQueueItem {
@@ -112,7 +114,6 @@ export default function ReelsVideosPage() {
   const [editDescription, setEditDescription] = useState("");
   const [editCategory, setEditCategory] = useState("");
   const [editPublished, setEditPublished] = useState(true);
-  const [editHomepageHighlight, setEditHomepageHighlight] = useState(true);
   const [editFeatured, setEditFeatured] = useState(false);
   const [editDisplayOrder, setEditDisplayOrder] = useState(0);
   const [editThumbnailUrl, setEditThumbnailUrl] = useState("");
@@ -129,7 +130,9 @@ export default function ReelsVideosPage() {
   const replaceAbortRef = useRef<AbortController | null>(null);
   const newlyUploadedReplaceUrlsRef = useRef<string[]>([]);
 
-  // Delete confirmation & preview modal
+  // Drag reorder, delete confirmation & preview modal
+  const [draggedReelId, setDraggedReelId] = useState<number | null>(null);
+  const [dragOverReelId, setDragOverReelId] = useState<number | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<SiteContent | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [previewReel, setPreviewReel] = useState<SiteContent | null>(null);
@@ -298,6 +301,10 @@ export default function ReelsVideosPage() {
       activeAbortControllersRef.current.delete(queueId);
     }
     uploadLockRef.current.delete(queueId);
+    const targetItem = queue.find((q) => q.queueId === queueId);
+    if (targetItem?.resumeState?.uploadId && targetItem?.resumeState?.key) {
+      void api.abortMultipartUpload(targetItem.resumeState.key, targetItem.resumeState.uploadId);
+    }
     setQueue((prev) => {
       const target = prev.find((q) => q.queueId === queueId);
       if (target?.thumbnailPreviewUrl) releasePreviewUrl(target.thumbnailPreviewUrl);
@@ -359,7 +366,7 @@ export default function ReelsVideosPage() {
         mediaUrl: uploaded.url,
         mobileMediaUrl: thumbnailUrl,
         badgeText: itemSnapshot.featured ? "Featured" : "",
-        homepageHighlight: itemSnapshot.homepageHighlight,
+        homepageHighlight: itemSnapshot.published,
         published: itemSnapshot.published,
         displayOrder: Number(itemSnapshot.displayOrder || 0),
         fileSize: uploaded.size || itemSnapshot.file.size,
@@ -375,7 +382,7 @@ export default function ReelsVideosPage() {
       } else {
         await refreshStorage();
       }
-      window.dispatchEvent(new Event("site-content-updated"));
+      notifySiteContentUpdated();
 
       updateQueueItem(qId, {
         status: "completed",
@@ -392,7 +399,7 @@ export default function ReelsVideosPage() {
       if (err instanceof DOMException && err.name === "AbortError") {
         updateQueueItem(qId, {
           status: "cancelled",
-          errorMessage: "Upload cancelled. Click Retry to resume.",
+          errorMessage: "Upload paused. Click Resume to continue.",
         });
         return false;
       }
@@ -454,7 +461,7 @@ export default function ReelsVideosPage() {
         subtitle: settings.subtitle.trim() || DEFAULT_REELS_SECTION_SETTINGS.subtitle,
       });
       setSettings(res.settings);
-      window.dispatchEvent(new Event("site-content-updated"));
+      notifySiteContentUpdated();
       toast.success("Reels section settings updated.");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not save section settings.");
@@ -465,29 +472,27 @@ export default function ReelsVideosPage() {
 
   const handleToggleQuickField = async (
     item: SiteContent,
-    patch: { published?: boolean; homepageHighlight?: boolean; featured?: boolean }
+    patch: { published?: boolean; featured?: boolean }
   ) => {
+    const payload: { published?: boolean; homepageHighlight?: boolean; featured?: boolean } = {
+      ...patch,
+      ...(typeof patch.published === "boolean" ? { homepageHighlight: patch.published } : {}),
+    };
     try {
       const res = await api.patch<{ item: SiteContent; storage?: ReelsStorageUsage }>(
         `/api/admin/content/${item.id}`,
-        patch
+        payload
       );
       setReels((prev) => prev.map((r) => (r.id === item.id ? res.item : r)));
       if (res.storage) setStorage(res.storage);
-      window.dispatchEvent(new Event("site-content-updated"));
+      notifySiteContentUpdated();
       toast.success("Video display settings updated.");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not update video.");
     }
   };
 
-  const handleReorderMove = async (index: number, direction: -1 | 1) => {
-    const targetIndex = index + direction;
-    if (targetIndex < 0 || targetIndex >= reels.length) return;
-    const reordered = [...reels];
-    const [moved] = reordered.splice(index, 1);
-    reordered.splice(targetIndex, 0, moved);
-
+  const commitOrder = async (reordered: SiteContent[]) => {
     const optimistic = reordered.map((r, idx) => ({ ...r, displayOrder: idx }));
     setReels(optimistic);
 
@@ -498,12 +503,35 @@ export default function ReelsVideosPage() {
       if (Array.isArray(res.items)) {
         setReels(res.items);
       }
-      window.dispatchEvent(new Event("site-content-updated"));
+      notifySiteContentUpdated();
       toast.success("Display order updated.");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not reorder videos.");
       await loadData();
     }
+  };
+
+  const handleReorderMove = async (index: number, direction: -1 | 1) => {
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= reels.length) return;
+    const reordered = [...reels];
+    const [moved] = reordered.splice(index, 1);
+    reordered.splice(targetIndex, 0, moved);
+    await commitOrder(reordered);
+  };
+
+  const handleRowDrop = async (targetId: number) => {
+    const sourceId = draggedReelId;
+    setDraggedReelId(null);
+    setDragOverReelId(null);
+    if (!sourceId || sourceId === targetId) return;
+    const fromIndex = reels.findIndex((r) => r.id === sourceId);
+    const toIndex = reels.findIndex((r) => r.id === targetId);
+    if (fromIndex < 0 || toIndex < 0) return;
+    const reordered = [...reels];
+    const [moved] = reordered.splice(fromIndex, 1);
+    reordered.splice(toIndex, 0, moved);
+    await commitOrder(reordered);
   };
 
   const openEditModal = (item: SiteContent) => {
@@ -513,7 +541,6 @@ export default function ReelsVideosPage() {
     setEditDescription(item.excerpt || item.subtitle || "");
     setEditCategory(item.category || "");
     setEditPublished(Boolean(item.published));
-    setEditHomepageHighlight(Boolean(item.homepageHighlight));
     setEditFeatured(Boolean(item.featured || String(item.badgeText || "").toLowerCase() === "featured"));
     setEditDisplayOrder(Number(item.displayOrder || 0));
     setEditThumbnailUrl(item.mobileMediaUrl || "");
@@ -530,6 +557,9 @@ export default function ReelsVideosPage() {
   const closeEditModal = () => {
     replaceAbortRef.current?.abort();
     replaceAbortRef.current = null;
+    if (replaceResumeState?.key && replaceResumeState?.uploadId) {
+      void api.abortMultipartUpload(replaceResumeState.key, replaceResumeState.uploadId);
+    }
     if (newlyUploadedReplaceUrlsRef.current.length > 0) {
       void api.cleanupUnreferencedMedia(newlyUploadedReplaceUrlsRef.current);
       newlyUploadedReplaceUrlsRef.current = [];
@@ -577,7 +607,7 @@ export default function ReelsVideosPage() {
       toast.success("Replacement video uploaded. Click Save Changes to apply.");
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") {
-        setReplaceError("Replacement upload cancelled.");
+        setReplaceError("Replacement upload paused. Click Resume to continue.");
       } else {
         const msg = err instanceof Error ? err.message : "Failed to upload replacement video.";
         setReplaceError(msg);
@@ -620,7 +650,7 @@ export default function ReelsVideosPage() {
           excerpt: editDescription.trim(),
           category: editCategory.trim(),
           published: editPublished,
-          homepageHighlight: editHomepageHighlight,
+          homepageHighlight: editPublished,
           featured: editFeatured,
           badgeText: editFeatured ? "Featured" : "",
           displayOrder: Number(editDisplayOrder || 0),
@@ -639,7 +669,7 @@ export default function ReelsVideosPage() {
       );
       if (res.storage) setStorage(res.storage);
       setEditingItem(null);
-      window.dispatchEvent(new Event("site-content-updated"));
+      notifySiteContentUpdated();
       toast.success("Video changes saved.");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not save video changes.");
@@ -662,7 +692,7 @@ export default function ReelsVideosPage() {
         await refreshStorage();
       }
       setDeleteTarget(null);
-      window.dispatchEvent(new Event("site-content-updated"));
+      notifySiteContentUpdated();
       toast.success("Video permanently deleted and storage reclaimed.");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not delete video.");
@@ -693,6 +723,7 @@ export default function ReelsVideosPage() {
     storage.usedPercent >= 90 ? "danger" : storage.usedPercent >= 75 ? "warning" : "default";
   const isStorageFull = storage.availableBytes <= 0;
   const pendingUploadCount = queue.filter((q) => q.status === "queued" || q.status === "error" || q.status === "cancelled").length;
+  const canDragReorder = !searchQuery.trim() && categoryFilter === "all" && visibilityFilter === "all" && reels.length > 1;
 
   return (
     <DashboardLayout>
@@ -705,7 +736,7 @@ export default function ReelsVideosPage() {
                 <Video className="h-4.5 w-4.5" />
               </span>
               <h1 className="text-2xl font-bold tracking-tight text-[#15191B]">
-                Reels &amp; Videos Management
+                Reels Management
               </h1>
             </div>
             <p className="mt-1 text-sm text-[#707574]">
@@ -1073,18 +1104,6 @@ export default function ReelsVideosPage() {
                             <input
                               type="checkbox"
                               disabled={isBusy || isDone}
-                              checked={item.homepageHighlight}
-                              onChange={(e) =>
-                                updateQueueItem(item.queueId, { homepageHighlight: e.target.checked })
-                              }
-                              className="h-4 w-4 rounded accent-[#1F6878]"
-                            />
-                            Show on homepage
-                          </label>
-                          <label className="inline-flex items-center gap-1.5 text-xs font-medium text-[#15191B]">
-                            <input
-                              type="checkbox"
-                              disabled={isBusy || isDone}
                               checked={item.featured}
                               onChange={(e) => updateQueueItem(item.queueId, { featured: e.target.checked })}
                               className="h-4 w-4 rounded accent-[#E95A35]"
@@ -1101,9 +1120,9 @@ export default function ReelsVideosPage() {
                             type="button"
                             data-testid="cancel-upload-btn"
                             onClick={() => handleCancelUpload(item.queueId)}
-                            className="inline-flex items-center gap-1 rounded-lg border border-danger-300 bg-white px-3 py-1.5 text-xs font-bold text-danger-700 hover:bg-danger-50"
+                            className="inline-flex items-center gap-1 rounded-lg border border-amber-300 bg-amber-50/70 px-3 py-1.5 text-xs font-bold text-amber-800 hover:bg-amber-100"
                           >
-                            <X className="h-3.5 w-3.5" /> Cancel
+                            <Pause className="h-3.5 w-3.5" /> Pause
                           </button>
                         ) : (
                           <>
@@ -1114,7 +1133,8 @@ export default function ReelsVideosPage() {
                                 onClick={() => void uploadSingleQueueItem(item)}
                                 className="inline-flex items-center gap-1 rounded-lg bg-[#E95A35] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#d14824]"
                               >
-                                <RotateCcw className="h-3.5 w-3.5" /> Retry
+                                <RotateCcw className="h-3.5 w-3.5" />{" "}
+                                {item.status === "cancelled" || item.resumeState ? "Resume" : "Retry"}
                               </button>
                             )}
                             {item.status === "queued" && (
@@ -1280,7 +1300,32 @@ export default function ReelsVideosPage() {
                     );
 
                     return (
-                      <tr key={item.id} data-testid={`reel-row-${item.id}`} className="hover:bg-[#E4F0F2]/20">
+                      <tr
+                        key={item.id}
+                        data-testid={`reel-row-${item.id}`}
+                        draggable={canDragReorder}
+                        onDragStart={() => setDraggedReelId(item.id)}
+                        onDragOver={(e) => {
+                          if (!canDragReorder || !draggedReelId || draggedReelId === item.id) return;
+                          e.preventDefault();
+                          if (dragOverReelId !== item.id) setDragOverReelId(item.id);
+                        }}
+                        onDragLeave={() => {
+                          if (dragOverReelId === item.id) setDragOverReelId(null);
+                        }}
+                        onDrop={(e) => {
+                          if (!canDragReorder) return;
+                          e.preventDefault();
+                          void handleRowDrop(item.id);
+                        }}
+                        onDragEnd={() => {
+                          setDraggedReelId(null);
+                          setDragOverReelId(null);
+                        }}
+                        className={`transition-colors hover:bg-[#E4F0F2]/20 ${
+                          dragOverReelId === item.id ? "bg-[#E4F0F2]/60 ring-1 ring-inset ring-[#1F6878]" : ""
+                        } ${draggedReelId === item.id ? "opacity-50" : ""}`}
+                      >
                         {/* Thumbnail */}
                         <td className="px-3 py-3">
                           <button
@@ -1313,22 +1358,6 @@ export default function ReelsVideosPage() {
                             <p className="mt-0.5 line-clamp-1 text-xs text-[#707574]">{item.excerpt}</p>
                           )}
                           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                void handleToggleQuickField(item, {
-                                  homepageHighlight: !item.homepageHighlight,
-                                })
-                              }
-                              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold transition ${
-                                item.homepageHighlight
-                                  ? "bg-[#E4F0F2] text-[#1F6878]"
-                                  : "bg-secondary-100 text-[#707574]"
-                              }`}
-                            >
-                              <Home className="h-2.5 w-2.5" />
-                              {item.homepageHighlight ? "On Homepage" : "Hidden on Home"}
-                            </button>
                             <button
                               type="button"
                               onClick={() => void handleToggleQuickField(item, { featured: !isFeatured })}
@@ -1380,6 +1409,14 @@ export default function ReelsVideosPage() {
                         {/* Display Order */}
                         <td className="px-3 py-3">
                           <div className="flex items-center gap-1">
+                            {canDragReorder && (
+                              <span
+                                title="Drag row to reorder"
+                                className="inline-flex cursor-grab items-center text-[#707574] active:cursor-grabbing"
+                              >
+                                <GripVertical className="h-3.5 w-3.5" />
+                              </span>
+                            )}
                             <span className="w-6 text-center text-xs font-bold text-[#15191B]">
                               {item.displayOrder}
                             </span>
@@ -1512,15 +1549,6 @@ export default function ReelsVideosPage() {
               <label className="inline-flex items-center gap-2 text-xs font-semibold text-[#15191B]">
                 <input
                   type="checkbox"
-                  checked={editHomepageHighlight}
-                  onChange={(e) => setEditHomepageHighlight(e.target.checked)}
-                  className="h-4 w-4 rounded accent-[#1F6878]"
-                />
-                Show on homepage
-              </label>
-              <label className="inline-flex items-center gap-2 text-xs font-semibold text-[#15191B]">
-                <input
-                  type="checkbox"
                   checked={editFeatured}
                   onChange={(e) => setEditFeatured(e.target.checked)}
                   className="h-4 w-4 rounded accent-[#E95A35]"
@@ -1600,9 +1628,9 @@ export default function ReelsVideosPage() {
                       <button
                         type="button"
                         onClick={() => replaceAbortRef.current?.abort()}
-                        className="rounded-lg border border-danger-300 px-2.5 py-1.5 text-xs font-bold text-danger-600"
+                        className="rounded-lg border border-amber-300 bg-amber-50/70 px-2.5 py-1.5 text-xs font-bold text-amber-800"
                       >
-                        Cancel
+                        Pause
                       </button>
                     )}
                     {!replacingVideo && replacePendingFile && (
@@ -1611,7 +1639,7 @@ export default function ReelsVideosPage() {
                         onClick={() => void runReplaceVideoUpload(replacePendingFile, replaceResumeState)}
                         className="inline-flex items-center gap-1 rounded-lg bg-[#1F6878] px-2.5 py-1.5 text-xs font-bold text-white"
                       >
-                        <RotateCcw className="h-3 w-3" /> Retry
+                        <RotateCcw className="h-3 w-3" /> {replaceResumeState ? "Resume" : "Retry"}
                       </button>
                     )}
                   </div>

@@ -7,6 +7,7 @@ import { TreatmentsOffered } from "@/components/home/TreatmentsOffered";
 import { PromotionalAppointmentBanner } from "@/components/home/PromotionalAppointmentBanner";
 import { DentalCommunicationShowcase } from "@/components/home/DentalCommunicationShowcase";
 import { BeforeAfterShowcaseSection } from "@/components/home/BeforeAfterShowcaseSection";
+import { GoogleReviewsSection } from "@/components/home/GoogleReviewsSection";
 import { WhyChooseUs } from "@/components/home/WhyChooseUs";
 import { LatestDentalBlogs } from "@/components/home/LatestDentalBlogs";
 import { FinalHomepageGallery } from "@/components/home/FinalHomepageGallery";
@@ -43,6 +44,9 @@ export default function HomePage() {
 
       {/* Section 08 – Before & After Showcase */}
       <BeforeAfterShowcaseSection />
+
+      {/* Section 08B – Google Patient Reviews */}
+      <GoogleReviewsSection />
 
       {/* Section 09 – Why Choose Us */}
       <WhyChooseUs />
