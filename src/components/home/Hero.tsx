@@ -3,6 +3,7 @@ import { CalendarDays, ShieldCheck, Star, Users } from "lucide-react";
 import { useBeforeAfterSettings, useSiteContent } from "@/components/home/SiteContentSections";
 import { resolveApiAsset } from "@/lib/api";
 import { HeroBeforeAfter, type HeroTransformationCase } from "@/components/home/HeroBeforeAfter";
+import { cn } from "@/lib/utils";
 import {
   DEFAULT_HERO_CONFIG,
   DEFAULT_HERO_CONTENT,
@@ -226,7 +227,12 @@ export function Hero() {
 
           {/* Top Promotional Container with Smooth Floating Animation and Shimmer Sweep */}
           <div
-            className="hero-visual relative aspect-[1.58/1] w-full overflow-hidden border border-white/10 bg-[#0C2127] shadow-[0_20px_50px_-16px_rgba(7,59,67,0.38)] animate-float-subtle"
+            className={cn(
+              "hero-visual relative aspect-[1.58/1] w-full overflow-hidden shadow-[0_20px_50px_-16px_rgba(7,59,67,0.38)] animate-float-subtle",
+              isCustomPromoPhoto
+                ? "border border-white/20 bg-transparent"
+                : "border border-white/10 bg-[#0C2127]"
+            )}
             style={{ borderRadius: "24px" }}
           >
             {/* Subtle Light Shimmer Sweep */}
@@ -235,7 +241,12 @@ export function Hero() {
             </div>
 
             {/* Central Crisp HD Logo or Promotional Photo */}
-            <div className="absolute inset-0 flex items-center justify-center p-6 sm:p-8 select-none">
+            <div
+              className={cn(
+                "absolute inset-0 flex items-center justify-center select-none",
+                isCustomPromoPhoto ? "p-0" : "p-6 sm:p-8"
+              )}
+            >
               <img
                 src={isCustomPromoPhoto ? promotionalImage : "/images/clinic/sri-saraswathi-logo-hd-transparent.png"}
                 alt="Sri Saraswathi Dental Clinic - 12+ Years of Excellence"
