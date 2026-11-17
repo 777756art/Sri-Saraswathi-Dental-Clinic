@@ -39,29 +39,29 @@ export function HeroBeforeAfter({ settings, cases }: HeroBeforeAfterProps) {
 
   return (
     <div
-      className="mt-4 w-full max-w-[400px] sm:max-w-[430px] lg:max-w-[440px] rounded-[26px] border border-[#E7E2DA] bg-[#FDFCF9] sm:bg-[#FDFAF5] p-5 sm:p-5.5 shadow-[0_16px_40px_-15px_rgba(0,0,0,0.06)] backdrop-blur-md transition-all duration-300"
+      className="mt-3.5 w-full rounded-[24px] sm:rounded-[26px] border border-[#E7E2DA] bg-[#FDFCF9] sm:bg-[#FDFAF5] p-3.5 sm:p-4 lg:p-4.5 shadow-[0_12px_32px_-12px_rgba(0,0,0,0.06)] backdrop-blur-md transition-all duration-300"
       aria-label="Before and After Dental Transformations"
     >
       {/* Header Block: Centered Pill with Horizontal Lines & Exact Typography */}
       <div className="text-center">
-        <div className="flex items-center justify-center gap-2.5">
-          <span className="h-[1px] w-7 sm:w-9 bg-[#C9D6D8]" aria-hidden="true" />
-          <span className="inline-flex items-center rounded-full bg-[#E3F2F3] px-3 py-0.5 text-[9px] sm:text-[9.5px] font-extrabold uppercase tracking-[0.16em] text-[#087E8B]">
+        <div className="flex items-center justify-center gap-2">
+          <span className="h-[1px] w-6 sm:w-8 bg-[#C9D6D8]" aria-hidden="true" />
+          <span className="inline-flex items-center rounded-full bg-[#E3F2F3] px-2.5 py-0.5 text-[8.5px] sm:text-[9px] font-extrabold uppercase tracking-[0.16em] text-[#087E8B]">
             TRANSFORMATION SHOWCASE
           </span>
-          <span className="h-[1px] w-7 sm:w-9 bg-[#C9D6D8]" aria-hidden="true" />
+          <span className="h-[1px] w-6 sm:w-8 bg-[#C9D6D8]" aria-hidden="true" />
         </div>
-        <h3 className="mt-2 font-sans text-[15px] sm:text-[16.5px] font-black uppercase tracking-[0.06em] text-[#073B43]">
+        <h3 className="mt-1 font-sans text-[13.5px] sm:text-[14.5px] font-black uppercase tracking-[0.05em] text-[#073B43]">
           {settings.heading || "REAL SMILES. CONFIDENT RESULTS."}
         </h3>
-        <p className="mt-0.5 font-sans text-[11.5px] sm:text-[12px] font-medium text-[#667085]">
+        <p className="mt-0.5 font-sans text-[10.5px] sm:text-[11px] font-medium text-[#667085]">
           {settings.subtitle || "Your Smile Transformation Starts Here."}
         </p>
       </div>
 
       {/* Optional Dedicated Promotional Hero Image Accent */}
       {settings.heroImage && (
-        <div className="mt-2.5 overflow-hidden rounded-xl border border-[#1F6878]/15 bg-[#E4F0F2]">
+        <div className="mt-2 overflow-hidden rounded-xl border border-[#1F6878]/15 bg-[#E4F0F2]">
           <picture>
             {settings.heroImageMobile && (
               <source media="(max-width: 640px)" srcSet={resolveApiAsset(settings.heroImageMobile)} />
@@ -70,21 +70,20 @@ export function HeroBeforeAfter({ settings, cases }: HeroBeforeAfterProps) {
               src={resolveApiAsset(settings.heroImage)}
               alt={settings.heroImageAlt || "Sri Saraswathi Dental Clinic - Smile Transformation"}
               loading="lazy"
-              className="h-16 w-full object-cover object-center sm:h-20"
+              className="h-14 w-full object-cover object-center sm:h-16"
             />
           </picture>
         </div>
       )}
 
-      {/* Before & After Cards: Two square 1:1 cards side by side with centered badges & orange arrow */}
-      <div className="mt-3.5 flex items-center justify-between gap-2.5 sm:gap-3.5">
+      {/* Before & After Cards: Two cards side by side with centered badges & orange arrow */}
+      <div className="mt-2.5 sm:mt-3 flex items-center justify-between gap-2 sm:gap-2.5">
         {/* Left: BEFORE Card */}
         <div
-          className="group relative flex-1 aspect-square overflow-hidden rounded-[18px] sm:rounded-[20px] bg-[#E4F0F2] shadow-sm transition-all duration-300 hover:-translate-y-0.5"
-          style={{ aspectRatio: "1 / 1" }}
+          className="group relative flex-1 aspect-[1.12/1] overflow-hidden rounded-[14px] sm:rounded-[16px] bg-[#E4F0F2] shadow-sm transition-all duration-300 hover:-translate-y-0.5"
         >
           {/* Centered Teal Badge */}
-          <span className="absolute top-2 left-1/2 -translate-x-1/2 z-20 rounded-full bg-[#073B43] px-3.5 py-0.5 text-[8.5px] sm:text-[9px] font-black tracking-[0.12em] text-white shadow-md select-none">
+          <span className="absolute top-1.5 left-1/2 -translate-x-1/2 z-20 rounded-full bg-[#073B43] px-3 py-0.5 text-[7.5px] sm:text-[8px] font-black tracking-[0.12em] text-white shadow-sm select-none">
             BEFORE
           </span>
           <img
@@ -101,20 +100,19 @@ export function HeroBeforeAfter({ settings, cases }: HeroBeforeAfterProps) {
         {/* Orange Transformation Arrow */}
         <div className="shrink-0 flex items-center justify-center px-0.5">
           <div
-            className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-[#FB8500] text-white shadow-[0_6px_16px_-4px_rgba(251,133,0,0.55)] transition-transform duration-300 hover:scale-110 animate-arrow-slide-gentle"
+            className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-[#FB8500] text-white shadow-[0_4px_12px_-2px_rgba(251,133,0,0.5)] transition-transform duration-300 hover:scale-110 animate-arrow-slide-gentle"
             aria-hidden="true"
           >
-            <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 stroke-[2.8]" />
+            <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 stroke-[2.5]" />
           </div>
         </div>
 
         {/* Right: AFTER Card */}
         <div
-          className="group relative flex-1 aspect-square overflow-hidden rounded-[18px] sm:rounded-[20px] bg-[#E4F0F2] shadow-sm transition-all duration-300 hover:-translate-y-0.5"
-          style={{ aspectRatio: "1 / 1" }}
+          className="group relative flex-1 aspect-[1.12/1] overflow-hidden rounded-[14px] sm:rounded-[16px] bg-[#E4F0F2] shadow-sm transition-all duration-300 hover:-translate-y-0.5"
         >
           {/* Centered Teal Badge */}
-          <span className="absolute top-2 left-1/2 -translate-x-1/2 z-20 rounded-full bg-[#087E8B] px-3.5 py-0.5 text-[8.5px] sm:text-[9px] font-black tracking-[0.12em] text-white shadow-md select-none">
+          <span className="absolute top-1.5 left-1/2 -translate-x-1/2 z-20 rounded-full bg-[#087E8B] px-3 py-0.5 text-[7.5px] sm:text-[8px] font-black tracking-[0.12em] text-white shadow-sm select-none">
             AFTER
           </span>
           <img
@@ -130,7 +128,7 @@ export function HeroBeforeAfter({ settings, cases }: HeroBeforeAfterProps) {
       </div>
 
       {/* Centered Disclaimer Note */}
-      <p className="mt-3.5 text-center font-sans text-[10.5px] sm:text-[11px] font-medium text-[#8C98A4]">
+      <p className="mt-2 sm:mt-2.5 text-center font-sans text-[9.5px] sm:text-[10px] font-medium text-[#8C98A4]">
         Actual Patient Results. Results May Vary.
       </p>
     </div>
