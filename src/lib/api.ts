@@ -237,8 +237,8 @@ export type ResumableResumeState = {
   completedParts?: Array<{ partNumber: number; etag: string }>;
 };
 
-export type Slot = { time: string; remaining: number };
-export type Availability = { date: string; closed: boolean; slots: Slot[] };
+export type Slot = { time: string; remaining: number; available?: boolean };
+export type Availability = { date: string; closed: boolean; reason?: string; past?: boolean; slots: Slot[] };
 
 export type PatientAccount = {
   id: number;

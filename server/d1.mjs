@@ -156,6 +156,59 @@ export async function initD1Schema(db) {
         created_at TEXT NOT NULL DEFAULT (datetime('now')),
         updated_at TEXT NOT NULL DEFAULT (datetime('now'))
       );
+      CREATE TABLE IF NOT EXISTS blocked_dates (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        block_date TEXT NOT NULL,
+        start_time TEXT DEFAULT NULL,
+        end_time TEXT DEFAULT NULL,
+        reason TEXT DEFAULT 'Clinic closed',
+        doctor_id INTEGER DEFAULT NULL,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+      CREATE TABLE IF NOT EXISTS appointments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        patient_name TEXT NOT NULL,
+        phone TEXT NOT NULL,
+        email TEXT DEFAULT '',
+        doctor_id INTEGER DEFAULT 1,
+        treatment_id INTEGER DEFAULT NULL,
+        appointment_date TEXT NOT NULL,
+        appointment_time TEXT NOT NULL,
+        message TEXT DEFAULT '',
+        status TEXT NOT NULL DEFAULT 'Pending',
+        admin_notes TEXT DEFAULT '',
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+      CREATE TABLE IF NOT EXISTS doctors (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        qualification TEXT DEFAULT 'BDS',
+        specialization TEXT NOT NULL,
+        experience TEXT DEFAULT '5+ Years',
+        biography TEXT DEFAULT '',
+        profile_image_key TEXT DEFAULT NULL,
+        profile_image_url TEXT DEFAULT '',
+        status TEXT NOT NULL DEFAULT 'active',
+        display_order INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+      CREATE TABLE IF NOT EXISTS treatments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        treatment_name TEXT NOT NULL,
+        slug TEXT UNIQUE NOT NULL,
+        short_description TEXT NOT NULL,
+        full_description TEXT DEFAULT '',
+        benefits TEXT DEFAULT '[]',
+        treatment_image_key TEXT DEFAULT NULL,
+        treatment_image_url TEXT DEFAULT '',
+        duration_minutes INTEGER DEFAULT 30,
+        status TEXT NOT NULL DEFAULT 'active',
+        display_order INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
       CREATE TABLE IF NOT EXISTS d1_meta (
         key TEXT PRIMARY KEY,
         value TEXT NOT NULL,
@@ -221,6 +274,9 @@ export async function initD1Schema(db) {
       "ALTER TABLE site_content ADD COLUMN file_size INTEGER NOT NULL DEFAULT 0",
       "ALTER TABLE site_content ADD COLUMN mime_type TEXT NOT NULL DEFAULT ''",
       "ALTER TABLE reels ADD COLUMN file_size INTEGER NOT NULL DEFAULT 0",
+      "ALTER TABLE blocked_dates ADD COLUMN doctor_id INTEGER DEFAULT NULL",
+      "ALTER TABLE treatments ADD COLUMN duration_minutes INTEGER DEFAULT 30",
+      "ALTER TABLE appointments ADD COLUMN admin_notes TEXT DEFAULT ''",
     ];
     for (const stmt of schemaUpgrades) {
       try {

@@ -26,6 +26,44 @@ const SLOTS = [
   "4:30 PM", "5:00 PM", "5:30 PM", "6:00 PM", "6:30 PM", "7:00 PM", "7:30 PM", "8:00 PM",
 ];
 
+const CLINIC_TIMEZONE = "Asia/Kolkata";
+
+function getNowIST() {
+  const now = new Date();
+  const istStr = now.toLocaleString("en-US", { timeZone: CLINIC_TIMEZONE });
+  return new Date(istStr);
+}
+
+function getTodayISTString() {
+  const ist = getNowIST();
+  const y = ist.getFullYear();
+  const m = String(ist.getMonth() + 1).padStart(2, "0");
+  const d = String(ist.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function parseTimeToMinutes(timeStr) {
+  if (!timeStr) return -1;
+  const str = String(timeStr).trim();
+  const match = str.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+  if (!match) return -1;
+  let h = parseInt(match[1], 10);
+  const m = parseInt(match[2], 10);
+  const meridian = match[3] ? match[3].toUpperCase() : null;
+  if (meridian === "PM" && h < 12) h += 12;
+  if (meridian === "AM" && h === 12) h = 0;
+  return h * 60 + m;
+}
+
+function formatMinutesToTime(totalMinutes) {
+  let h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  const meridian = h >= 12 ? "PM" : "AM";
+  if (h > 12) h -= 12;
+  if (h === 0) h = 12;
+  return `${h}:${String(m).padStart(2, "0")} ${meridian}`;
+}
+
 function parseCookies(header = "") {
   return Object.fromEntries(
     header
@@ -1789,7 +1827,12 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
 
   app.get("/api/admin/blocked-dates", requireAdmin, async (_req, res) => {
     try {
-      const rows = (await d1.prepare("SELECT * FROM blocked_dates ORDER BY block_date DESC, id DESC").all()).results;
+      const rows = (await d1.prepare(`
+        SELECT b.*, d.name as doctor_name
+        FROM blocked_dates b
+        LEFT JOIN doctors d ON b.doctor_id = d.id
+        ORDER BY b.block_date DESC, b.id DESC
+      `).all()).results || [];
       res.json({ blockedDates: rows });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -1800,16 +1843,29 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
     try {
       const b = req.body || {};
       if (!b.block_date) return res.status(400).json({ error: "Block date (YYYY-MM-DD) is required." });
+      
+      let doctorId = b.doctorId || b.doctor_id ? Number(b.doctorId || b.doctor_id) : null;
+      if (!doctorId && b.dentist && b.dentist !== "All dentists") {
+        const doc = await d1.prepare("SELECT id FROM doctors WHERE LOWER(name) LIKE ?").bind(`%${b.dentist.toLowerCase().trim()}%`).first();
+        if (doc) doctorId = doc.id;
+      }
+
       const info = await d1.prepare(`
-        INSERT INTO blocked_dates (block_date, start_time, end_time, reason, created_at)
-        VALUES (?, ?, ?, ?, datetime('now'))
+        INSERT INTO blocked_dates (block_date, start_time, end_time, reason, doctor_id, created_at)
+        VALUES (?, ?, ?, ?, ?, datetime('now'))
       `).bind(
         String(b.block_date).trim(),
         b.start_time ? String(b.start_time).trim() : null,
         b.end_time ? String(b.end_time).trim() : null,
-        String(b.reason || "Doctor unavailable / Holiday").trim()
+        String(b.reason || "Doctor unavailable / Holiday").trim(),
+        doctorId
       ).run();
-      const created = await d1.prepare("SELECT * FROM blocked_dates WHERE id = ?").bind(info.meta.last_row_id).first();
+      const created = await d1.prepare(`
+        SELECT b.*, d.name as doctor_name
+        FROM blocked_dates b
+        LEFT JOIN doctors d ON b.doctor_id = d.id
+        WHERE b.id = ?
+      `).bind(info.meta.last_row_id).first();
       res.status(201).json({ blockedDate: created });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -1831,31 +1887,204 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
   app.get("/api/availability", async (req, res) => {
     try {
       const date = String(req.query.date || "").trim();
-      if (!date) return res.status(400).json({ error: "Date parameter is required (YYYY-MM-DD)." });
-
-      const blocked = await d1.prepare("SELECT * FROM blocked_dates WHERE block_date = ? AND start_time IS NULL").bind(date).first();
-      if (blocked) {
-        return res.json({ date, closed: true, reason: blocked.reason || "Clinic closed on this date", slots: [] });
+      if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        return res.status(400).json({ error: "Date parameter is required in YYYY-MM-DD format." });
       }
 
-      const counts = (await d1.prepare(`
-        SELECT appointment_time, COUNT(*) as count
+      const todayIST = getTodayISTString();
+      const nowIST = getNowIST();
+      const currentMinutesIST = nowIST.getHours() * 60 + nowIST.getMinutes();
+
+      // 1. Past date check in Asia/Kolkata
+      if (date < todayIST) {
+        return res.json({
+          date,
+          closed: true,
+          past: true,
+          reason: "Past dates cannot be booked.",
+          slots: [],
+        });
+      }
+
+      const doctorId = req.query.doctorId || req.query.doctor_id ? Number(req.query.doctorId || req.query.doctor_id) : null;
+      const treatmentId = req.query.treatmentId || req.query.treatment_id ? Number(req.query.treatmentId || req.query.treatment_id) : null;
+
+      // 2. Doctor status validation if specified
+      if (doctorId) {
+        const targetDoctor = await d1.prepare("SELECT * FROM doctors WHERE id = ?").bind(doctorId).first();
+        if (!targetDoctor || targetDoctor.status !== "active") {
+          return res.status(400).json({ error: "Selected doctor is not available for new bookings." });
+        }
+      }
+
+      // 3. Treatment duration if specified
+      let durationMinutes = 30;
+      if (treatmentId) {
+        const targetTreatment = await d1.prepare("SELECT * FROM treatments WHERE id = ?").bind(treatmentId).first();
+        if (!targetTreatment || targetTreatment.status !== "active") {
+          return res.status(400).json({ error: "Selected treatment is not available for booking." });
+        }
+        if (targetTreatment.duration_minutes) {
+          durationMinutes = Number(targetTreatment.duration_minutes) || 30;
+        }
+      }
+
+      // 4. Closed on Sundays
+      const dateObj = new Date(`${date}T00:00:00`);
+      if (dateObj.getDay() === 0) {
+        return res.json({
+          date,
+          closed: true,
+          reason: "Clinic is closed on Sundays.",
+          slots: [],
+        });
+      }
+
+      // 5. Check full-day blocks in blocked_dates (clinic-wide or doctor-specific)
+      let fullBlock = null;
+      if (doctorId) {
+        fullBlock = await d1.prepare(`
+          SELECT * FROM blocked_dates
+          WHERE block_date = ? AND start_time IS NULL AND (doctor_id IS NULL OR doctor_id = 0 OR doctor_id = ?)
+        `).bind(date, doctorId).first();
+      } else {
+        fullBlock = await d1.prepare(`
+          SELECT * FROM blocked_dates
+          WHERE block_date = ? AND start_time IS NULL AND (doctor_id IS NULL OR doctor_id = 0)
+        `).bind(date).first();
+      }
+
+      if (fullBlock) {
+        return res.json({
+          date,
+          closed: true,
+          reason: fullBlock.reason || "Appointments are unavailable on this date.",
+          slots: [],
+        });
+      }
+
+      // 6. Time-range blocks in blocked_dates
+      let timeBlockRows = [];
+      if (doctorId) {
+        timeBlockRows = (await d1.prepare(`
+          SELECT * FROM blocked_dates
+          WHERE block_date = ? AND start_time IS NOT NULL AND (doctor_id IS NULL OR doctor_id = 0 OR doctor_id = ?)
+        `).bind(date, doctorId).all()).results || [];
+      } else {
+        timeBlockRows = (await d1.prepare(`
+          SELECT * FROM blocked_dates
+          WHERE block_date = ? AND start_time IS NOT NULL AND (doctor_id IS NULL OR doctor_id = 0)
+        `).bind(date).all()).results || [];
+      }
+
+      const isTimeRangeBlocked = (slotMin, dur = 30) => {
+        const slotEndMin = slotMin + dur;
+        for (const b of timeBlockRows) {
+          const bStart = parseTimeToMinutes(b.start_time);
+          const bEnd = parseTimeToMinutes(b.end_time);
+          if (bStart !== -1 && bEnd !== -1) {
+            // Overlap check
+            if (slotMin < bEnd && slotEndMin > bStart) {
+              return true;
+            }
+          }
+        }
+        return false;
+      };
+
+      // 7. Existing active appointments
+      const existingApts = (await d1.prepare(`
+        SELECT appointment_time, doctor_id, treatment_id
         FROM appointments
         WHERE appointment_date = ? AND status NOT IN ('Cancelled', 'cancelled', 'Rejected', 'rejected')
-        GROUP BY appointment_time
       `).bind(date).all()).results || [];
 
-      const countMap = Object.fromEntries(counts.map((c) => [c.appointment_time, c.count]));
+      const docBookedTimes = new Set();
+      const globalCountMap = {};
+      for (const apt of existingApts) {
+        const t = apt.appointment_time;
+        globalCountMap[t] = (globalCountMap[t] || 0) + 1;
+        if (doctorId && Number(apt.doctor_id) === Number(doctorId)) {
+          docBookedTimes.add(t);
+        }
+      }
 
-      const slots = SLOTS.map((time) => {
-        const booked = countMap[time] || 0;
-        return {
-          time,
-          remaining: Math.max(0, SLOT_CAPACITY - booked),
-        };
+      // 8. Calculate available slots from SLOTS
+      const slotsNeeded = Math.ceil(durationMinutes / 30);
+      const availableSlots = [];
+
+      for (let i = 0; i < SLOTS.length; i++) {
+        const timeStr = SLOTS[i];
+        const slotMin = parseTimeToMinutes(timeStr);
+        if (slotMin === -1) continue;
+
+        // Today's past time slots are strictly hidden
+        if (date === todayIST && slotMin <= currentMinutesIST) {
+          continue;
+        }
+
+        // Exclude slots overlapping admin-blocked time ranges
+        if (isTimeRangeBlocked(slotMin, 30)) {
+          continue;
+        }
+
+        // Exclude already-booked slots
+        if (doctorId) {
+          if (docBookedTimes.has(timeStr)) {
+            continue;
+          }
+        } else {
+          const booked = globalCountMap[timeStr] || 0;
+          if (booked >= SLOT_CAPACITY) {
+            continue;
+          }
+        }
+
+        // Multi-slot duration verification
+        if (slotsNeeded > 1) {
+          let canFit = true;
+          for (let j = 1; j < slotsNeeded; j++) {
+            const nextIdx = i + j;
+            if (nextIdx >= SLOTS.length) {
+              canFit = false;
+              break;
+            }
+            const nextTime = SLOTS[nextIdx];
+            const nextMin = parseTimeToMinutes(nextTime);
+            if (nextMin !== slotMin + j * 30) {
+              canFit = false;
+              break;
+            }
+            if (isTimeRangeBlocked(nextMin, 30)) {
+              canFit = false;
+              break;
+            }
+            if (doctorId && docBookedTimes.has(nextTime)) {
+              canFit = false;
+              break;
+            }
+            if (!doctorId && (globalCountMap[nextTime] || 0) >= SLOT_CAPACITY) {
+              canFit = false;
+              break;
+            }
+          }
+          if (!canFit) continue;
+        }
+
+        const bookedCount = globalCountMap[timeStr] || 0;
+        availableSlots.push({
+          time: timeStr,
+          remaining: doctorId ? 1 : Math.max(0, SLOT_CAPACITY - bookedCount),
+          available: true,
+        });
+      }
+
+      res.json({
+        date,
+        closed: availableSlots.length === 0,
+        reason: availableSlots.length === 0 ? "No available appointments for this date." : "",
+        slots: availableSlots,
       });
-
-      res.json({ date, closed: false, slots });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -1872,51 +2101,129 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
       const time = String(b.time || b.appointment_time || "").trim();
       const notes = String(b.notes || b.message || "").trim();
 
+      // 1. Basic validation
+      if (!patientName || patientName.length < 2) {
+        return res.status(400).json({ error: "Patient name is required (at least 2 characters)." });
+      }
+      if (phone.replace(/\D/g, "").length < 10) {
+        return res.status(400).json({ error: "A valid 10-digit mobile number is required." });
+      }
+      if (!date || !time) {
+        return res.status(400).json({ error: "Appointment date and time are required." });
+      }
+
+      // 2. Strict IST Date & Time validation
+      const todayIST = getTodayISTString();
+      const nowIST = getNowIST();
+      const currentMinutesIST = nowIST.getHours() * 60 + nowIST.getMinutes();
+
+      if (date < todayIST) {
+        return res.status(400).json({ error: "Past dates cannot be booked." });
+      }
+
+      const slotMin = parseTimeToMinutes(time);
+      if (slotMin === -1) {
+        return res.status(400).json({ error: "Invalid appointment time slot." });
+      }
+
+      if (date === todayIST && slotMin <= currentMinutesIST) {
+        return res.status(400).json({ error: "Cannot book an appointment time that has already passed." });
+      }
+
+      const dateObj = new Date(`${date}T00:00:00`);
+      if (dateObj.getDay() === 0) {
+        return res.status(400).json({ error: "Appointments cannot be booked on Sundays as the clinic is closed." });
+      }
+
+      // 3. Dynamic Doctor validation (Must be active doctor from database)
       let doctorId = b.doctorId || b.doctor_id ? Number(b.doctorId || b.doctor_id) : null;
-      let dentistName = String(b.dentist || "").trim() || "Dr. Kishore Kumar";
-      if (!doctorId && b.dentist) {
-        const doc = await d1.prepare("SELECT id, name FROM doctors WHERE LOWER(name) LIKE ?").bind(`%${dentistName.split(",")[0].toLowerCase()}%`).first();
-        if (doc) {
-          doctorId = doc.id;
-          dentistName = doc.name;
+      let doctor = null;
+
+      if (doctorId) {
+        doctor = await d1.prepare("SELECT * FROM doctors WHERE id = ?").bind(doctorId).first();
+      } else if (b.dentist) {
+        const dentistQuery = String(b.dentist).split(",")[0].trim().toLowerCase();
+        doctor = await d1.prepare("SELECT * FROM doctors WHERE LOWER(name) LIKE ?").bind(`%${dentistQuery}%`).first();
+      }
+
+      if (!doctor) {
+        // Fallback to first active doctor
+        doctor = await d1.prepare("SELECT * FROM doctors WHERE status = 'active' ORDER BY display_order ASC, id ASC").first();
+      }
+
+      if (!doctor || doctor.status !== "active") {
+        return res.status(400).json({ error: "Selected doctor is not available for new bookings." });
+      }
+      doctorId = doctor.id;
+      const dentistName = doctor.name;
+
+      // 4. Dynamic Treatment validation (Must be active treatment from database)
+      let treatmentId = b.treatmentId || b.treatment_id ? Number(b.treatmentId || b.treatment_id) : null;
+      let treatment = null;
+
+      if (treatmentId) {
+        treatment = await d1.prepare("SELECT * FROM treatments WHERE id = ?").bind(treatmentId).first();
+      } else if (b.service) {
+        const svc = String(b.service).trim();
+        treatment = await d1.prepare("SELECT * FROM treatments WHERE slug = ? OR LOWER(treatment_name) LIKE ?").bind(svc, `%${svc.replace(/-/g, " ").toLowerCase()}%`).first();
+      }
+
+      if (!treatment) {
+        treatment = await d1.prepare("SELECT * FROM treatments WHERE status = 'active' ORDER BY display_order ASC, id ASC").first();
+      }
+
+      if (!treatment || treatment.status !== "active") {
+        return res.status(400).json({ error: "Selected treatment is no longer active or available for booking." });
+      }
+      treatmentId = treatment.id;
+      const serviceLabel = treatment.treatment_name;
+
+      // 5. Blocked Date & Time check in blocked_dates
+      const fullBlock = await d1.prepare(`
+        SELECT * FROM blocked_dates
+        WHERE block_date = ? AND start_time IS NULL AND (doctor_id IS NULL OR doctor_id = 0 OR doctor_id = ?)
+      `).bind(date, doctorId).first();
+
+      if (fullBlock) {
+        return res.status(400).json({ error: `Selected date is unavailable: ${fullBlock.reason || "Appointments are unavailable on this date."}` });
+      }
+
+      const timeBlocks = (await d1.prepare(`
+        SELECT * FROM blocked_dates
+        WHERE block_date = ? AND start_time IS NOT NULL AND (doctor_id IS NULL OR doctor_id = 0 OR doctor_id = ?)
+      `).bind(date, doctorId).all()).results || [];
+
+      for (const tb of timeBlocks) {
+        const bStart = parseTimeToMinutes(tb.start_time);
+        const bEnd = parseTimeToMinutes(tb.end_time);
+        if (bStart !== -1 && bEnd !== -1 && slotMin < bEnd && (slotMin + 30) > bStart) {
+          return res.status(400).json({ error: `Selected time slot is unavailable: ${tb.reason || "Time slot blocked by clinic admin."}` });
         }
       }
-      if (!doctorId) doctorId = 1;
 
-      if (!patientName) return res.status(400).json({ error: "Patient name is required." });
-      if (phone.replace(/\D/g, "").length < 10) return res.status(400).json({ error: "Valid 10-digit phone number is required." });
-      if (!date || !time) return res.status(400).json({ error: "Appointment date and time are required." });
+      // 6. Conflict Prevention & Double-Booking Check
+      const existingConflict = await d1.prepare(`
+        SELECT id FROM appointments
+        WHERE appointment_date = ? AND appointment_time = ? AND doctor_id = ?
+          AND status NOT IN ('Cancelled', 'cancelled', 'Rejected', 'rejected')
+      `).bind(date, time, doctorId).first();
 
-      const blocked = await d1.prepare("SELECT * FROM blocked_dates WHERE block_date = ? AND start_time IS NULL").bind(date).first();
-      if (blocked) {
-        return res.status(400).json({ error: `Selected date is unavailable: ${blocked.reason || "Clinic closed."}` });
+      if (existingConflict) {
+        return res.status(409).json({ error: "This doctor already has an appointment booked for this time slot. Please choose another time." });
       }
 
-      const currentBookings = await d1.prepare(`
+      // Also check global slot capacity
+      const globalBookings = await d1.prepare(`
         SELECT COUNT(*) as count FROM appointments
-        WHERE appointment_date = ? AND appointment_time = ? AND status NOT IN ('Cancelled', 'cancelled', 'Rejected', 'rejected')
+        WHERE appointment_date = ? AND appointment_time = ?
+          AND status NOT IN ('Cancelled', 'cancelled', 'Rejected', 'rejected')
       `).bind(date, time).first("count");
 
-      if (currentBookings >= SLOT_CAPACITY) {
-        return res.status(400).json({ error: "Please choose an available time slot. This slot is fully booked." });
+      if (globalBookings >= SLOT_CAPACITY) {
+        return res.status(409).json({ error: "Please choose an available time slot. This slot is fully booked." });
       }
 
-      let treatmentId = b.treatmentId || b.treatment_id ? Number(b.treatmentId || b.treatment_id) : null;
-      let serviceLabel = "Comprehensive Dental Check-up";
-      if (!treatmentId && b.service) {
-        const svc = String(b.service).trim();
-        const found = await d1.prepare("SELECT id, treatment_name FROM treatments WHERE slug = ? OR LOWER(treatment_name) LIKE ?").bind(svc, `%${svc.replace(/-/g, " ").toLowerCase()}%`).first();
-        if (found) {
-          treatmentId = found.id;
-          serviceLabel = found.treatment_name;
-        } else {
-          serviceLabel = svc.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-        }
-      } else if (treatmentId) {
-        const found = await d1.prepare("SELECT treatment_name FROM treatments WHERE id = ?").bind(treatmentId).first();
-        if (found) serviceLabel = found.treatment_name;
-      }
-
+      // 7. Atomic Insert into appointments
       const info = await d1.prepare(`
         INSERT INTO appointments (patient_name, phone, email, doctor_id, treatment_id, appointment_date, appointment_time, message, status, admin_notes, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Pending', '', datetime('now'), datetime('now'))
@@ -1935,7 +2242,7 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
         `• Treatment: ${serviceLabel}`,
         `• Date: ${date}`,
         `• Time: ${time}`,
-        `• Doctor: Dr. Kishore Kumar`,
+        `• Doctor: ${dentistName}`,
         `• Location: 866, Soli Complex, Surampatti Four Rd, Erode - 638009`,
         `• Google Maps: https://maps.google.com/?q=Sri+Saraswathi+Dental+Clinic+Erode`,
         ``,
@@ -1948,7 +2255,7 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
         patientName,
         patientPhone: phone,
         patientEmail: email,
-        service: String(b.service || "general-dentistry"),
+        service: treatment.slug || String(treatmentId),
         serviceLabel,
         date,
         dateLabel: date,
@@ -2129,7 +2436,11 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
           notes: r.message || "",
           adminNotes: r.admin_notes || "",
           status: normalizedStatus,
-          statusLabel: normalizedStatus === "confirmed" ? "Confirmed" : normalizedStatus === "cancelled" ? "Cancelled" : normalizedStatus === "completed" ? "Completed" : "Pending",
+          statusLabel:
+            normalizedStatus === "confirmed" ? "Confirmed" :
+            normalizedStatus === "cancelled" ? "Cancelled" :
+            normalizedStatus === "rejected" ? "Rejected" :
+            normalizedStatus === "completed" ? "Completed" : "Pending",
           createdAt: r.created_at,
           updatedAt: r.updated_at || r.created_at,
           whatsapp: {
@@ -2160,6 +2471,18 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
       const newNotes = b.notes !== undefined ? b.notes : (b.message !== undefined ? b.message : existing.message);
       const adminNotes = b.admin_notes !== undefined ? b.admin_notes : (b.adminNotes !== undefined ? b.adminNotes : existing.admin_notes);
       const newDoctorId = b.doctorId || b.doctor_id ? Number(b.doctorId || b.doctor_id) : existing.doctor_id;
+
+      // If confirming, check for double booking on that doctor
+      if (String(newStatus).toLowerCase() === "confirmed") {
+        const conflict = await d1.prepare(`
+          SELECT id FROM appointments
+          WHERE appointment_date = ? AND appointment_time = ? AND doctor_id = ? AND id != ?
+            AND status IN ('Confirmed', 'confirmed')
+        `).bind(newDate, newTime, newDoctorId, id).first();
+        if (conflict) {
+          return res.status(409).json({ error: "This doctor already has a confirmed appointment for this time slot." });
+        }
+      }
 
       await d1.prepare(`
         UPDATE appointments SET
@@ -2198,7 +2521,11 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
         notes: updated.message || "",
         adminNotes: updated.admin_notes || "",
         status: normalizedStatus,
-        statusLabel: normalizedStatus === "confirmed" ? "Confirmed" : normalizedStatus === "cancelled" ? "Cancelled" : normalizedStatus === "completed" ? "Completed" : "Pending",
+        statusLabel:
+          normalizedStatus === "confirmed" ? "Confirmed" :
+          normalizedStatus === "cancelled" ? "Cancelled" :
+          normalizedStatus === "rejected" ? "Rejected" :
+          normalizedStatus === "completed" ? "Completed" : "Pending",
         createdAt: updated.created_at,
         updatedAt: updated.updated_at,
         whatsapp: {
@@ -3837,41 +4164,57 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
   /* ------------------------------------------------------------- COMPATIBILITY BRIDGE: /api/meta */
   app.get("/api/meta", async (_req, res) => {
     try {
-      const treatments = (
+      let treatments = (
         await d1
-          .prepare("SELECT id, slug, title FROM site_content WHERE type = 'treatment' AND published = 1 AND available_for_booking = 1 ORDER BY display_order ASC, id ASC")
-          .all()
-      ).results || [];
-      const doctors = (
-        await d1
-          .prepare("SELECT id, title FROM site_content WHERE type = 'doctor' AND published = 1 ORDER BY display_order ASC, id ASC")
+          .prepare("SELECT id, slug, treatment_name, short_description, treatment_image_url, duration_minutes FROM treatments WHERE status = 'active' ORDER BY display_order ASC, id ASC")
           .all()
       ).results || [];
 
-      const services = treatments.map((t) => ({ value: t.slug || String(t.id), label: t.title }));
-      const dentists = doctors.map((d) => d.title).filter(Boolean);
+      if (!treatments.length) {
+        const scTreatments = (
+          await d1
+            .prepare("SELECT id, slug, title as treatment_name, excerpt as short_description, media_url as treatment_image_url, duration FROM site_content WHERE type = 'treatment' AND published = 1 AND available_for_booking = 1 ORDER BY display_order ASC, id ASC")
+            .all()
+        ).results || [];
+        treatments = scTreatments;
+      }
 
-      const defaultServices = [
-        { value: "general-dentistry", label: "General Dentistry & Consultation" },
-        { value: "root-canal-treatment", label: "Root Canal Treatment (Single-Sitting)" },
-        { value: "orthodontics-aligners", label: "Invisalign & Clear Aligners" },
-        { value: "dental-implants", label: "Dental Implants (Titanium & Ceramic)" },
-        { value: "teeth-whitening", label: "Laser Teeth Whitening" },
-        { value: "cosmetic-dentistry", label: "Cosmetic Smile Designing & Veneers" },
-        { value: "pediatric-dentistry", label: "Pediatric Dental Care" },
-        { value: "periodontics-gum-care", label: "Laser Periodontics & Gum Surgery" },
-      ];
+      let doctors = (
+        await d1
+          .prepare("SELECT id, name, qualification, specialization, experience, profile_image_url, profile_image_key FROM doctors WHERE status = 'active' ORDER BY display_order ASC, id ASC")
+          .all()
+      ).results || [];
 
-      const mergedServices = new Map();
-      defaultServices.forEach((s) => mergedServices.set(s.value, s.label));
-      services.forEach((s) => mergedServices.set(s.value, s.label));
+      if (!doctors.length) {
+        const scDoctors = (
+          await d1
+            .prepare("SELECT id, title as name, qualification, specialization, years_experience as experience, media_url as profile_image_url FROM site_content WHERE type = 'doctor' AND published = 1 ORDER BY display_order ASC, id ASC")
+            .all()
+        ).results || [];
+        doctors = scDoctors;
+      }
 
-      const defaultDentists = ["Dr. Kishore Kumar, B.D.S., M.D.S.", "Dr. Priyadharshini K, B.D.S."];
-      const mergedDentists = Array.from(new Set([...defaultDentists, ...dentists]));
+      // Filter out dummy/empty doctors
+      const visibleDoctors = doctors.filter((doc) => {
+        const name = String(doc.name || "").trim();
+        const img = String(doc.profile_image_url || doc.profile_image_key || "").trim();
+        return Boolean(name && img && !/test\s*\d+/i.test(name));
+      });
+
+      const services = treatments.map((t) => ({
+        value: t.slug || String(t.id),
+        label: t.treatment_name,
+        id: t.id,
+        duration: Number(t.duration_minutes || 30),
+      }));
+
+      const dentists = visibleDoctors.map((d) => d.name);
 
       res.json({
-        services: Array.from(mergedServices.entries()).map(([value, label]) => ({ value, label })),
-        dentists: mergedDentists,
+        services,
+        dentists,
+        doctors: visibleDoctors,
+        treatments,
         slots: SLOTS,
         clinicWhatsapp: "+919345743409",
       });
@@ -4323,18 +4666,146 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
 
   /* ------------------------------------------------------------- COMPATIBILITY BRIDGE: /api/admin/availability-settings */
   app.get("/api/admin/availability-settings", requireAdmin, async (_req, res) => {
-    res.json({
-      workingDays: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
-      slotDuration: 30,
-      breakStart: "13:00",
-      breakEnd: "17:00",
-      dayStart: "10:00",
-      dayEnd: "20:30",
-    });
+    try {
+      const metaRow = await d1.prepare("SELECT value FROM d1_meta WHERE key = 'availability_settings'").first();
+      let settings = metaRow?.value ? JSON.parse(metaRow.value) : null;
+
+      if (!settings) {
+        settings = {
+          weeklyHours: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((day) => ({
+            day,
+            enabled: day !== "Sunday",
+            start: day === "Saturday" ? "09:00" : "09:30",
+            end: day === "Saturday" ? "14:00" : "18:30",
+            breaks: [],
+          })),
+          appointmentDuration: 30,
+          maxPatientsPerSlot: 1,
+        };
+      }
+
+      const blockedRows = (await d1.prepare(`
+        SELECT b.*, d.name as doctor_name
+        FROM blocked_dates b
+        LEFT JOIN doctors d ON b.doctor_id = d.id
+        ORDER BY b.block_date ASC, b.id ASC
+      `).all()).results || [];
+
+      const blockedDates = blockedRows.map((r) => ({
+        id: String(r.id),
+        date: r.block_date,
+        type: r.start_time ? "range" : "full",
+        start: r.start_time || "09:30",
+        end: r.end_time || "18:30",
+        reason: r.reason || "Clinic closed",
+        notes: r.notes || "",
+        dentist: r.doctor_name || "All dentists",
+      }));
+
+      res.json({
+        ...settings,
+        blockedDates,
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
   });
 
   app.patch("/api/admin/availability-settings", requireAdmin, async (req, res) => {
-    res.json(req.body);
+    try {
+      const b = req.body || {};
+      const { blockedDates, ...generalSettings } = b;
+
+      // 1. Persist generalSettings into d1_meta
+      await d1.prepare(`
+        INSERT INTO d1_meta (key, value, updated_at)
+        VALUES ('availability_settings', ?, datetime('now'))
+        ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')
+      `).bind(JSON.stringify(generalSettings)).run();
+
+      // 2. Sync blockedDates with blocked_dates table if provided
+      if (Array.isArray(blockedDates)) {
+        const existingBlocked = (await d1.prepare("SELECT id FROM blocked_dates").all()).results || [];
+        const existingIds = new Set(existingBlocked.map((r) => Number(r.id)));
+        const retainedIds = new Set();
+
+        for (const item of blockedDates) {
+          const numId = Number(item.id);
+          if (Number.isFinite(numId) && existingIds.has(numId)) {
+            retainedIds.add(numId);
+            // Optionally update existing
+            let doctorId = null;
+            if (item.dentist && item.dentist !== "All dentists") {
+              const doc = await d1.prepare("SELECT id FROM doctors WHERE LOWER(name) LIKE ?").bind(`%${String(item.dentist).split(",")[0].trim().toLowerCase()}%`).first();
+              if (doc) doctorId = doc.id;
+            }
+            await d1.prepare(`
+              UPDATE blocked_dates SET
+                block_date = ?, start_time = ?, end_time = ?, reason = ?, doctor_id = ?
+              WHERE id = ?
+            `).bind(
+              String(item.date).trim(),
+              item.type === "range" && item.start ? String(item.start).trim() : null,
+              item.type === "range" && item.end ? String(item.end).trim() : null,
+              String(item.reason || "Clinic closed").trim(),
+              doctorId,
+              numId
+            ).run();
+          } else {
+            // New blocked date
+            let doctorId = null;
+            if (item.dentist && item.dentist !== "All dentists") {
+              const doc = await d1.prepare("SELECT id FROM doctors WHERE LOWER(name) LIKE ?").bind(`%${String(item.dentist).split(",")[0].trim().toLowerCase()}%`).first();
+              if (doc) doctorId = doc.id;
+            }
+            const info = await d1.prepare(`
+              INSERT INTO blocked_dates (block_date, start_time, end_time, reason, doctor_id, created_at)
+              VALUES (?, ?, ?, ?, ?, datetime('now'))
+            `).bind(
+              String(item.date).trim(),
+              item.type === "range" && item.start ? String(item.start).trim() : null,
+              item.type === "range" && item.end ? String(item.end).trim() : null,
+              String(item.reason || "Clinic closed").trim(),
+              doctorId
+            ).run();
+            retainedIds.add(info.meta.last_row_id);
+          }
+        }
+
+        // Delete any blocked dates removed by admin
+        for (const oldId of existingIds) {
+          if (!retainedIds.has(oldId)) {
+            await d1.prepare("DELETE FROM blocked_dates WHERE id = ?").bind(oldId).run();
+          }
+        }
+      }
+
+      // 3. Return fresh settings
+      const blockedRows = (await d1.prepare(`
+        SELECT b.*, d.name as doctor_name
+        FROM blocked_dates b
+        LEFT JOIN doctors d ON b.doctor_id = d.id
+        ORDER BY b.block_date ASC, b.id ASC
+      `).all()).results || [];
+
+      const currentBlocked = blockedRows.map((r) => ({
+        id: String(r.id),
+        date: r.block_date,
+        type: r.start_time ? "range" : "full",
+        start: r.start_time || "09:30",
+        end: r.end_time || "18:30",
+        reason: r.reason || "Clinic closed",
+        notes: r.notes || "",
+        dentist: r.doctor_name || "All dentists",
+      }));
+
+      res.json({
+        ...generalSettings,
+        blockedDates: currentBlocked,
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
   });
 
 }

@@ -1,109 +1,194 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Calendar,
+  Check,
   CheckCircle,
   ChevronLeft,
   ChevronRight,
   Clock,
+  HeartHandshake,
   Loader2,
   MessageCircle,
+  Phone,
   Sparkles,
+  Stethoscope,
+  User,
+  UserCheck,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { PageHero } from "@/components/layout/PageHero";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Select } from "@/components/ui/Select";
 import { TextArea } from "@/components/ui/TextArea";
 import { useAuth } from "@/lib/use-auth";
-import { api, ApiError, type Availability, type Booking } from "@/lib/api";
+import { api, ApiError, resolveApiAsset, type Availability, type Booking } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-type Meta = {
-  services: { value: string; label: string }[];
-  dentists: string[];
-  slots: string[];
+export type TreatmentItem = {
+  id: number;
+  slug: string;
+  treatment_name: string;
+  short_description?: string;
+  treatment_image_url?: string;
+  duration_minutes?: number;
+  price?: number;
 };
 
-const steps = ["Service", "Date & time", "Your info", "Confirm"];
+export type DoctorItem = {
+  id: number;
+  name: string;
+  qualification?: string;
+  specialization: string;
+  experience?: string;
+  profile_image_url?: string;
+  biography?: string;
+};
+
+const STEPS = [
+  "Treatment",
+  "Doctor",
+  "Date",
+  "Time Slot",
+  "Patient Info",
+  "Confirm",
+  "Success",
+];
 
 const isoFor = (base: Date, day: number) =>
   `${base.getFullYear()}-${String(base.getMonth() + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 
+// Asia/Kolkata date helper
+const getTodayIST = () => {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+};
+
 export default function BookingPage() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
   const [searchParams] = useSearchParams();
   const requestedService = searchParams.get("service") || "";
   const requestedDoctor = searchParams.get("doctor") || "";
 
-  const [meta, setMeta] = useState<Meta | null>(null);
+  // Dynamic treatments and doctors
+  const [treatments, setTreatments] = useState<TreatmentItem[]>([]);
+  const [doctors, setDoctors] = useState<DoctorItem[]>([]);
+  const [loadingData, setLoadingData] = useState(true);
+
+  // Wizard state (Step 1 to 7)
   const [step, setStep] = useState(1);
-  const [service, setService] = useState<string | null>(null);
+  const [selectedTreatment, setSelectedTreatment] = useState<TreatmentItem | null>(null);
+  const [selectedDoctor, setSelectedDoctor] = useState<DoctorItem | null>(null);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
+
+  // Availability state
   const [availability, setAvailability] = useState<Availability | null>(null);
   const [slotsLoading, setSlotsLoading] = useState(false);
-  const [details, setDetails] = useState({ patientName: "", phone: "", email: "", dob: "", dentist: "", source: "", notes: "" });
+
+  // Patient info
+  const [patientName, setPatientName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [notes, setNotes] = useState("");
+
   const [submitting, setSubmitting] = useState(false);
-  const [confirmed, setConfirmed] = useState<Booking | null>(null);
+  const [confirmedBooking, setConfirmedBooking] = useState<Booking | null>(null);
 
+  // Load active treatments and doctors dynamically
   useEffect(() => {
-    api
-      .get<Meta>("/api/meta")
-      .then((data) => {
-        setMeta(data);
-        const accountName = `${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim();
-        setDetails((prev) => ({
-          ...prev,
-          patientName: prev.patientName || accountName,
-          phone: prev.phone || user?.phone || "",
-          email: prev.email || user?.email || "",
-        }));
-        const requested = requestedService
-          ? data.services.find((item) => item.value === requestedService || item.label.toLowerCase() === requestedService.toLowerCase())
-          : undefined;
-        if (requested) {
-          setService(requested.value);
-          setStep(2);
-        }
-        const requestedDentist = requestedDoctor
-          ? data.dentists.find((name) => name.toLowerCase() === requestedDoctor.toLowerCase())
-          : undefined;
-        if (requestedDentist) setDetails((prev) => ({ ...prev, dentist: requestedDentist }));
-      })
-      .catch(() => toast.error("Could not load booking options. Please refresh."));
-  }, [user, requestedService, requestedDoctor]);
+    let mounted = true;
+    setLoadingData(true);
 
-  const today = useMemo(() => {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    return d;
-  }, []);
+    Promise.all([
+      api.get<{ treatments: TreatmentItem[] }>("/api/treatments").catch(() => ({ treatments: [] })),
+      api.get<{ doctors: DoctorItem[] }>("/api/doctors").catch(() => ({ doctors: [] })),
+    ])
+      .then(([treatRes, docRes]) => {
+        if (!mounted) return;
+        const validTreatments = (treatRes.treatments || []).filter((t) => t.treatment_name);
+        const validDoctors = (docRes.doctors || []).filter((d) => d.name && !/test\s*\d+/i.test(d.name));
+        setTreatments(validTreatments);
+        setDoctors(validDoctors);
+
+        // Pre-select treatment if in query params
+        if (requestedService && validTreatments.length) {
+          const match = validTreatments.find(
+            (t) =>
+              t.slug.toLowerCase() === requestedService.toLowerCase() ||
+              t.treatment_name.toLowerCase().includes(requestedService.toLowerCase()),
+          );
+          if (match) setSelectedTreatment(match);
+        }
+
+        // Pre-select doctor if in query params
+        if (requestedDoctor && validDoctors.length) {
+          const match = validDoctors.find(
+            (d) =>
+              d.name.toLowerCase().includes(requestedDoctor.toLowerCase()) ||
+              requestedDoctor.toLowerCase().includes(d.name.toLowerCase()),
+          );
+          if (match) setSelectedDoctor(match);
+        }
+      })
+      .finally(() => {
+        if (mounted) setLoadingData(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [requestedService, requestedDoctor]);
+
+  // Pre-fill user data if logged in
+  useEffect(() => {
+    if (user) {
+      const fullName = `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim();
+      setPatientName((prev) => prev || fullName);
+      setPhone((prev) => prev || user.phone || "");
+      setEmail((prev) => prev || user.email || "");
+    }
+  }, [user]);
+
+  // Today in IST
+  const todayIST = useMemo(() => getTodayIST(), []);
+  const todayDateObj = useMemo(() => new Date(`${todayIST}T00:00:00`), [todayIST]);
 
   const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
   const firstDayOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1).getDay();
   const monthLabel = currentMonth.toLocaleString("default", { month: "long", year: "numeric" });
-  const serviceLabel = meta?.services.find((s) => s.value === service)?.label ?? "";
   const selectedISO = selectedDay ? isoFor(currentMonth, selectedDay) : null;
 
-  const selectDate = async (day: number) => {
-    setSelectedDay(day);
-    setSelectedTime(null);
-    const iso = isoFor(currentMonth, day);
+  // Load availability when date, doctor, or treatment changes
+  const fetchAvailability = async (isoDate: string, docId?: number, treatId?: number) => {
     setSlotsLoading(true);
     try {
-      const data = await api.get<Availability>(`/api/availability?date=${iso}`);
+      const params = new URLSearchParams({ date: isoDate });
+      if (docId) params.append("doctorId", String(docId));
+      if (treatId) params.append("treatmentId", String(treatId));
+
+      const data = await api.get<Availability>(`/api/availability?${params.toString()}`);
       setAvailability(data);
-    } catch {
+    } catch (err) {
       setAvailability(null);
-      toast.error("Could not load availability. Please try another date.");
+      toast.error(err instanceof ApiError ? err.message : "Could not load slot availability. Please try another date.");
     } finally {
       setSlotsLoading(false);
     }
+  };
+
+  const handleSelectDate = (day: number) => {
+    setSelectedDay(day);
+    setSelectedTime(null);
+    const iso = isoFor(currentMonth, day);
+    fetchAvailability(iso, selectedDoctor?.id, selectedTreatment?.id);
+    setStep(4);
   };
 
   const shiftMonth = (delta: number) => {
@@ -113,108 +198,113 @@ export default function BookingPage() {
     setAvailability(null);
   };
 
-  const canContinue =
-    step === 1
-      ? Boolean(service)
-      : step === 2
-        ? Boolean(selectedDay && selectedTime)
-        : true;
+  const submitBooking = async () => {
+    const cleanName = patientName.trim();
+    const cleanPhone = phone.trim().replace(/\D/g, "");
+    const cleanEmail = email.trim();
 
-  const submit = async () => {
-    const patientName = details.patientName.trim();
-    const phone = details.phone.trim();
-    const email = details.email.trim();
-    if (patientName.length < 2) {
-      toast.error("Please enter the patient's full name.");
+    if (cleanName.length < 2) {
+      toast.error("Please enter patient's full name (at least 2 characters).");
       return;
     }
-    if (phone.replace(/\D/g, "").length < 10) {
+    if (cleanPhone.length < 10) {
       toast.error("Please enter a valid 10-digit mobile number.");
       return;
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
-      toast.error("Please enter a valid email address.");
+    if (!selectedTreatment) {
+      toast.error("Please select a treatment.");
+      setStep(1);
+      return;
+    }
+    if (!selectedDoctor) {
+      toast.error("Please select a doctor.");
+      setStep(2);
+      return;
+    }
+    if (!selectedISO || !selectedTime) {
+      toast.error("Please select an appointment date and time.");
+      setStep(3);
       return;
     }
 
     setSubmitting(true);
     try {
       const data = await api.post<{ booking: Booking }>("/api/bookings", {
-        patientName,
-        service,
+        patientName: cleanName,
+        phone: cleanPhone,
+        email: cleanEmail,
+        treatmentId: selectedTreatment.id,
+        doctorId: selectedDoctor.id,
+        service: selectedTreatment.slug,
+        dentist: selectedDoctor.name,
         date: selectedISO,
         time: selectedTime,
-        phone,
-        email,
-        dob: details.dob,
-        dentist: details.dentist,
-        source: details.source,
-        notes: details.notes,
+        notes: notes.trim(),
       });
-      setConfirmed(data.booking);
-      setStep(4);
+
+      setConfirmedBooking(data.booking);
+      setStep(7);
       window.dispatchEvent(new Event("bookings:changed"));
-      toast.success("Appointment booked — confirmation ready on WhatsApp");
+      toast.success("✅ Appointment successfully booked!");
     } catch (error) {
       if (error instanceof ApiError && error.status === 409) {
         toast.error(error.message);
-        setStep(2);
+        setStep(4);
         if (selectedISO) {
-          const data = await api.get<Availability>(`/api/availability?date=${selectedISO}`).catch(() => null);
-          setAvailability(data);
+          fetchAvailability(selectedISO, selectedDoctor.id, selectedTreatment.id);
         }
         setSelectedTime(null);
       } else {
-        toast.error(error instanceof ApiError ? error.message : "Could not book the appointment.");
+        toast.error(error instanceof ApiError ? error.message : "Could not complete booking. Please try again.");
       }
     } finally {
       setSubmitting(false);
     }
   };
 
-  const reset = () => {
+  const resetFlow = () => {
     setStep(1);
-    setService(null);
+    setSelectedTreatment(null);
+    setSelectedDoctor(null);
     setSelectedDay(null);
     setSelectedTime(null);
     setAvailability(null);
-    setConfirmed(null);
-    setDetails((prev) => ({ ...prev, notes: "", dob: "", source: "", dentist: "" }));
+    setConfirmedBooking(null);
+    setNotes("");
   };
 
-  if (authLoading) {
+  if (authLoading || loadingData) {
     return (
-      <main className="grid min-h-screen place-items-center bg-background">
-        <Loader2 className="h-6 w-6 animate-spin text-primary-600" />
+      <main className="grid min-h-screen place-items-center bg-[#FDFBF7]">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-[#1F6878]" />
+          <p className="text-[13px] font-medium text-[#707574]">Loading dental appointment booking…</p>
+        </div>
       </main>
     );
   }
 
-  if (!user) {
-    return <Navigate to={`/auth/login?next=${encodeURIComponent(location.pathname + location.search)}`} replace />;
-  }
-
   return (
-    <main className="min-h-screen bg-background">
+    <main className="min-h-screen bg-[#FDFBF7]">
       <PageHero
-        eyebrow="Appointment request"
+        eyebrow="Sri Saraswathi Dental Clinic"
         align="center"
         title={
           <>
-            Plan your visit <span className="italic text-[#1F6878]">with confidence.</span>
+            Book an Appointment <span className="italic text-[#1F6878]">with Confidence.</span>
           </>
         }
-        description="Choose a treatment and preferred time. The clinic team will review availability and confirm your appointment."
+        description="Select your treatment, choose your specialist dentist, and pick an available date & time. Confirmed directly with WhatsApp notifications."
         actions={
-          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[12px] text-muted-foreground">
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[12px] text-[#707574]">
             <span className="flex items-center gap-1.5">
-              <Sparkles className="h-3.5 w-3.5 text-accent" /> Choose a preferred time
+              <Sparkles className="h-3.5 w-3.5 text-[#E95A35]" /> Admin-Verified Doctors
             </span>
             <span className="flex items-center gap-1.5">
-              <Clock className="h-3.5 w-3.5 text-primary-600" /> Clinic team confirms availability
+              <Clock className="h-3.5 w-3.5 text-[#1F6878]" /> Real-Time Live Availability
             </span>
             <span className="flex items-center gap-1.5">
-              <Calendar className="h-3.5 w-3.5 text-primary-600" /> Open Mon–Sat
+              <Calendar className="h-3.5 w-3.5 text-[#1F6878]" /> Instant WhatsApp Notification
             </span>
           </div>
         }
@@ -222,369 +312,675 @@ export default function BookingPage() {
 
       <section className="section-pad">
         <div className="container-x">
-          <div className="mx-auto max-w-3xl">
-            <div className="mb-8 flex items-center justify-center gap-2 sm:gap-4">
-              {[1, 2, 3, 4].map((s) => (
-                <div key={s} className="flex items-center gap-1.5 sm:gap-2">
-                  <div
-                    className={cn(
-                      "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[13px] font-semibold transition-colors",
-                      step >= s
-                        ? "bg-[#1F6878] text-white"
-                        : "border border-[#1F6878]/15 bg-white text-[#707574]",
-                    )}
-                  >
-                    {step > s ? <CheckCircle className="h-4 w-4" /> : s}
-                  </div>
-                  <span
-                    className={cn(
-                      "hidden text-[13px] md:inline",
-                      step >= s ? "font-semibold text-[#1F6878]" : "text-[#707574]",
-                    )}
-                  >
-                    {steps[s - 1]}
-                  </span>
-                  {s < 4 && (
-                    <div className={cn("h-px w-4 shrink-0 sm:w-8", step > s ? "bg-[#1F6878]" : "bg-[#1F6878]/15")} />
-                  )}
+          <div className="mx-auto max-w-4xl">
+            {/* Step Progress Indicators */}
+            {step < 7 && (
+              <div className="mb-8 overflow-x-auto pb-2">
+                <div className="flex min-w-[620px] items-center justify-between gap-1 sm:gap-2">
+                  {[1, 2, 3, 4, 5, 6].map((s) => (
+                    <div key={s} className="flex items-center gap-1 sm:gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (s < step) setStep(s);
+                        }}
+                        disabled={s > step}
+                        className={cn(
+                          "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[12px] font-bold transition-all",
+                          step === s
+                            ? "bg-[#1F6878] text-white ring-4 ring-[#1F6878]/15"
+                            : step > s
+                              ? "bg-[#1F6878] text-white hover:opacity-90"
+                              : "border border-[#1F6878]/20 bg-white text-[#707574]",
+                        )}
+                      >
+                        {step > s ? <Check className="h-4 w-4" /> : s}
+                      </button>
+                      <span
+                        className={cn(
+                          "text-[12px] font-semibold transition-colors",
+                          step === s ? "text-[#1F6878]" : step > s ? "text-[#1F6878]/80" : "text-[#707574]/70",
+                        )}
+                      >
+                        {STEPS[s - 1]}
+                      </span>
+                      {s < 6 && (
+                        <div
+                          className={cn(
+                            "h-0.5 w-3 shrink-0 sm:w-6 transition-colors",
+                            step > s ? "bg-[#1F6878]" : "bg-[#1F6878]/15",
+                          )}
+                        />
+                      )}
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </div>
+            )}
 
+            {/* Main Booking Container */}
             <div className="rounded-3xl border border-[#1F6878]/15 bg-white p-6 shadow-card md:p-9">
+              {/* STEP 1: SELECT TREATMENT */}
               {step === 1 && (
                 <div className="animate-fade-in">
-                  <h2 className="font-display text-2xl font-bold text-[#1F6878]">What brings you in?</h2>
-                  <p className="mt-1.5 text-[13px] text-[#707574]">
-                    Booking as <span className="font-semibold text-[#1F6878]">{user.firstName} {user.lastName}</span>. Pick
-                    the closest option — we can adjust later.
-                  </p>
-                  {!meta ? (
-                    <div className="mt-8 flex items-center gap-3 text-[13px] text-[#707574]">
-                      <Loader2 className="h-4 w-4 animate-spin text-[#1F6878]" /> Loading services…
+                  <div className="flex flex-wrap items-end justify-between gap-3">
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#E95A35]">
+                        Step 1 of 6
+                      </span>
+                      <h2 className="mt-1 font-display text-2xl font-bold text-[#1F6878]">Select Dental Treatment</h2>
+                      <p className="mt-1 text-[13px] text-[#707574]">
+                        Choose the care or consultation you need. All treatments are maintained by clinic admin.
+                      </p>
+                    </div>
+                  </div>
+
+                  {!treatments.length ? (
+                    <div className="mt-8 rounded-2xl border border-dashed border-[#1F6878]/20 p-8 text-center text-[#707574]">
+                      <Stethoscope className="mx-auto h-8 w-8 text-[#1F6878]/40 mb-2" />
+                      <p className="text-[13px] font-medium">No active treatments found in database.</p>
+                      <p className="mt-1 text-[11px] text-[#707574]">
+                        Please add or activate treatments from Admin Treatment Management.
+                      </p>
                     </div>
                   ) : (
-                    <div className="mt-6 grid gap-2.5 sm:grid-cols-2">
-                      {meta.services.map((s) => (
-                        <button
-                          key={s.value}
-                          type="button"
-                          onClick={() => {
-                            setService(s.value);
-                            setStep(2);
-                          }}
-                          className={cn(
-                            "rounded-xl border px-4 py-3.5 text-left text-[13px] font-medium transition-all",
-                            service === s.value
-                              ? "border-[#1F6878] bg-[#E4F0F2] text-[#1F6878] font-semibold"
-                              : "border-[#1F6878]/12 text-[#1F6878]/85 hover:-translate-y-0.5 hover:border-[#1F6878] hover:bg-[#E4F0F2]/55 hover:shadow-soft",
-                          )}
-                        >
-                          {s.label}
-                        </button>
-                      ))}
+                    <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                      {treatments.map((t) => {
+                        const isSelected = selectedTreatment?.id === t.id;
+                        return (
+                          <div
+                            key={t.id}
+                            onClick={() => {
+                              setSelectedTreatment(t);
+                              setStep(2);
+                            }}
+                            className={cn(
+                              "group relative flex flex-col justify-between cursor-pointer rounded-2xl border p-4 transition-all duration-200",
+                              isSelected
+                                ? "border-[#1F6878] bg-[#E4F0F2]/70 shadow-sm"
+                                : "border-[#1F6878]/15 bg-white hover:-translate-y-0.5 hover:border-[#1F6878] hover:bg-[#E4F0F2]/30 hover:shadow-soft",
+                            )}
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-[#E4F0F2] border border-[#1F6878]/15 grid place-items-center">
+                                {t.treatment_image_url ? (
+                                  <img
+                                    src={resolveApiAsset(t.treatment_image_url)}
+                                    alt={t.treatment_name}
+                                    className="h-full w-full object-cover"
+                                  />
+                                ) : (
+                                  <Stethoscope className="h-6 w-6 text-[#1F6878]" />
+                                )}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <h3 className="text-[14px] font-bold text-[#1F6878] group-hover:text-[#1F6878]">
+                                  {t.treatment_name}
+                                </h3>
+                                {t.short_description && (
+                                  <p className="mt-1 line-clamp-2 text-[11.5px] leading-relaxed text-[#707574]">
+                                    {t.short_description}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="mt-3 flex items-center justify-between border-t border-[#1F6878]/10 pt-2.5 text-[11px] font-semibold text-[#1F6878]">
+                              <span className="inline-flex items-center gap-1 text-[#707574]">
+                                <Clock className="h-3 w-3 text-[#1F6878]" />
+                                {t.duration_minutes ? `${t.duration_minutes} mins` : "30 mins"}
+                              </span>
+                              <span className="text-[#E95A35] font-bold group-hover:translate-x-0.5 transition-transform">
+                                Select →
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
               )}
 
+              {/* STEP 2: SELECT DOCTOR */}
               {step === 2 && (
                 <div className="animate-fade-in">
                   <div className="flex flex-wrap items-end justify-between gap-3">
                     <div>
-                      <h2 className="font-display text-2xl font-bold text-[#1F6878]">Pick a date & time</h2>
-                      <p className="mt-1.5 text-[13px] text-[#707574]">
-                        Live availability — reserved slots disappear instantly.
+                      <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#E95A35]">
+                        Step 2 of 6
+                      </span>
+                      <h2 className="mt-1 font-display text-2xl font-bold text-[#1F6878]">Select Specialist Doctor</h2>
+                      <p className="mt-1 text-[13px] text-[#707574]">
+                        Choose your attending dentist. Only genuine active doctors from Doctor Management are shown.
                       </p>
                     </div>
-                    <span className="rounded-full bg-[#E4F0F2] px-3 py-1 text-[11px] font-semibold text-[#1F6878]">
-                      {serviceLabel}
-                    </span>
+                    {selectedTreatment && (
+                      <span className="rounded-full bg-[#E4F0F2] px-3 py-1 text-[11px] font-semibold text-[#1F6878]">
+                        {selectedTreatment.treatment_name}
+                      </span>
+                    )}
                   </div>
 
-                  <div className="mt-6 grid gap-8 md:grid-cols-2">
-                    <div>
-                      <div className="mb-3 flex items-center justify-between">
-                        <button
-                          type="button"
-                          onClick={() => shiftMonth(-1)}
-                          aria-label="Previous month"
-                          className="rounded-full p-1.5 text-[#707574] transition-colors hover:bg-[#E4F0F2] hover:text-[#1F6878]"
-                        >
-                          <ChevronLeft className="h-4 w-4" />
-                        </button>
-                        <span className="text-[13px] font-semibold text-[#1F6878]">{monthLabel}</span>
-                        <button
-                          type="button"
-                          onClick={() => shiftMonth(1)}
-                          aria-label="Next month"
-                          className="rounded-full p-1.5 text-[#707574] transition-colors hover:bg-[#E4F0F2] hover:text-[#1F6878]"
-                        >
-                          <ChevronRight className="h-4 w-4" />
-                        </button>
-                      </div>
-                      <div className="grid grid-cols-7 gap-1 text-center">
-                        {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d) => (
-                          <div
-                            key={d}
-                            className="py-1 text-[10px] font-medium uppercase tracking-wider text-[#707574]"
-                          >
-                            {d}
-                          </div>
-                        ))}
-                        {Array.from({ length: firstDayOfMonth }, (_, i) => (
-                          <div key={`empty-${i}`} />
-                        ))}
-                        {Array.from({ length: daysInMonth }, (_, i) => {
-                          const day = i + 1;
-                          const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
-                          const isPast = date < today;
-                          const isClosed = date.getDay() === 0;
-                          return (
-                            <button
-                              key={day}
-                              type="button"
-                              disabled={isPast || isClosed}
-                              title={isClosed ? "Closed on Sundays" : undefined}
-                              onClick={() => void selectDate(day)}
-                              className={cn(
-                                "flex h-9 items-center justify-center rounded-full text-[13px] transition-colors",
-                                selectedDay === day
-                                  ? "bg-[#1F6878] font-semibold text-white"
-                                  : isPast || isClosed
-                                    ? "cursor-not-allowed text-[#707574]/40"
-                                    : "text-[#1F6878] hover:bg-[#E4F0F2] hover:text-[#1F6878]",
-                              )}
-                            >
-                              {day}
-                            </button>
-                          );
-                        })}
-                      </div>
-                      <p className="mt-3 text-[11px] text-[#707574]">
-                        Closed on Sundays · slots hold 2 patients each.
+                  {!doctors.length ? (
+                    <div className="mt-8 rounded-2xl border border-dashed border-[#1F6878]/20 p-8 text-center text-[#707574]">
+                      <User className="mx-auto h-8 w-8 text-[#1F6878]/40 mb-2" />
+                      <p className="text-[13px] font-medium">No active doctors found.</p>
+                      <p className="mt-1 text-[11px] text-[#707574]">
+                        Please add or activate doctors in Admin Doctor Management.
                       </p>
                     </div>
-
-                    <div>
-                      <p className="mb-3 text-[12px] font-medium uppercase tracking-[0.12em] text-[#1F6878]">
-                        Available times
-                      </p>
-                      {!selectedDay && (
-                        <p className="rounded-xl border border-dashed border-[#1F6878]/25 px-4 py-6 text-center text-[12.5px] text-[#707574]">
-                          Choose a date to see live slots.
-                        </p>
+                  ) : (
+                    <div
+                      className={cn(
+                        "mt-6 grid gap-4",
+                        doctors.length === 1
+                          ? "max-w-md mx-auto grid-cols-1"
+                          : doctors.length === 2
+                            ? "grid-cols-1 sm:grid-cols-2 max-w-2xl mx-auto"
+                            : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3",
                       )}
-                      {selectedDay && slotsLoading && (
-                        <div className="flex items-center gap-2 px-1 py-3 text-[12.5px] text-[#707574]">
-                          <Loader2 className="h-4 w-4 animate-spin text-[#1F6878]" /> Checking availability…
-                        </div>
-                      )}
-                      {selectedDay && !slotsLoading && availability && !availability.closed && (
-                        <div className="grid grid-cols-3 gap-2 sm:grid-cols-2">
-                          {availability.slots.map((slot) => (
-                            <button
-                              key={slot.time}
-                              type="button"
-                              disabled={slot.remaining === 0}
-                              onClick={() => setSelectedTime(slot.time)}
-                              title={slot.remaining === 0 ? "Fully booked" : `${slot.remaining} slot${slot.remaining === 1 ? "" : "s"} left`}
-                              className={cn(
-                                "rounded-full border px-2 py-2 text-[12px] transition-colors",
-                                selectedTime === slot.time
-                                  ? "border-[#1F6878] bg-[#E4F0F2] font-semibold text-[#1F6878]"
-                                  : slot.remaining === 0
-                                    ? "cursor-not-allowed border-[#1F6878]/10 text-[#707574]/45 line-through"
-                                    : "border-[#1F6878]/15 text-[#1F6878]/80 hover:border-[#1F6878] hover:bg-[#E4F0F2]/60",
+                    >
+                      {doctors.map((doc) => {
+                        const isSelected = selectedDoctor?.id === doc.id;
+                        return (
+                          <div
+                            key={doc.id}
+                            onClick={() => {
+                              setSelectedDoctor(doc);
+                              setStep(3);
+                            }}
+                            className={cn(
+                              "group relative flex flex-col justify-between cursor-pointer rounded-2xl border p-5 transition-all duration-200 text-center items-center",
+                              isSelected
+                                ? "border-[#1F6878] bg-[#E4F0F2]/70 shadow-sm"
+                                : "border-[#1F6878]/15 bg-white hover:-translate-y-0.5 hover:border-[#1F6878] hover:bg-[#E4F0F2]/30 hover:shadow-soft",
+                            )}
+                          >
+                            <div className="relative mb-3 h-20 w-20 overflow-hidden rounded-full border-2 border-[#1F6878]/20 bg-[#E4F0F2] shadow-inner">
+                              {doc.profile_image_url ? (
+                                <img
+                                  src={resolveApiAsset(doc.profile_image_url)}
+                                  alt={doc.name}
+                                  className="h-full w-full object-cover"
+                                />
+                              ) : (
+                                <div className="grid h-full w-full place-items-center text-[#1F6878]">
+                                  <User className="h-10 w-10" />
+                                </div>
                               )}
-                            >
-                              {slot.time}
-                            </button>
-                          ))}
+                            </div>
+
+                            <h3 className="font-display text-[15px] font-bold text-[#1F6878]">{doc.name}</h3>
+                            <p className="mt-0.5 text-[11.5px] font-semibold text-[#E95A35]">
+                              {doc.specialization}
+                            </p>
+                            {doc.qualification && (
+                              <p className="mt-0.5 text-[11px] text-[#707574]">{doc.qualification}</p>
+                            )}
+                            {doc.experience && (
+                              <span className="mt-2 rounded-full bg-[#E4F0F2] px-2.5 py-0.5 text-[10px] font-semibold text-[#1F6878]">
+                                {doc.experience}
+                              </span>
+                            )}
+
+                            <div className="mt-4 w-full border-t border-[#1F6878]/10 pt-3">
+                              <span className="block text-center text-[11px] font-bold text-[#1F6878] group-hover:text-[#E95A35] transition-colors">
+                                Book with {doc.name.split(" ")[0] || "Doctor"} →
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* STEP 3: SELECT DATE */}
+              {step === 3 && (
+                <div className="animate-fade-in">
+                  <div className="flex flex-wrap items-end justify-between gap-3">
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#E95A35]">
+                        Step 3 of 6
+                      </span>
+                      <h2 className="mt-1 font-display text-2xl font-bold text-[#1F6878]">Select Appointment Date</h2>
+                      <p className="mt-1 text-[13px] text-[#707574]">
+                        Clinic Timezone: <strong className="text-[#1F6878]">Asia/Kolkata (IST)</strong>. Past dates are strictly disabled.
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedTreatment && (
+                        <span className="rounded-full bg-[#E4F0F2] px-3 py-1 text-[11px] font-semibold text-[#1F6878]">
+                          {selectedTreatment.treatment_name}
+                        </span>
+                      )}
+                      {selectedDoctor && (
+                        <span className="rounded-full bg-[#E4F0F2] px-3 py-1 text-[11px] font-semibold text-[#1F6878]">
+                          {selectedDoctor.name}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mx-auto mt-6 max-w-md rounded-2xl border border-[#1F6878]/15 bg-white p-5 shadow-soft">
+                    <div className="mb-4 flex items-center justify-between">
+                      <button
+                        type="button"
+                        onClick={() => shiftMonth(-1)}
+                        aria-label="Previous month"
+                        className="rounded-full p-2 text-[#707574] transition-colors hover:bg-[#E4F0F2] hover:text-[#1F6878]"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </button>
+                      <span className="text-[14px] font-bold text-[#1F6878]">{monthLabel}</span>
+                      <button
+                        type="button"
+                        onClick={() => shiftMonth(1)}
+                        aria-label="Next month"
+                        className="rounded-full p-2 text-[#707574] transition-colors hover:bg-[#E4F0F2] hover:text-[#1F6878]"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-7 gap-1 text-center">
+                      {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d) => (
+                        <div key={d} className="py-1 text-[11px] font-bold uppercase tracking-wider text-[#707574]">
+                          {d}
                         </div>
-                      )}
-                      {selectedDay && !slotsLoading && availability?.closed && (
-                        <p className="rounded-xl border border-dashed border-border px-4 py-6 text-center text-[12.5px] text-muted-foreground">
-                          We&apos;re closed that day. Please pick another date.
-                        </p>
-                      )}
-                      <div className="mt-5">
-                        <Select
-                          label="Preferred dentist (optional)"
-                          placeholder="Any available dentist"
-                          value={details.dentist}
-                          onChange={(e) => setDetails({ ...details, dentist: e.target.value })}
-                          options={(meta?.dentists ?? []).map((name) => ({ value: name, label: name }))}
-                        />
-                      </div>
+                      ))}
+                      {Array.from({ length: firstDayOfMonth }, (_, i) => (
+                        <div key={`empty-${i}`} />
+                      ))}
+                      {Array.from({ length: daysInMonth }, (_, i) => {
+                        const day = i + 1;
+                        const dateStr = isoFor(currentMonth, day);
+                        const dateObj = new Date(`${dateStr}T00:00:00`);
+                        const isPast = dateStr < todayIST;
+                        const isSunday = dateObj.getDay() === 0;
+                        const isDisabled = isPast || isSunday;
+
+                        return (
+                          <button
+                            key={day}
+                            type="button"
+                            disabled={isDisabled}
+                            title={isSunday ? "Closed on Sundays" : isPast ? "Past date" : undefined}
+                            onClick={() => handleSelectDate(day)}
+                            className={cn(
+                              "flex h-10 w-10 mx-auto items-center justify-center rounded-full text-[13px] font-medium transition-all",
+                              selectedDay === day
+                                ? "bg-[#1F6878] font-bold text-white shadow-sm"
+                                : isDisabled
+                                  ? "cursor-not-allowed text-[#707574]/35"
+                                  : "text-[#1F6878] hover:bg-[#E4F0F2] hover:font-bold",
+                            )}
+                          >
+                            {day}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div className="mt-4 flex items-center justify-between border-t border-[#1F6878]/10 pt-3 text-[11px] text-[#707574]">
+                      <span>Clinic open Mon–Sat</span>
+                      <span className="font-semibold text-[#E95A35]">Closed Sundays</span>
                     </div>
                   </div>
                 </div>
               )}
 
-              {step === 3 && (
+              {/* STEP 4: SELECT AVAILABLE TIME SLOT */}
+              {step === 4 && (
                 <div className="animate-fade-in">
-                  <h2 className="font-display text-2xl font-bold text-[#1F6878]">A few details</h2>
-                  <p className="mt-1.5 text-[13px] text-[#707574]">
-                    We use these to confirm your visit and send WhatsApp updates.
+                  <div className="flex flex-wrap items-end justify-between gap-3">
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#E95A35]">
+                        Step 4 of 6
+                      </span>
+                      <h2 className="mt-1 font-display text-2xl font-bold text-[#1F6878]">Select Available Time</h2>
+                      <p className="mt-1 text-[13px] text-[#707574]">
+                        Date: <strong className="text-[#1F6878]">{selectedISO}</strong> with{" "}
+                        <strong className="text-[#1F6878]">{selectedDoctor?.name}</strong>.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setStep(3)}
+                      className="text-[12px] font-semibold text-[#1F6878] hover:underline"
+                    >
+                      ← Change Date
+                    </button>
+                  </div>
+
+                  <div className="mt-6">
+                    {slotsLoading ? (
+                      <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#1F6878]/20 p-12 text-[#707574]">
+                        <Loader2 className="h-6 w-6 animate-spin text-[#1F6878] mb-2" />
+                        <p className="text-[13px]">Checking live availability for {selectedISO}…</p>
+                      </div>
+                    ) : availability?.closed ? (
+                      <div className="rounded-2xl border border-dashed border-amber-300 bg-amber-50/60 p-8 text-center text-amber-900">
+                        <Clock className="mx-auto h-8 w-8 text-amber-600 mb-2" />
+                        <h3 className="font-display text-[16px] font-bold">
+                          {availability.reason || "Appointments are unavailable on this date."}
+                        </h3>
+                        <p className="mt-1 text-[12px] text-amber-800/80">
+                          Please select another day from the calendar.
+                        </p>
+                        <Button className="mt-4" variant="outline" onClick={() => setStep(3)}>
+                          Pick another date
+                        </Button>
+                      </div>
+                    ) : availability?.slots && availability.slots.length > 0 ? (
+                      <div>
+                        <p className="mb-3 text-[12px] font-bold uppercase tracking-[0.12em] text-[#1F6878]">
+                          Available Appointment Slots
+                        </p>
+                        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4">
+                          {availability.slots.map((slot) => {
+                            const isSelected = selectedTime === slot.time;
+                            return (
+                              <button
+                                key={slot.time}
+                                type="button"
+                                onClick={() => {
+                                  setSelectedTime(slot.time);
+                                  setStep(5);
+                                }}
+                                className={cn(
+                                  "rounded-xl border px-3 py-3 text-center text-[13px] font-semibold transition-all",
+                                  isSelected
+                                    ? "border-[#1F6878] bg-[#1F6878] text-white shadow-sm"
+                                    : "border-[#1F6878]/20 bg-white text-[#1F6878] hover:border-[#1F6878] hover:bg-[#E4F0F2]",
+                                )}
+                              >
+                                {slot.time}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="rounded-2xl border border-dashed border-[#1F6878]/20 p-8 text-center text-[#707574]">
+                        <Clock className="mx-auto h-8 w-8 text-[#1F6878]/40 mb-2" />
+                        <p className="text-[14px] font-medium text-[#1F6878]">
+                          No available appointments for this date.
+                        </p>
+                        <p className="mt-1 text-[12px] text-[#707574]">
+                          All slots for this day have already passed or have been booked. Please choose another date.
+                        </p>
+                        <Button className="mt-4" variant="outline" onClick={() => setStep(3)}>
+                          Pick another date
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 5: PATIENT INFORMATION */}
+              {step === 5 && (
+                <div className="animate-fade-in">
+                  <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#E95A35]">
+                    Step 5 of 6
+                  </span>
+                  <h2 className="mt-1 font-display text-2xl font-bold text-[#1F6878]">Patient Information</h2>
+                  <p className="mt-1 text-[13px] text-[#707574]">
+                    Enter your contact details so the clinic can confirm your booking and send WhatsApp updates.
                   </p>
+
                   <div className="mt-6 grid gap-4 sm:grid-cols-2">
                     <Input
-                      label="Patient"
+                      label="Patient Full Name"
                       required
-                      value={details.patientName}
-                      onChange={(e) => setDetails({ ...details, patientName: e.target.value })}
-                      placeholder="Patient full name"
+                      placeholder="e.g. Ramesh Kumar"
+                      value={patientName}
+                      onChange={(e) => setPatientName(e.target.value)}
                     />
                     <Input
-                      label="Phone (WhatsApp)"
+                      label="Mobile Number (WhatsApp)"
+                      required
                       type="tel"
-                      required
-                      value={details.phone}
-                      onChange={(e) => setDetails({ ...details, phone: e.target.value })}
-                      placeholder="98765 43210"
-                    />
-                    <Input
-                      label="Email"
-                      type="email"
-                      required
-                      value={details.email}
-                      onChange={(e) => setDetails({ ...details, email: e.target.value })}
-                      placeholder="you@example.com"
-                    />
-                    <Input
-                      label="Date of birth"
-                      type="date"
-                      value={details.dob}
-                      onChange={(e) => setDetails({ ...details, dob: e.target.value })}
+                      placeholder="10-digit number"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      helperText="Booking confirmation will be prepared for this number."
                     />
                     <div className="sm:col-span-2">
-                      <Select
-                        label="How did you hear about us?"
-                        placeholder="Select one"
-                        value={details.source}
-                        onChange={(e) => setDetails({ ...details, source: e.target.value })}
-                        options={[
-                          { value: "google", label: "Google Search" },
-                          { value: "social", label: "Social Media" },
-                          { value: "referral", label: "Friend / Family" },
-                          { value: "reviews", label: "Review sites" },
-                          { value: "walk-in", label: "Walk-in" },
-                          { value: "other", label: "Other" },
-                        ]}
+                      <Input
+                        label="Email Address (Optional)"
+                        type="email"
+                        placeholder="you@example.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
                       />
                     </div>
                     <div className="sm:col-span-2">
                       <TextArea
-                        label="Notes (optional)"
-                        placeholder="Any special concerns or requests…"
-                        value={details.notes}
-                        onChange={(e) => setDetails({ ...details, notes: e.target.value })}
+                        label="Dental Concern or Notes (Optional)"
+                        rows={3}
+                        placeholder="Describe your tooth pain, preferred procedure, or any questions for the doctor…"
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
                       />
                     </div>
                   </div>
-                  <div className="mt-5 rounded-xl border border-[#1F6878]/15 bg-[#E4F0F2]/60 px-4 py-3 text-[12.5px] text-[#15191B]/80">
-                    <span className="font-semibold text-[#15191B]">{serviceLabel}</span> ·{" "}
-                    {selectedISO
-                      ? new Date(`${selectedISO}T00:00:00`).toLocaleDateString("en-IN", {
-                          weekday: "short",
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
-                        })
-                      : ""}{" "}
-                    at {selectedTime} · {details.dentist || "First available dentist"}
+
+                  {/* Summary preview chip */}
+                  <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#1F6878]/15 bg-[#E4F0F2]/50 px-4 py-3 text-[12px] text-[#1F6878]">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-bold">{selectedTreatment?.treatment_name}</span>
+                      <span>·</span>
+                      <span>{selectedDoctor?.name}</span>
+                      <span>·</span>
+                      <span>{selectedISO} at {selectedTime}</span>
+                    </div>
+                    <span className="font-semibold text-[#E95A35]">Ready to review</span>
                   </div>
                 </div>
               )}
 
-              {step === 4 && confirmed && (
-                <div className="animate-fade-in text-center">
-                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#E4F0F2] text-[#1F6878]">
-                    <CheckCircle className="h-8 w-8" />
-                  </div>
-                  <h2 className="mt-5 font-display text-2xl font-bold text-[#1F6878]">You&apos;re booked</h2>
-                  <p className="mx-auto mt-2 max-w-sm text-[14px] leading-relaxed text-[#707574]">
-                    Booking <span className="font-semibold text-[#1F6878]">{confirmed.ref}</span> is saved. The clinic
-                    has been notified — send the confirmation on WhatsApp so it&apos;s in your chat too.
+              {/* STEP 6: CONFIRM APPOINTMENT */}
+              {step === 6 && (
+                <div className="animate-fade-in">
+                  <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#E95A35]">
+                    Step 6 of 6
+                  </span>
+                  <h2 className="mt-1 font-display text-2xl font-bold text-[#1F6878]">Confirm Appointment</h2>
+                  <p className="mt-1 text-[13px] text-[#707574]">
+                    Please review your booking details before final confirmation.
                   </p>
 
-                  <div className="mx-auto mt-6 max-w-sm divide-y divide-[#1F6878]/15 rounded-2xl border border-[#1F6878]/15 bg-[#E4F0F2]/50 px-5 text-left">
-                    {[
-                      { label: "Service", value: confirmed.serviceLabel },
-                      { label: "Date", value: confirmed.dateLabel },
-                      { label: "Time", value: confirmed.time },
-                      { label: "Dentist", value: confirmed.dentist },
-                      { label: "Patient", value: confirmed.patientName },
-                      { label: "Status", value: confirmed.statusLabel },
-                    ].map((row) => (
-                      <div key={row.label} className="flex items-center justify-between gap-4 py-3 text-[13px]">
-                        <span className="text-[#707574]">{row.label}</span>
-                        <span className="text-right font-semibold text-[#1F6878]">{row.value}</span>
+                  <div className="mt-6 divide-y divide-[#1F6878]/10 rounded-2xl border border-[#1F6878]/15 bg-[#E4F0F2]/30 p-5">
+                    <div className="flex items-center justify-between py-2.5 text-[13px]">
+                      <span className="text-[#707574]">Treatment</span>
+                      <span className="font-bold text-[#1F6878]">{selectedTreatment?.treatment_name}</span>
+                    </div>
+                    <div className="flex items-center justify-between py-2.5 text-[13px]">
+                      <span className="text-[#707574]">Specialist Doctor</span>
+                      <span className="font-bold text-[#1F6878]">{selectedDoctor?.name} ({selectedDoctor?.specialization})</span>
+                    </div>
+                    <div className="flex items-center justify-between py-2.5 text-[13px]">
+                      <span className="text-[#707574]">Appointment Date</span>
+                      <span className="font-bold text-[#1F6878]">
+                        {selectedISO
+                          ? new Date(`${selectedISO}T00:00:00`).toLocaleDateString("en-IN", {
+                              weekday: "long",
+                              day: "numeric",
+                              month: "long",
+                              year: "numeric",
+                            })
+                          : ""}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between py-2.5 text-[13px]">
+                      <span className="text-[#707574]">Time Slot</span>
+                      <span className="font-bold text-[#1F6878]">{selectedTime}</span>
+                    </div>
+                    <div className="flex items-center justify-between py-2.5 text-[13px]">
+                      <span className="text-[#707574]">Patient</span>
+                      <span className="font-bold text-[#1F6878]">{patientName}</span>
+                    </div>
+                    <div className="flex items-center justify-between py-2.5 text-[13px]">
+                      <span className="text-[#707574]">Phone (WhatsApp)</span>
+                      <span className="font-bold text-[#1F6878]">{phone}</span>
+                    </div>
+                    {email && (
+                      <div className="flex items-center justify-between py-2.5 text-[13px]">
+                        <span className="text-[#707574]">Email</span>
+                        <span className="font-bold text-[#1F6878]">{email}</span>
                       </div>
-                    ))}
-                  </div>
-
-                  <div className="mx-auto mt-6 flex max-w-sm flex-col gap-2.5">
-                    {confirmed.whatsapp?.patient && (
-                      <Button asChild variant="success" size="lg">
-                        <a href={confirmed.whatsapp.patient} target="_blank" rel="noopener noreferrer">
-                          <MessageCircle className="h-4 w-4" /> Send confirmation on WhatsApp
-                        </a>
-                      </Button>
                     )}
-                    {confirmed.whatsapp?.clinic && (
-                      <Button asChild variant="success" size="lg">
-                        <a href={confirmed.whatsapp.clinic} target="_blank" rel="noopener noreferrer">
-                          <MessageCircle className="h-4 w-4" /> Message the clinic
-                        </a>
-                      </Button>
+                    {notes && (
+                      <div className="py-2.5 text-[13px]">
+                        <span className="text-[#707574] block">Notes:</span>
+                        <span className="font-medium text-[#1F6878]">{notes}</span>
+                      </div>
                     )}
                   </div>
 
-                  <div className="mx-auto mt-4 max-w-sm text-[11.5px] leading-relaxed text-muted-foreground">
-                    Your appointment shows as <span className="font-medium text-foreground">pending</span> until the
-                    clinic confirms it. You&apos;ll see status updates in your patient portal.
+                  <div className="mt-4 rounded-xl bg-[#E4F0F2] p-4 text-[12px] text-[#1F6878]">
+                    <p className="font-semibold">Notice:</p>
+                    <p className="mt-0.5 text-[#707574]">
+                      Appointments are scheduled and reviewed by our clinical team. You will receive an immediate confirmation token and live WhatsApp notifications.
+                    </p>
                   </div>
                 </div>
               )}
 
-              {step < 4 && (
-                <div className="mt-8 flex items-center justify-between border-t border-border/70 pt-6">
+              {/* STEP 7: BOOKING SUCCESS */}
+              {step === 7 && confirmedBooking && (
+                <div className="animate-fade-in text-center">
+                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#E4F0F2] text-[#1F6878] shadow-soft">
+                    <CheckCircle className="h-8 w-8" />
+                  </div>
+                  <h2 className="mt-4 font-display text-2xl font-bold text-[#1F6878]">
+                    Appointment Request Received!
+                  </h2>
+                  <p className="mx-auto mt-2 max-w-md text-[13.5px] text-[#707574]">
+                    Your appointment has been registered under reference token{" "}
+                    <strong className="text-[#1F6878] font-bold">{confirmedBooking.ref}</strong>.
+                  </p>
+
+                  <div className="mx-auto mt-6 max-w-md divide-y divide-[#1F6878]/10 rounded-2xl border border-[#1F6878]/15 bg-[#E4F0F2]/40 p-5 text-left text-[13px]">
+                    <div className="flex items-center justify-between py-2">
+                      <span className="text-[#707574]">Reference ID</span>
+                      <span className="font-bold text-[#1F6878]">{confirmedBooking.ref}</span>
+                    </div>
+                    <div className="flex items-center justify-between py-2">
+                      <span className="text-[#707574]">Treatment</span>
+                      <span className="font-bold text-[#1F6878]">{confirmedBooking.serviceLabel}</span>
+                    </div>
+                    <div className="flex items-center justify-between py-2">
+                      <span className="text-[#707574]">Doctor</span>
+                      <span className="font-bold text-[#1F6878]">{confirmedBooking.dentist}</span>
+                    </div>
+                    <div className="flex items-center justify-between py-2">
+                      <span className="text-[#707574]">Date & Time</span>
+                      <span className="font-bold text-[#1F6878]">
+                        {confirmedBooking.dateLabel} at {confirmedBooking.time}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between py-2">
+                      <span className="text-[#707574]">Patient</span>
+                      <span className="font-bold text-[#1F6878]">{confirmedBooking.patientName}</span>
+                    </div>
+                    <div className="flex items-center justify-between py-2">
+                      <span className="text-[#707574]">Status</span>
+                      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-800">
+                        {confirmedBooking.statusLabel}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="mx-auto mt-6 flex max-w-md flex-col gap-3">
+                    {confirmedBooking.whatsapp?.patient && (
+                      <Button asChild size="lg" className="w-full bg-[#25D366] hover:bg-[#20BA5A] text-white">
+                        <a href={confirmedBooking.whatsapp.patient} target="_blank" rel="noopener noreferrer">
+                          <MessageCircle className="h-4 w-4" /> Open Confirmation in WhatsApp
+                        </a>
+                      </Button>
+                    )}
+                    {confirmedBooking.whatsapp?.clinic && (
+                      <Button asChild variant="outline" size="lg" className="w-full border-[#1F6878]/25 text-[#1F6878]">
+                        <a href={confirmedBooking.whatsapp.clinic} target="_blank" rel="noopener noreferrer">
+                          <MessageCircle className="h-4 w-4" /> Message Clinic Front Desk
+                        </a>
+                      </Button>
+                    )}
+                  </div>
+
+                  <div className="mt-8 flex flex-wrap justify-center gap-3">
+                    <Button variant="outline" onClick={resetFlow}>
+                      Book another appointment
+                    </Button>
+                    <Button onClick={() => navigate("/")}>Return to Home</Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Navigation Footer (Steps 1 to 6) */}
+              {step < 7 && (
+                <div className="mt-8 flex items-center justify-between border-t border-[#1F6878]/10 pt-5">
                   {step > 1 ? (
-                    <Button variant="outline" type="button" onClick={() => setStep(step - 1)}>
-                      Back
+                    <Button
+                      variant="outline"
+                      type="button"
+                      onClick={() => setStep(step - 1)}
+                      className="border-[#1F6878]/20 text-[#1F6878]"
+                    >
+                      ← Back
                     </Button>
                   ) : (
                     <div />
                   )}
-                  <Button
-                    type="button"
-                    onClick={() => (step === 3 ? void submit() : setStep(step + 1))}
-                    disabled={!canContinue || submitting}
-                    loading={submitting}
-                  >
-                    {step === 3 ? "Confirm booking" : "Continue"}
-                  </Button>
-                </div>
-              )}
-              {step === 4 && (
-                <div className="mt-7 flex flex-col gap-2.5 sm:flex-row">
-                  <Button fullWidth variant="outline" onClick={reset}>
-                    Book another appointment
-                  </Button>
-                  <Button fullWidth onClick={() => navigate("/patient-portal/appointments")}>
-                    View my appointments
-                  </Button>
+
+                  {step === 5 && (
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        if (!patientName.trim() || patientName.trim().length < 2) {
+                          toast.error("Please enter patient name.");
+                          return;
+                        }
+                        if (phone.replace(/\D/g, "").length < 10) {
+                          toast.error("Please enter a valid 10-digit mobile number.");
+                          return;
+                        }
+                        setStep(6);
+                      }}
+                    >
+                      Review & Confirm →
+                    </Button>
+                  )}
+
+                  {step === 6 && (
+                    <Button
+                      type="button"
+                      loading={submitting}
+                      onClick={submitBooking}
+                      className="bg-[#1F6878] hover:bg-[#185360] text-white font-bold"
+                    >
+                      Confirm & Book Visit
+                    </Button>
+                  )}
                 </div>
               )}
             </div>
 
-            <p className="mt-5 text-center text-[11px] text-muted-foreground">
-              Need to reschedule? Free up to 24 hours before your visit —{" "}
-              <Link to="/patient-portal/appointments" className="font-medium text-primary-700 hover:underline">
-                manage from your portal
-              </Link>
+            {/* Assistance banner */}
+            <p className="mt-6 text-center text-[12px] text-[#707574]">
+              Need immediate emergency dental care? Call Sri Saraswathi Dental Clinic directly at{" "}
+              <a href="tel:04244272494" className="font-bold text-[#1F6878] hover:underline">
+                0424 427 2494
+              </a>{" "}
+              or WhatsApp{" "}
+              <a href="https://wa.me/919345743409" className="font-bold text-[#1F6878] hover:underline">
+                +91 93457 43409
+              </a>
               .
             </p>
           </div>
