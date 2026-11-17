@@ -36,7 +36,6 @@ export function HeroBeforeAfter({ settings, cases }: HeroBeforeAfterProps) {
   }
 
   const activeCase = cases[currentIndex] || cases[0];
-  const total = cases.length;
 
   return (
     <div

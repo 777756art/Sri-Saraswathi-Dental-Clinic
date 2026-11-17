@@ -106,6 +106,15 @@
     color-scheme: light;
     --radius: 0.875rem;
 
+    /* Centralized Website Theme Colors */
+    --theme-primary: #1F6878;
+    --theme-secondary: #E4F0F2;
+    --theme-accent: #E95A35;
+    --theme-background: #F5F2EB;
+    --theme-text: #15191B;
+    --theme-header: #FFFFFF;
+    --theme-footer: #1F6878;
+
     --background: 42 33% 94%;
     --foreground: 200 13% 9%;
     --card: 0 0% 100%;

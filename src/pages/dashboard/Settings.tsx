@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link as RouterLink } from "react-router-dom";
+import { Link as RouterLink, useSearchParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -8,8 +8,9 @@ import { Card } from "@/components/ui/Card";
 import { Tabs } from "@/components/ui/Tabs";
 import { Badge } from "@/components/ui/Badge";
 import toast from "react-hot-toast";
-import { Save, Shield, Bell, Palette, Link, MessageSquare } from "lucide-react";
+import { Save, Shield, Bell, Palette, Link, MessageSquare, Sliders } from "lucide-react";
 import { WhatsAppAutomationSettings } from "@/components/dashboard/WhatsAppAutomationSettings";
+import { WebsiteColoursSettings } from "@/components/dashboard/WebsiteColoursSettings";
 import { api } from "@/lib/api";
 import { useClinicSettings } from "@/lib/clinic-settings";
 
@@ -39,7 +40,8 @@ const auditLogs = [
 ];
 
 export default function SettingsPage() {
-  const { settings, updateSettings, loading: loadingSettings } = useClinicSettings();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { settings, updateSettings } = useClinicSettings();
   const [clinic, setClinic] = useState({
     name: settings.clinicName,
     phone: settings.phone,
@@ -130,8 +132,21 @@ export default function SettingsPage() {
       </div>
 
       <Tabs
+        defaultTab={searchParams.get("tab") || "general"}
+        onChange={(tabId) => {
+          setSearchParams((prev) => {
+            const next = new URLSearchParams(prev);
+            if (tabId === "general") {
+              next.delete("tab");
+            } else {
+              next.set("tab", tabId);
+            }
+            return next;
+          });
+        }}
         tabs={[
-          { id: "general", label: "General", icon: <Palette className="h-4 w-4" /> },
+          { id: "general", label: "General", icon: <Sliders className="h-4 w-4" /> },
+          { id: "colours", label: "Colours", icon: <Palette className="h-4 w-4" /> },
           { id: "notifications", label: "Notifications", icon: <Bell className="h-4 w-4" /> },
           { id: "security", label: "Security", icon: <Shield className="h-4 w-4" /> },
           { id: "integrations", label: "Integrations", icon: <Link className="h-4 w-4" /> },
@@ -140,6 +155,9 @@ export default function SettingsPage() {
       >
         {(activeTab) => (
           <Card>
+            {activeTab === "colours" && (
+              <WebsiteColoursSettings />
+            )}
             {activeTab === "general" && (
               <div className="space-y-4">
                 <h2 className="text-lg font-semibold text-[#1F6878]">Clinic Information</h2>

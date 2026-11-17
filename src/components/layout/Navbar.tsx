@@ -143,6 +143,7 @@ export function Navbar() {
         "fixed inset-x-0 z-50 border-b border-[#dce4e5] bg-white/95 shadow-[0_5px_18px_-16px_rgba(25,36,48,0.45)] backdrop-blur-xl transition-all duration-300",
         hasAnnouncement ? "top-[30px]" : "top-0",
       )}
+      style={{ backgroundColor: "var(--theme-header, rgba(255, 255, 255, 0.95))" }}
     >
       <nav
         className={cn(

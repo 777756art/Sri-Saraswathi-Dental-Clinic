@@ -179,6 +179,15 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
     displayPosition: "below_promotional_container",
     displayStatus: "published",
   };
+  const DEFAULT_THEME_COLORS = {
+    primary: "#1F6878",
+    secondary: "#E4F0F2",
+    accent: "#E95A35",
+    background: "#F5F2EB",
+    text: "#15191B",
+    header: "#FFFFFF",
+    footer: "#1F6878",
+  };
 
   const formatBytesLabel = (bytes) => {
     const val = Math.max(0, Number(bytes || 0));
@@ -348,6 +357,67 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
       .prepare(
         `INSERT INTO d1_meta (key, value, updated_at)
          VALUES ('reels_section_settings', ?, datetime('now'))
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')`
+      )
+      .bind(JSON.stringify(next))
+      .run();
+    return next;
+  };
+
+  /* ------------------------------------------------------------- THEME COLOUR SETTINGS HELPERS */
+  const normalizeHex = (val, fallback) => {
+    if (typeof val !== "string") return fallback;
+    const trimmed = val.trim();
+    if (/^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(trimmed)) {
+      if (trimmed.length === 4) {
+        return `#${trimmed[1]}${trimmed[1]}${trimmed[2]}${trimmed[2]}${trimmed[3]}${trimmed[3]}`.toUpperCase();
+      }
+      return trimmed.toUpperCase();
+    }
+    if (/^([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(trimmed)) {
+      const withHash = `#${trimmed}`;
+      if (withHash.length === 4) {
+        return `#${withHash[1]}${withHash[1]}${withHash[2]}${withHash[2]}${withHash[3]}${withHash[3]}`.toUpperCase();
+      }
+      return withHash.toUpperCase();
+    }
+    return fallback;
+  };
+
+  const getThemeColors = async () => {
+    try {
+      const row = await d1.prepare("SELECT value FROM d1_meta WHERE key = 'theme_colors'").first();
+      if (!row?.value) return { ...DEFAULT_THEME_COLORS };
+      const parsed = JSON.parse(row.value);
+      return {
+        primary: normalizeHex(parsed.primary, DEFAULT_THEME_COLORS.primary),
+        secondary: normalizeHex(parsed.secondary, DEFAULT_THEME_COLORS.secondary),
+        accent: normalizeHex(parsed.accent, DEFAULT_THEME_COLORS.accent),
+        background: normalizeHex(parsed.background, DEFAULT_THEME_COLORS.background),
+        text: normalizeHex(parsed.text, DEFAULT_THEME_COLORS.text),
+        header: normalizeHex(parsed.header, DEFAULT_THEME_COLORS.header),
+        footer: normalizeHex(parsed.footer, DEFAULT_THEME_COLORS.footer),
+      };
+    } catch {
+      return { ...DEFAULT_THEME_COLORS };
+    }
+  };
+
+  const saveThemeColors = async (patch = {}) => {
+    const current = await getThemeColors();
+    const next = {
+      primary: patch.primary !== undefined ? normalizeHex(patch.primary, current.primary) : current.primary,
+      secondary: patch.secondary !== undefined ? normalizeHex(patch.secondary, current.secondary) : current.secondary,
+      accent: patch.accent !== undefined ? normalizeHex(patch.accent, current.accent) : current.accent,
+      background: patch.background !== undefined ? normalizeHex(patch.background, current.background) : current.background,
+      text: patch.text !== undefined ? normalizeHex(patch.text, current.text) : current.text,
+      header: patch.header !== undefined ? normalizeHex(patch.header, current.header) : current.header,
+      footer: patch.footer !== undefined ? normalizeHex(patch.footer, current.footer) : current.footer,
+    };
+    await d1
+      .prepare(
+        `INSERT INTO d1_meta (key, value, updated_at)
+         VALUES ('theme_colors', ?, datetime('now'))
          ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')`
       )
       .bind(JSON.stringify(next))
@@ -3332,6 +3402,49 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
         logoUrl
       ).run();
       res.json({ settings: await getSettings() });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  /* ------------------------------------------------------------- 11b. THEME COLOUR SETTINGS */
+
+  app.get("/api/theme-colors", async (_req, res) => {
+    try {
+      res.json({ colors: await getThemeColors() });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/admin/theme-colors", requireAdmin, async (_req, res) => {
+    try {
+      res.json({ colors: await getThemeColors() });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.patch("/api/admin/theme-colors", requireAdmin, async (req, res) => {
+    try {
+      const colors = await saveThemeColors(req.body || {});
+      res.json({ ok: true, colors });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/admin/theme-colors/reset", requireAdmin, async (_req, res) => {
+    try {
+      await d1
+        .prepare(
+          `INSERT INTO d1_meta (key, value, updated_at)
+           VALUES ('theme_colors', ?, datetime('now'))
+           ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')`
+        )
+        .bind(JSON.stringify(DEFAULT_THEME_COLORS))
+        .run();
+      res.json({ ok: true, colors: { ...DEFAULT_THEME_COLORS } });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }

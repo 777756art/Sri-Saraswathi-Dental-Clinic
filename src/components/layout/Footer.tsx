@@ -49,7 +49,10 @@ const socials = [
 export function Footer() {
   const { settings } = useClinicSettings();
   return (
-    <footer className="relative overflow-hidden bg-[#1F6878] text-white/75">
+    <footer
+      className="relative overflow-hidden bg-[#1F6878] text-white/75"
+      style={{ backgroundColor: "var(--theme-footer, #1F6878)" }}
+    >
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -left-32 top-0 h-[420px] w-[420px] rounded-full bg-[#1F6878]/20 blur-3xl" />
         <div className="absolute -right-24 bottom-10 h-[360px] w-[360px] rounded-full bg-[#E95A35]/10 blur-3xl" />

@@ -2,7 +2,6 @@ import { Link } from "react-router-dom";
 import { CalendarDays, ShieldCheck, Star, Users } from "lucide-react";
 import { useBeforeAfterSettings, useSiteContent } from "@/components/home/SiteContentSections";
 import { resolveApiAsset } from "@/lib/api";
-import { clinicImages } from "@/lib/images";
 import { HeroBeforeAfter, type HeroTransformationCase } from "@/components/home/HeroBeforeAfter";
 import {
   DEFAULT_HERO_CONFIG,
@@ -64,11 +63,11 @@ export function Hero() {
     ? resolveApiAsset(banner.mediaUrl)
     : DEFAULT_HERO_CONTENT.heroImage;
 
-  // Button background color with targeted alpha
-  const btnBackgroundColor = hexToRgba(
-    styleConfig.btnColor,
-    styleConfig.btnOpacity / 100
-  );
+  // Button background color with targeted alpha (adapts to global theme accent if using default)
+  const btnBackgroundColor =
+    styleConfig.btnColor === DEFAULT_HERO_CONFIG.btnColor
+      ? "var(--theme-accent, #E95A35)"
+      : hexToRgba(styleConfig.btnColor, styleConfig.btnOpacity / 100);
 
   // Description: use saved body or fallback
   const heroDescription =

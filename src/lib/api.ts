@@ -143,6 +143,26 @@ export type BeforeAfterSectionSettings = {
   displayStatus: "published" | "draft";
 };
 
+export type ThemeColors = {
+  primary: string;
+  secondary: string;
+  accent: string;
+  background: string;
+  text: string;
+  header: string;
+  footer: string;
+};
+
+export const DEFAULT_THEME_COLORS: ThemeColors = {
+  primary: "#1F6878",
+  secondary: "#E4F0F2",
+  accent: "#E95A35",
+  background: "#F5F2EB",
+  text: "#15191B",
+  header: "#FFFFFF",
+  footer: "#1F6878",
+};
+
 export const DEFAULT_BEFORE_AFTER_SETTINGS: BeforeAfterSectionSettings = {
   enabled: true,
   heading: "REAL SMILES. CONFIDENT RESULTS.",
@@ -554,6 +574,19 @@ export const api = {
     request<{ ok: boolean; settings: BeforeAfterSectionSettings }>("/api/admin/before-after/settings", {
       method: "PATCH",
       body: JSON.stringify(patch),
+    }),
+  getThemeColors: () =>
+    request<{ colors: ThemeColors }>("/api/theme-colors", { cache: "no-store" }),
+  getAdminThemeColors: () =>
+    request<{ colors: ThemeColors }>("/api/admin/theme-colors", { cache: "no-store" }),
+  updateThemeColors: (patch: Partial<ThemeColors>) =>
+    request<{ ok: boolean; colors: ThemeColors }>("/api/admin/theme-colors", {
+      method: "PATCH",
+      body: JSON.stringify(patch),
+    }),
+  resetThemeColors: () =>
+    request<{ ok: boolean; colors: ThemeColors }>("/api/admin/theme-colors/reset", {
+      method: "POST",
     }),
   cleanupUnreferencedMedia: (urls: string[]) =>
     request<{ ok: boolean }>("/api/admin/uploads/cleanup", {
