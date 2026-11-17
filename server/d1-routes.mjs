@@ -1554,8 +1554,13 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
 
   app.get("/api/doctors", async (_req, res) => {
     try {
-      const rows = (await d1.prepare("SELECT * FROM doctors WHERE status = 'active' ORDER BY display_order ASC, id ASC").all()).results;
-      res.json({ doctors: rows });
+      const rows = (await d1.prepare("SELECT * FROM doctors WHERE status = 'active' ORDER BY display_order ASC, id ASC").all()).results || [];
+      const visible = rows.filter((doc) => {
+        const img = String(doc.profile_image_url || doc.profile_image_key || "").trim();
+        const name = String(doc.name || "").trim();
+        return Boolean(img && name && !/test\s*\d+/i.test(name));
+      });
+      res.json({ doctors: visible });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -3803,6 +3808,11 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
           const end = String(row.end_date || "").slice(0, 10);
           if (/^\d{4}-\d{2}-\d{2}$/.test(start) && start > today) return false;
           if (/^\d{4}-\d{2}-\d{2}$/.test(end) && end < today) return false;
+        }
+        if (row.type === "doctor") {
+          const media = String(row.media_url || "").trim();
+          const title = String(row.title || "").trim();
+          if (!media || !title || /test\s*\d+/i.test(title)) return false;
         }
         return true;
       });
