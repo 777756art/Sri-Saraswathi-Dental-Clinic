@@ -206,18 +206,18 @@ export function Hero() {
           </div>
         </div>
 
-        {/* Right Side Column – Promotional Container + Compact Before & After Component */}
-        <div className="relative mx-auto w-full max-w-[540px] lg:max-w-[580px] lg:mr-0 flex flex-col items-center">
+        {/* Right Side Column – Compact Promotional Container + Compact Before & After Component */}
+        <div className="relative mx-auto w-full max-w-[420px] lg:max-w-[450px] lg:mr-0 flex flex-col items-center">
           {/* Subtle mint green ambient glow behind the container */}
-          <div className="absolute -inset-4 sm:-inset-6 rounded-[38px] bg-[#E4F0F2] blur-3xl pointer-events-none" />
+          <div className="absolute -inset-3 sm:-inset-4 rounded-[30px] bg-[#E4F0F2] blur-2xl pointer-events-none" />
 
           {/* Top Promotional Container with Smooth Floating Animation and Shimmer Sweep */}
           <div
-            className="hero-visual relative aspect-[1.32/1] sm:aspect-[1.34/1] w-full overflow-hidden border border-[#1F6878]/15 bg-[#E4F0F2] shadow-[0_24px_60px_-20px_rgba(31,104,120,0.3),0_0_38px_-12px_rgba(31,104,120,0.2)] animate-float-subtle"
-            style={{ borderRadius: "30px" }}
+            className="hero-visual relative aspect-[1.62/1] sm:aspect-[1.68/1] w-full overflow-hidden border border-[#1F6878]/15 bg-[#E4F0F2] shadow-[0_18px_45px_-16px_rgba(31,104,120,0.26),0_0_24px_-10px_rgba(31,104,120,0.15)] animate-float-subtle"
+            style={{ borderRadius: "24px" }}
           >
             {/* Subtle Light Shimmer Sweep */}
-            <div className="pointer-events-none absolute inset-0 z-10 overflow-hidden rounded-[30px]">
+            <div className="pointer-events-none absolute inset-0 z-10 overflow-hidden rounded-[24px]">
               <div className="h-full w-full -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer-sweep" />
             </div>
 
@@ -238,34 +238,34 @@ export function Hero() {
             />
 
             {/* Top-Right Experience Badge with Soft Pulse Animation */}
-            <div className="absolute top-4 right-4 z-20 flex items-center gap-2 rounded-2xl border border-white/20 bg-[#1F6878]/95 px-3.5 py-1.5 text-white shadow-lg backdrop-blur-md sm:top-5 sm:right-5 animate-badge-pulse-soft">
-              <span className="font-sans text-[18px] sm:text-[20px] font-extrabold leading-none text-white">
+            <div className="absolute top-3 right-3 z-20 flex items-center gap-1.5 rounded-xl border border-white/20 bg-[#1F6878]/95 px-2.5 py-1 text-white shadow-md backdrop-blur-md sm:top-3.5 sm:right-3.5 animate-badge-pulse-soft">
+              <span className="font-sans text-[15px] sm:text-[17px] font-extrabold leading-none text-white">
                 {banner?.trustBadgeText || "12 +"}
               </span>
-              <div className="text-left">
-                <span className="block text-[8px] font-bold uppercase tracking-wider text-[#E4F0F2]/75">
+              <div className="text-left leading-none">
+                <span className="block text-[7px] font-bold uppercase tracking-wider text-[#E4F0F2]/75">
                   Years of
                 </span>
-                <span className="block text-[9.5px] sm:text-[10px] font-bold leading-tight text-white">
+                <span className="block text-[8.5px] font-bold leading-tight text-white">
                   Excellence
                 </span>
               </div>
             </div>
 
             {/* Bottom-Left Google Review Card with Smooth Fade-in */}
-            <div className="absolute bottom-4 left-4 z-20 flex items-center gap-2.5 rounded-2xl border border-[#dce4e5] bg-white/95 px-3.5 py-2.5 shadow-[0_12px_28px_-10px_rgba(31,104,120,0.28)] backdrop-blur-md sm:bottom-5 sm:left-5 animate-hero-fade-in">
-              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-[#fff7e6] text-[#f5a623]">
-                <Star className="h-4 w-4 fill-current" />
+            <div className="absolute bottom-3 left-3 z-20 flex items-center gap-2 rounded-xl border border-[#dce4e5] bg-white/95 px-2.5 py-1.5 shadow-[0_8px_20px_-8px_rgba(31,104,120,0.25)] backdrop-blur-md sm:bottom-3.5 sm:left-3.5 animate-hero-fade-in">
+              <span className="grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-[#fff7e6] text-[#f5a623]">
+                <Star className="h-3.5 w-3.5 fill-current" />
               </span>
               <div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[12px] font-bold text-[#1F6878]">
+                <div className="flex items-center gap-1">
+                  <span className="text-[11px] font-bold text-[#1F6878]">
                     {banner?.ratingScore ? `${banner.ratingScore} Rating` : "4.8 Rating"}
                   </span>
-                  <span className="flex text-[#f5a623] text-[9.5px]">★★★★★</span>
+                  <span className="flex text-[#f5a623] text-[8.5px]">★★★★★</span>
                 </div>
-                <span className="block text-[9.5px] text-[#707574]">
-                  {banner?.reviewCount ? `${banner.reviewCount} Verified Patient Reviews` : "1,100+ Verified Patient Reviews"}
+                <span className="block text-[8.5px] text-[#707574]">
+                  {banner?.reviewCount ? `${banner.reviewCount} Reviews` : "1.1k Verified Reviews"}
                 </span>
               </div>
             </div>
