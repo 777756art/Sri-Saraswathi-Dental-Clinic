@@ -132,6 +132,28 @@ export type GoogleReviewItem = {
 
 export type GoogleReviewsStatus = "synced" | "api_key_missing" | "place_id_missing" | "sync_error" | "empty";
 
+export type BeforeAfterSectionSettings = {
+  enabled: boolean;
+  heading: string;
+  subtitle: string;
+  heroImage: string;
+  heroImageMobile: string;
+  heroImageAlt: string;
+  displayPosition: string;
+  displayStatus: "published" | "draft";
+};
+
+export const DEFAULT_BEFORE_AFTER_SETTINGS: BeforeAfterSectionSettings = {
+  enabled: true,
+  heading: "REAL SMILES. CONFIDENT RESULTS.",
+  subtitle: "Your Smile Transformation Starts Here.",
+  heroImage: "",
+  heroImageMobile: "",
+  heroImageAlt: "Sri Saraswathi Dental Clinic - Smile Transformation",
+  displayPosition: "below_promotional_container",
+  displayStatus: "published",
+};
+
 export type GoogleReviewsConfig = {
   googleReviewsUrl: string;
   googleMapsUri: string;
@@ -523,6 +545,15 @@ export const api = {
     }>("/api/admin/google-reviews/sync", {
       method: "POST",
       body: JSON.stringify(placeId ? { placeId } : {}),
+    }),
+  getBeforeAfterSettings: () =>
+    request<{ settings: BeforeAfterSectionSettings }>("/api/before-after/settings", { cache: "no-store" }),
+  getAdminBeforeAfterSettings: () =>
+    request<{ settings: BeforeAfterSectionSettings }>("/api/admin/before-after/settings", { cache: "no-store" }),
+  updateBeforeAfterSettings: (patch: Partial<BeforeAfterSectionSettings>) =>
+    request<{ ok: boolean; settings: BeforeAfterSectionSettings }>("/api/admin/before-after/settings", {
+      method: "PATCH",
+      body: JSON.stringify(patch),
     }),
   cleanupUnreferencedMedia: (urls: string[]) =>
     request<{ ok: boolean }>("/api/admin/uploads/cleanup", {

@@ -169,6 +169,16 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
     heading: "Trending Reels & Videos",
     subtitle: "Watch real patient experiences, dental care videos, clinic moments and educational content.",
   };
+  const DEFAULT_BEFORE_AFTER_SETTINGS = {
+    enabled: true,
+    heading: "REAL SMILES. CONFIDENT RESULTS.",
+    subtitle: "Your Smile Transformation Starts Here.",
+    heroImage: "",
+    heroImageMobile: "",
+    heroImageAlt: "Sri Saraswathi Dental Clinic - Smile Transformation",
+    displayPosition: "below_promotional_container",
+    displayStatus: "published",
+  };
 
   const formatBytesLabel = (bytes) => {
     const val = Math.max(0, Number(bytes || 0));
@@ -338,6 +348,68 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
       .prepare(
         `INSERT INTO d1_meta (key, value, updated_at)
          VALUES ('reels_section_settings', ?, datetime('now'))
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')`
+      )
+      .bind(JSON.stringify(next))
+      .run();
+    return next;
+  };
+
+  const getBeforeAfterSectionSettings = async () => {
+    try {
+      const row = await d1.prepare("SELECT value FROM d1_meta WHERE key = 'before_after_settings'").first();
+      if (!row?.value) return { ...DEFAULT_BEFORE_AFTER_SETTINGS };
+      const parsed = JSON.parse(row.value);
+      return {
+        enabled: parsed.enabled !== undefined ? Boolean(parsed.enabled) : DEFAULT_BEFORE_AFTER_SETTINGS.enabled,
+        heading:
+          typeof parsed.heading === "string" && parsed.heading.trim()
+            ? parsed.heading.trim()
+            : DEFAULT_BEFORE_AFTER_SETTINGS.heading,
+        subtitle:
+          typeof parsed.subtitle === "string" && parsed.subtitle.trim()
+            ? parsed.subtitle.trim()
+            : DEFAULT_BEFORE_AFTER_SETTINGS.subtitle,
+        heroImage: typeof parsed.heroImage === "string" ? parsed.heroImage.trim() : "",
+        heroImageMobile: typeof parsed.heroImageMobile === "string" ? parsed.heroImageMobile.trim() : "",
+        heroImageAlt:
+          typeof parsed.heroImageAlt === "string" && parsed.heroImageAlt.trim()
+            ? parsed.heroImageAlt.trim()
+            : DEFAULT_BEFORE_AFTER_SETTINGS.heroImageAlt,
+        displayPosition: "below_promotional_container",
+        displayStatus: parsed.displayStatus === "draft" ? "draft" : "published",
+      };
+    } catch {
+      return { ...DEFAULT_BEFORE_AFTER_SETTINGS };
+    }
+  };
+
+  const saveBeforeAfterSectionSettings = async (patch = {}) => {
+    const current = await getBeforeAfterSectionSettings();
+    const next = {
+      enabled: patch.enabled !== undefined ? Boolean(patch.enabled) : current.enabled,
+      heading:
+        patch.heading !== undefined && String(patch.heading).trim()
+          ? String(patch.heading).trim()
+          : current.heading,
+      subtitle:
+        patch.subtitle !== undefined && String(patch.subtitle).trim()
+          ? String(patch.subtitle).trim()
+          : current.subtitle,
+      heroImage: patch.heroImage !== undefined ? String(patch.heroImage).trim() : current.heroImage,
+      heroImageMobile:
+        patch.heroImageMobile !== undefined ? String(patch.heroImageMobile).trim() : current.heroImageMobile,
+      heroImageAlt:
+        patch.heroImageAlt !== undefined && String(patch.heroImageAlt).trim()
+          ? String(patch.heroImageAlt).trim()
+          : current.heroImageAlt,
+      displayPosition: "below_promotional_container",
+      displayStatus: patch.displayStatus === "draft" ? "draft" : "published",
+    };
+    await d1
+      .prepare(
+        `INSERT INTO d1_meta (key, value, updated_at)
+         VALUES ('before_after_settings', ?, datetime('now'))
          ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')`
       )
       .bind(JSON.stringify(next))
@@ -2908,6 +2980,31 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
     }
   });
 
+  app.get("/api/before-after/settings", async (_req, res) => {
+    try {
+      res.json({ settings: await getBeforeAfterSectionSettings() });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/admin/before-after/settings", requireAdmin, async (_req, res) => {
+    try {
+      res.json({ settings: await getBeforeAfterSectionSettings() });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.patch("/api/admin/before-after/settings", requireAdmin, async (req, res) => {
+    try {
+      const settings = await saveBeforeAfterSectionSettings(req.body || {});
+      res.json({ ok: true, settings });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   /* ------------------------------------------------------------- 9. REELS (with R2 Video & Thumbnail) */
 
   app.get("/api/reels/settings", async (_req, res) => {
@@ -3600,10 +3697,14 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
       const reelsSettings = !rawType || rawType === "reel" || rawType === "video"
         ? await getReelsSectionSettings()
         : undefined;
+      const beforeAfterSettings = !rawType || rawType === "before_after" || rawType === "before-after" || rawType === "gallery" || rawType === "hero"
+        ? await getBeforeAfterSectionSettings()
+        : undefined;
 
       res.json({
         items: visible.map(serializeSiteContent),
         ...(reelsSettings ? { reelsSettings } : {}),
+        ...(beforeAfterSettings ? { beforeAfterSettings } : {}),
       });
     } catch (err) {
       res.status(500).json({ error: err.message });

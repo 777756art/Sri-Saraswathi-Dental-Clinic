@@ -115,6 +115,7 @@ function AppRoutes() {
           <Route path="/dashboard/patients" element={<DashboardPatients />} />
           <Route path="/dashboard/settings" element={<DashboardSettings />} />
           <Route path="/dashboard/smile-gallery" element={<DashboardSmileGallery />} />
+          <Route path="/dashboard/before-after" element={<Navigate to="/dashboard/smile-gallery" replace />} />
           <Route path="/dashboard/staff" element={<DashboardStaff />} />
           <Route path="/dashboard/treatments" element={<DashboardTreatments />} />
         </Route>

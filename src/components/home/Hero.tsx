@@ -1,7 +1,9 @@
 import { Link } from "react-router-dom";
 import { CalendarDays, Star } from "lucide-react";
-import { useSiteContent } from "@/components/home/SiteContentSections";
+import { useBeforeAfterSettings, useSiteContent } from "@/components/home/SiteContentSections";
 import { resolveApiAsset } from "@/lib/api";
+import { clinicImages } from "@/lib/images";
+import { HeroBeforeAfter, type HeroTransformationCase } from "@/components/home/HeroBeforeAfter";
 import {
   DEFAULT_HERO_CONFIG,
   DEFAULT_HERO_CONTENT,
@@ -40,6 +42,10 @@ function renderHeroHeading(title?: string) {
 
 export function Hero() {
   const { items } = useSiteContent("hero");
+  const { items: galleryItems } = useSiteContent("gallery");
+  const { items: baItems } = useSiteContent("before_after");
+  const { beforeAfterSettings } = useBeforeAfterSettings();
+
   const publishedBanners = items.filter((item) => item.published);
   const banner = publishedBanners[0] || null;
 
@@ -70,9 +76,51 @@ export function Hero() {
       ? banner.body
       : DEFAULT_HERO_CONTENT.description;
 
+  // Prepare dynamic transformation cases for the Hero Before & After section
+  const allCases = [...baItems, ...galleryItems];
+  const validDynamicCases: HeroTransformationCase[] = allCases
+    .filter(
+      (item) =>
+        (item.beforeImage || item.before_image) &&
+        (item.afterImage || item.after_image) &&
+        item.published !== false &&
+        item.patientConsent !== false
+    )
+    .map((item) => ({
+      id: item.id,
+      title: item.title || "Smile Transformation",
+      treatment: item.badgeText || item.category || "Clinical Restoration",
+      beforeImg: resolveApiAsset(item.beforeImage || item.before_image || ""),
+      afterImg: resolveApiAsset(item.afterImage || item.after_image || item.mediaUrl || ""),
+      homepageHighlight: Boolean(item.homepageHighlight),
+    }));
+
+  const highlighted = validDynamicCases.filter((c: any) => c.homepageHighlight);
+  const heroCases: HeroTransformationCase[] =
+    highlighted.length > 0
+      ? highlighted
+      : validDynamicCases.length > 0
+      ? validDynamicCases.slice(0, 6)
+      : [
+          {
+            id: "default-1",
+            title: "Smile Makeover",
+            treatment: "Veneers & Contouring",
+            beforeImg: clinicImages.smileBeforeAfter,
+            afterImg: clinicImages.patientSmile,
+          },
+          {
+            id: "default-2",
+            title: "Teeth Brightening",
+            treatment: "Professional Whitening",
+            beforeImg: clinicImages.smileBeforeAfter,
+            afterImg: clinicImages.patientSmileDetail,
+          },
+        ];
+
   return (
     <section
-      className="relative isolate w-full min-h-[700px] lg:min-h-[720px] lg:h-[730px] overflow-hidden border-b border-[#dce4e5] bg-[#F5F2EB] pt-[132px] pb-14 sm:pt-[142px] sm:pb-16 lg:pt-[150px] lg:pb-18 flex items-center"
+      className="relative isolate w-full min-h-[700px] lg:min-h-[760px] overflow-hidden border-b border-[#dce4e5] bg-[#F5F2EB] pt-[132px] pb-14 sm:pt-[142px] sm:pb-16 lg:pt-[150px] lg:pb-18 flex items-center"
       style={{
         backgroundImage: `url(${backgroundImage})`,
         backgroundSize: "cover",
@@ -91,27 +139,27 @@ export function Hero() {
         }}
       />
 
-      <div className="container-x relative z-10 grid w-full items-center gap-8 lg:grid-cols-[1.08fr_0.92fr] lg:gap-12">
-        {/* Left Side – Hero Content */}
-        <div className="max-w-[620px]">
+      <div className="container-x relative z-10 grid w-full items-start gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:gap-12">
+        {/* Left Side – Hero Content with Staggered Entrance Animations */}
+        <div className="max-w-[620px] pt-2">
           {/* Small introductory badge */}
-          <span className="inline-flex items-center gap-2 rounded-full border border-[#E95A35] bg-[#E95A35] px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white shadow-[0_10px_22px_-8px_rgba(233,90,53,0.6)]">
+          <span className="inline-flex items-center gap-2 rounded-full border border-[#E95A35] bg-[#E95A35] px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white shadow-[0_10px_22px_-8px_rgba(233,90,53,0.6)] animate-hero-fade-in">
             <span className="h-2 w-2 rounded-full bg-white" />
             {banner?.badgeText || "Complete Dental Care for Every Generation"}
           </span>
 
           {/* Main Headline */}
-          <h1 className="mt-5 font-sans text-[38px] font-extrabold leading-[1.08] tracking-[-0.04em] text-[#1F6878] sm:text-[48px] lg:text-[54px]">
+          <h1 className="mt-5 font-sans text-[38px] font-extrabold leading-[1.08] tracking-[-0.04em] text-[#1F6878] sm:text-[48px] lg:text-[54px] animate-hero-fade-up">
             {renderHeroHeading(banner?.title)}
           </h1>
 
           {/* Supporting description */}
-          <p className="mt-4 max-w-[560px] text-[13.5px] leading-[1.8] text-[#707574] sm:text-[14.5px]">
+          <p className="mt-4 max-w-[560px] text-[13.5px] leading-[1.8] text-[#707574] sm:text-[14.5px] animate-hero-fade-in">
             {heroDescription}
           </p>
 
           {/* Google review rating */}
-          <div className="mt-5 flex items-center gap-2.5 text-[13px]">
+          <div className="mt-5 flex items-center gap-2.5 text-[13px] animate-hero-fade-up">
             <span className="flex items-center gap-0.5 text-[#f5a623]" aria-hidden="true">
               {Array.from({ length: 5 }).map((_, i) => (
                 <Star key={i} className="h-4 w-4 fill-current" />
@@ -126,20 +174,20 @@ export function Hero() {
           </div>
 
           {/* Clinic experience and patient statistics pills */}
-          <div className="mt-4 flex flex-wrap gap-2 text-[11px] font-semibold text-[#1F6878]">
-            <span className="rounded-full border border-[#1F6878]/15 bg-white/95 px-3 py-1 shadow-sm backdrop-blur-sm">
+          <div className="mt-4 flex flex-wrap gap-2 text-[11px] font-semibold text-[#1F6878] animate-hero-fade-up">
+            <span className="rounded-full border border-[#1F6878]/15 bg-white/95 px-3 py-1 shadow-sm backdrop-blur-sm transition duration-200 hover:-translate-y-0.5">
               8+ yrs experience
             </span>
-            <span className="rounded-full border border-[#1F6878]/15 bg-white/95 px-3 py-1 shadow-sm backdrop-blur-sm">
+            <span className="rounded-full border border-[#1F6878]/15 bg-white/95 px-3 py-1 shadow-sm backdrop-blur-sm transition duration-200 hover:-translate-y-0.5">
               18,000+ patients
             </span>
-            <span className="rounded-full border border-[#1F6878]/15 bg-white/95 px-3 py-1 shadow-sm backdrop-blur-sm">
+            <span className="rounded-full border border-[#1F6878]/15 bg-white/95 px-3 py-1 shadow-sm backdrop-blur-sm transition duration-200 hover:-translate-y-0.5">
               15+ specialists
             </span>
           </div>
 
           {/* Sub-caption */}
-          <p className="mt-3 text-[11px] text-[#707574]">
+          <p className="mt-3 text-[11px] text-[#707574] animate-hero-fade-in">
             Caring for Coimbatore &amp; Erode smiles since 2017 · Sri Saraswathi Dental Clinic
           </p>
 
@@ -147,7 +195,7 @@ export function Hero() {
           <div className="mt-6 flex flex-wrap items-center gap-3.5">
             <Link
               to={banner?.linkUrl || DEFAULT_HERO_CONTENT.btnLink}
-              className="inline-flex h-[52px] items-center gap-2.5 rounded-full px-7 text-[14px] font-bold text-white shadow-[0_14px_30px_-10px_rgba(233,90,53,0.58)] transition duration-300 hover:-translate-y-0.5 hover:brightness-95 active:translate-y-0 active:brightness-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1F6878] focus-visible:ring-offset-2"
+              className="inline-flex h-[52px] items-center gap-2.5 rounded-full px-7 text-[14px] font-bold text-white shadow-[0_14px_30px_-10px_rgba(233,90,53,0.58)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_36px_-8px_rgba(233,90,53,0.7)] hover:brightness-105 active:translate-y-0 active:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1F6878] focus-visible:ring-offset-2"
               style={{
                 backgroundColor: btnBackgroundColor,
               }}
@@ -158,16 +206,21 @@ export function Hero() {
           </div>
         </div>
 
-        {/* Right Side – Large Admin-Uploaded Dental Promotional Image Container */}
-        <div className="relative mx-auto w-full max-w-[540px] lg:max-w-[580px] lg:mr-0">
+        {/* Right Side Column – Promotional Container + Compact Before & After Component */}
+        <div className="relative mx-auto w-full max-w-[540px] lg:max-w-[580px] lg:mr-0 flex flex-col items-center">
           {/* Subtle mint green ambient glow behind the container */}
           <div className="absolute -inset-4 sm:-inset-6 rounded-[38px] bg-[#E4F0F2] blur-3xl pointer-events-none" />
 
-          {/* Rounded Image Container (Border Radius: 30px, Subtle Border, Premium Shadow) */}
+          {/* Top Promotional Container with Smooth Floating Animation and Shimmer Sweep */}
           <div
-            className="hero-visual relative aspect-[1.32/1] sm:aspect-[1.34/1] w-full overflow-hidden border border-[#1F6878]/15 bg-[#E4F0F2] shadow-[0_24px_60px_-20px_rgba(31,104,120,0.3),0_0_38px_-12px_rgba(31,104,120,0.2)]"
+            className="hero-visual relative aspect-[1.32/1] sm:aspect-[1.34/1] w-full overflow-hidden border border-[#1F6878]/15 bg-[#E4F0F2] shadow-[0_24px_60px_-20px_rgba(31,104,120,0.3),0_0_38px_-12px_rgba(31,104,120,0.2)] animate-float-subtle"
             style={{ borderRadius: "30px" }}
           >
+            {/* Subtle Light Shimmer Sweep */}
+            <div className="pointer-events-none absolute inset-0 z-10 overflow-hidden rounded-[30px]">
+              <div className="h-full w-full -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer-sweep" />
+            </div>
+
             <img
               src={promotionalImage}
               alt="Sri Saraswathi Dental Clinic - Advanced Dental Care"
@@ -184,8 +237,8 @@ export function Hero() {
               }}
             />
 
-            {/* Top-Right Experience Badge */}
-            <div className="absolute top-4 right-4 z-20 flex items-center gap-2 rounded-2xl border border-white/20 bg-[#1F6878]/95 px-3.5 py-1.5 text-white shadow-lg backdrop-blur-md sm:top-5 sm:right-5">
+            {/* Top-Right Experience Badge with Soft Pulse Animation */}
+            <div className="absolute top-4 right-4 z-20 flex items-center gap-2 rounded-2xl border border-white/20 bg-[#1F6878]/95 px-3.5 py-1.5 text-white shadow-lg backdrop-blur-md sm:top-5 sm:right-5 animate-badge-pulse-soft">
               <span className="font-sans text-[18px] sm:text-[20px] font-extrabold leading-none text-white">
                 {banner?.trustBadgeText || "12 +"}
               </span>
@@ -199,8 +252,8 @@ export function Hero() {
               </div>
             </div>
 
-            {/* Bottom-Left Google Review Card */}
-            <div className="absolute bottom-4 left-4 z-20 flex items-center gap-2.5 rounded-2xl border border-[#dce4e5] bg-white/95 px-3.5 py-2.5 shadow-[0_12px_28px_-10px_rgba(31,104,120,0.28)] backdrop-blur-md sm:bottom-5 sm:left-5">
+            {/* Bottom-Left Google Review Card with Smooth Fade-in */}
+            <div className="absolute bottom-4 left-4 z-20 flex items-center gap-2.5 rounded-2xl border border-[#dce4e5] bg-white/95 px-3.5 py-2.5 shadow-[0_12px_28px_-10px_rgba(31,104,120,0.28)] backdrop-blur-md sm:bottom-5 sm:left-5 animate-hero-fade-in">
               <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-[#fff7e6] text-[#f5a623]">
                 <Star className="h-4 w-4 fill-current" />
               </span>
@@ -217,6 +270,9 @@ export function Hero() {
               </div>
             </div>
           </div>
+
+          {/* Compact Before & After Component directly below promotional container */}
+          <HeroBeforeAfter settings={beforeAfterSettings} cases={heroCases} />
         </div>
       </div>
     </section>

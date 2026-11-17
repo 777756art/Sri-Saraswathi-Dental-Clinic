@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import { Activity, ArrowUpRight, BadgeCheck, Clock3, Eye, Heart, Play, Shield, Sparkles, Star, Stethoscope, Video, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { api, resolveApiAsset, type ReelsSectionSettings, type SiteContent, type SiteContentType } from "@/lib/api";
+import { api, resolveApiAsset, type BeforeAfterSectionSettings, DEFAULT_BEFORE_AFTER_SETTINGS, type ReelsSectionSettings, type SiteContent, type SiteContentType } from "@/lib/api";
 import { DEFAULT_REELS_SECTION_SETTINGS, SITE_CONTENT_SYNC_CHANNEL, SITE_CONTENT_SYNC_KEY } from "@/lib/reels";
 import { formatArticleDate } from "@/lib/blog";
 import { clinicImages } from "@/lib/images";
@@ -11,17 +11,20 @@ import { SectionHeading } from "@/components/ui/SectionHeading";
 type SiteContentState = {
   items: SiteContent[];
   reelsSettings: ReelsSectionSettings;
+  beforeAfterSettings: BeforeAfterSectionSettings;
   loading: boolean;
 };
 const SiteContentContext = createContext<SiteContentState>({
   items: [],
   reelsSettings: DEFAULT_REELS_SECTION_SETTINGS,
+  beforeAfterSettings: DEFAULT_BEFORE_AFTER_SETTINGS,
   loading: true,
 });
 
 export function SiteContentProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<SiteContent[]>([]);
   const [reelsSettings, setReelsSettings] = useState<ReelsSectionSettings>(DEFAULT_REELS_SECTION_SETTINGS);
+  const [beforeAfterSettings, setBeforeAfterSettings] = useState<BeforeAfterSectionSettings>(DEFAULT_BEFORE_AFTER_SETTINGS);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -33,7 +36,7 @@ export function SiteContentProvider({ children }: { children: ReactNode }) {
       if (!force && now - lastFetchAt < 1200) return;
       lastFetchAt = now;
       api
-        .get<{ items: SiteContent[]; reelsSettings?: ReelsSectionSettings }>("/api/content", {
+        .get<{ items: SiteContent[]; reelsSettings?: ReelsSectionSettings; beforeAfterSettings?: BeforeAfterSectionSettings }>("/api/content", {
           cache: "no-store",
         })
         .then((data) => {
@@ -44,6 +47,18 @@ export function SiteContentProvider({ children }: { children: ReactNode }) {
               enabled: Boolean(data.reelsSettings.enabled),
               heading: data.reelsSettings.heading || DEFAULT_REELS_SECTION_SETTINGS.heading,
               subtitle: data.reelsSettings.subtitle || DEFAULT_REELS_SECTION_SETTINGS.subtitle,
+            });
+          }
+          if (data.beforeAfterSettings) {
+            setBeforeAfterSettings({
+              enabled: Boolean(data.beforeAfterSettings.enabled),
+              heading: data.beforeAfterSettings.heading || DEFAULT_BEFORE_AFTER_SETTINGS.heading,
+              subtitle: data.beforeAfterSettings.subtitle || DEFAULT_BEFORE_AFTER_SETTINGS.subtitle,
+              heroImage: data.beforeAfterSettings.heroImage || "",
+              heroImageMobile: data.beforeAfterSettings.heroImageMobile || "",
+              heroImageAlt: data.beforeAfterSettings.heroImageAlt || DEFAULT_BEFORE_AFTER_SETTINGS.heroImageAlt,
+              displayPosition: data.beforeAfterSettings.displayPosition || DEFAULT_BEFORE_AFTER_SETTINGS.displayPosition,
+              displayStatus: data.beforeAfterSettings.displayStatus || DEFAULT_BEFORE_AFTER_SETTINGS.displayStatus,
             });
           }
         })
@@ -90,14 +105,22 @@ export function SiteContentProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const value = useMemo(() => ({ items, reelsSettings, loading }), [items, reelsSettings, loading]);
+  const value = useMemo(
+    () => ({ items, reelsSettings, beforeAfterSettings, loading }),
+    [items, reelsSettings, beforeAfterSettings, loading]
+  );
   return <SiteContentContext.Provider value={value}>{children}</SiteContentContext.Provider>;
 }
 
 export function useSiteContent(type?: SiteContentType) {
   const content = useContext(SiteContentContext);
   const items = type ? content.items.filter((item) => item.type === type) : content.items;
-  return { items, reelsSettings: content.reelsSettings, loading: content.loading };
+  return { items, reelsSettings: content.reelsSettings, beforeAfterSettings: content.beforeAfterSettings, loading: content.loading };
+}
+
+export function useBeforeAfterSettings() {
+  const content = useContext(SiteContentContext);
+  return { beforeAfterSettings: content.beforeAfterSettings, loading: content.loading };
 }
 
 function ContentLink({ item, children, className }: { item: SiteContent; children: ReactNode; className: string }) {

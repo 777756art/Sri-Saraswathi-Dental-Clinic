@@ -25,6 +25,8 @@ const routeLoaders: Record<string, () => Promise<unknown>> = {
   "/dashboard/media": () => import("@/pages/dashboard/MediaLibrary"),
   "/dashboard/patients": () => import("@/pages/dashboard/Patients"),
   "/dashboard/settings": () => import("@/pages/dashboard/Settings"),
+  "/dashboard/smile-gallery": () => import("@/pages/dashboard/SmileGallery"),
+  "/dashboard/before-after": () => import("@/pages/dashboard/SmileGallery"),
   "/dashboard/staff": () => import("@/pages/dashboard/Staff"),
   "/dashboard/treatments": () => import("@/pages/dashboard/Treatments"),
   "/patient-portal": () => import("@/pages/patient-portal/PatientPortal"),
