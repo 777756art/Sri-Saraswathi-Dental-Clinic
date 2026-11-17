@@ -232,12 +232,24 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         <nav className="dashboard-nav flex-1 overflow-y-auto px-3 py-5">
           {sidebarGroups.map((group) => (
             <div key={group.label} className="mb-5 last:mb-1">
-              {!collapsed && <p className="dashboard-nav-group-title mb-2 px-3">{group.label}</p>}
+              {!collapsed && (
+                <p className="dashboard-nav-group-title mb-2 px-3 whitespace-nowrap overflow-hidden text-ellipsis">
+                  {group.label}
+                </p>
+              )}
               <ul className="space-y-1">
                 {group.links.map((link) => {
-                  const isRouteActive = link.href === "/dashboard" ? pathname === "/dashboard" : pathname === link.href || pathname.startsWith(link.href + "/");
+                  const isRouteActive =
+                    link.href === "/dashboard"
+                      ? pathname === "/dashboard"
+                      : pathname === link.href || pathname.startsWith(link.href + "/");
                   const appointmentView = new URLSearchParams(location.search).get("view");
-                  const isActive = isRouteActive && (link.search ? location.search === link.search : !(link.href === "/dashboard/appointments" && appointmentView === "calendar"));
+                  const isActive =
+                    isRouteActive &&
+                    (link.search
+                      ? location.search === link.search
+                      : !(link.href === "/dashboard/appointments" && appointmentView === "calendar"));
+
                   return (
                     <li key={link.label}>
                       <Link
@@ -246,14 +258,39 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                         title={collapsed ? link.label : undefined}
                         aria-current={isActive ? "page" : undefined}
                         className={cn(
-                          "dashboard-nav-link group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-colors",
-                          collapsed && "justify-center px-0",
-                          isActive ? "bg-[#1F6878] text-white" : "text-white/75 hover:bg-white/10 hover:text-white"
+                          "dashboard-nav-link group flex items-center rounded-xl text-[13px] font-medium transition-all duration-200",
+                          collapsed
+                            ? "mx-auto h-11 w-11 justify-center p-0"
+                            : "w-full gap-3 px-3 py-2.5",
+                          isActive
+                            ? "bg-[#E4F0F2] text-[#1F6878] font-semibold shadow-sm"
+                            : "text-white/80 hover:bg-white/10 hover:text-white"
                         )}
                       >
-                        <link.icon className={cn("h-[18px] w-[18px] shrink-0 transition-colors", isActive ? "text-[#E4F0F2]" : "text-white/60 group-hover:text-[#E4F0F2]")} />
-                        {!collapsed && <span>{link.label}</span>}
-                        {!collapsed && isActive && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[#E4F0F2]" />}
+                        <link.icon
+                          className={cn(
+                            "shrink-0 transition-colors",
+                            collapsed ? "h-5 w-5" : "h-[18px] w-[18px]",
+                            isActive
+                              ? "text-[#1F6878]"
+                              : "text-white/70 group-hover:text-white"
+                          )}
+                        />
+                        {!collapsed && (
+                          <span
+                            className={cn(
+                              "truncate flex-1 min-w-0 whitespace-nowrap text-left",
+                              isActive
+                                ? "text-[#1F6878] font-semibold"
+                                : "text-white/90 group-hover:text-white"
+                            )}
+                          >
+                            {link.label}
+                          </span>
+                        )}
+                        {!collapsed && isActive && (
+                          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#1F6878]" />
+                        )}
                       </Link>
                     </li>
                   );

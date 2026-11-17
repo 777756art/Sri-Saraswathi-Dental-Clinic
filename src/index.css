@@ -360,11 +360,20 @@
 .dashboard-sidebar .dashboard-nav-link {
   border: 1px solid transparent;
   color: rgba(255, 255, 255, 0.85);
+  transition: all 0.2s ease;
 }
 
 .dashboard-sidebar .dashboard-nav-link:hover {
   border-color: rgba(228, 240, 242, 0.35);
   background: rgba(228, 240, 242, 0.14);
+  color: #FFFFFF;
+}
+
+.dashboard-sidebar .dashboard-nav-link:hover svg {
+  color: #FFFFFF;
+}
+
+.dashboard-sidebar .dashboard-nav-link:hover span {
   color: #FFFFFF;
 }
 
@@ -377,6 +386,11 @@
 
 .dashboard-sidebar .dashboard-nav-link[aria-current="page"] svg {
   color: #1F6878;
+}
+
+.dashboard-sidebar .dashboard-nav-link[aria-current="page"] span {
+  color: #1F6878;
+  font-weight: 600;
 }
 
 .dashboard-topbar {
