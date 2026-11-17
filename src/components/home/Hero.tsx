@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { CalendarDays, Star } from "lucide-react";
+import { CalendarDays, ShieldCheck, Star, Users } from "lucide-react";
 import { useBeforeAfterSettings, useSiteContent } from "@/components/home/SiteContentSections";
 import { resolveApiAsset } from "@/lib/api";
 import { clinicImages } from "@/lib/images";
@@ -103,18 +103,11 @@ export function Hero() {
       ? validDynamicCases.slice(0, 6)
       : [
           {
-            id: "default-1",
-            title: "Smile Makeover",
-            treatment: "Veneers & Contouring",
-            beforeImg: clinicImages.smileBeforeAfter,
-            afterImg: clinicImages.patientSmile,
-          },
-          {
-            id: "default-2",
-            title: "Teeth Brightening",
-            treatment: "Professional Whitening",
-            beforeImg: clinicImages.smileBeforeAfter,
-            afterImg: clinicImages.patientSmileDetail,
+            id: "default-smile-1",
+            title: "Smile Transformation",
+            treatment: "Smile Makeover",
+            beforeImg: "/images/clinic/hero-patient-before.jpg",
+            afterImg: "/images/clinic/hero-patient-after.jpg",
           },
         ];
 
@@ -173,17 +166,42 @@ export function Hero() {
             </span>
           </div>
 
-          {/* Clinic experience and patient statistics pills */}
-          <div className="mt-4 flex flex-wrap gap-2 text-[11px] font-semibold text-[#1F6878] animate-hero-fade-up">
-            <span className="rounded-full border border-[#1F6878]/15 bg-white/95 px-3 py-1 shadow-sm backdrop-blur-sm transition duration-200 hover:-translate-y-0.5">
-              8+ yrs experience
-            </span>
-            <span className="rounded-full border border-[#1F6878]/15 bg-white/95 px-3 py-1 shadow-sm backdrop-blur-sm transition duration-200 hover:-translate-y-0.5">
-              18,000+ patients
-            </span>
-            <span className="rounded-full border border-[#1F6878]/15 bg-white/95 px-3 py-1 shadow-sm backdrop-blur-sm transition duration-200 hover:-translate-y-0.5">
-              15+ specialists
-            </span>
+          {/* Clinic experience and patient statistics cards */}
+          <div className="mt-5 flex flex-wrap items-center gap-2.5 sm:gap-3 animate-hero-fade-up">
+            {/* 8+ yrs experience */}
+            <div className="flex items-center gap-2.5 rounded-2xl border border-white/80 bg-white/95 px-3.5 py-2 shadow-sm backdrop-blur-sm transition-transform hover:-translate-y-0.5">
+              <div className="grid h-7 w-7 place-items-center rounded-xl bg-[#E4F0F2] text-[#073B43]">
+                <ShieldCheck className="h-4 w-4 text-[#073B43]" />
+              </div>
+              <div className="text-left leading-tight">
+                <span className="block font-sans text-[12px] font-bold text-[#073B43]">8+ yrs</span>
+                <span className="block text-[10px] font-medium text-[#707574]">experience</span>
+              </div>
+            </div>
+
+            {/* 18,000+ patients */}
+            <div className="flex items-center gap-2.5 rounded-2xl border border-white/80 bg-white/95 px-3.5 py-2 shadow-sm backdrop-blur-sm transition-transform hover:-translate-y-0.5">
+              <div className="grid h-7 w-7 place-items-center rounded-xl bg-[#E4F0F2] text-[#073B43]">
+                <Users className="h-4 w-4 text-[#073B43]" />
+              </div>
+              <div className="text-left leading-tight">
+                <span className="block font-sans text-[12px] font-bold text-[#073B43]">18,000+</span>
+                <span className="block text-[10px] font-medium text-[#707574]">patients</span>
+              </div>
+            </div>
+
+            {/* 15+ specialists */}
+            <div className="flex items-center gap-2.5 rounded-2xl border border-white/80 bg-white/95 px-3.5 py-2 shadow-sm backdrop-blur-sm transition-transform hover:-translate-y-0.5">
+              <div className="grid h-7 w-7 place-items-center rounded-xl bg-[#E4F0F2] text-[#073B43]">
+                <svg className="h-4 w-4 text-[#073B43] fill-current" viewBox="0 0 24 24">
+                  <path d="M18.8 4c-1.6 0-3 1.1-3.6 2.6-.4.9-1.2 1.4-2.2 1.4s-1.8-.5-2.2-1.4C10.2 5.1 8.8 4 7.2 4 4.9 4 3 5.9 3 8.2c0 2.8.9 5.8 2 8.4 1 2.3 2.1 4.5 3.3 6.4.3.4.8.7 1.3.7.7 0 1.3-.5 1.5-1.2.6-2.5 1.3-5 1.9-7.5.1-.4.5-.7.9-.7s.8.3.9.7c.6 2.5 1.3 5 1.9 7.5.2.7.8 1.2 1.5 1.2.5 0 1-.3 1.3-.7 1.2-1.9 2.3-4.1 3.3-6.4 1.1-2.6 2-5.6 2-8.4C23 5.9 21.1 4 18.8 4z"/>
+                </svg>
+              </div>
+              <div className="text-left leading-tight">
+                <span className="block font-sans text-[12px] font-bold text-[#073B43]">15+</span>
+                <span className="block text-[10px] font-medium text-[#707574]">specialists</span>
+              </div>
+            </div>
           </div>
 
           {/* Sub-caption */}
@@ -206,28 +224,28 @@ export function Hero() {
           </div>
         </div>
 
-        {/* Right Side Column – Compact Promotional Container + Compact Before & After Component */}
-        <div className="relative mx-auto w-full max-w-[420px] lg:max-w-[450px] lg:mr-0 flex flex-col items-center">
+        {/* Right Side Column – Promotional Container + Transformation Showcase Container */}
+        <div className="relative mx-auto w-full max-w-[400px] sm:max-w-[430px] lg:max-w-[440px] lg:mr-0 flex flex-col items-center">
           {/* Subtle mint green ambient glow behind the container */}
           <div className="absolute -inset-3 sm:-inset-4 rounded-[30px] bg-[#E4F0F2] blur-2xl pointer-events-none" />
 
           {/* Top Promotional Container with Smooth Floating Animation and Shimmer Sweep */}
           <div
-            className="hero-visual relative aspect-[1.62/1] sm:aspect-[1.68/1] w-full overflow-hidden border border-[#1F6878]/15 bg-[#E4F0F2] shadow-[0_18px_45px_-16px_rgba(31,104,120,0.26),0_0_24px_-10px_rgba(31,104,120,0.15)] animate-float-subtle"
-            style={{ borderRadius: "24px" }}
+            className="hero-visual relative aspect-[1.58/1] w-full overflow-hidden border border-white/20 bg-[#09282F] shadow-[0_20px_50px_-16px_rgba(7,59,67,0.38)] animate-float-subtle"
+            style={{ borderRadius: "26px" }}
           >
             {/* Subtle Light Shimmer Sweep */}
-            <div className="pointer-events-none absolute inset-0 z-10 overflow-hidden rounded-[24px]">
-              <div className="h-full w-full -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer-sweep" />
+            <div className="pointer-events-none absolute inset-0 z-10 overflow-hidden rounded-[26px]">
+              <div className="h-full w-full -translate-x-full bg-gradient-to-r from-transparent via-white/15 to-transparent animate-shimmer-sweep" />
             </div>
 
             <img
-              src={promotionalImage}
-              alt="Sri Saraswathi Dental Clinic - Advanced Dental Care"
+              src={promotionalImage || "/images/clinic/hero-dark-promo.png"}
+              alt="Sri Saraswathi Dental Clinic - 12+ Years of Excellence"
               fetchPriority="high"
               loading="eager"
               decoding="async"
-              className="h-full w-full object-cover object-center block transition duration-700 hover:scale-[1.02]"
+              className="h-full w-full object-cover object-center block select-none"
               style={{
                 width: "100%",
                 height: "100%",
@@ -238,40 +256,40 @@ export function Hero() {
             />
 
             {/* Top-Right Experience Badge with Soft Pulse Animation */}
-            <div className="absolute top-3 right-3 z-20 flex items-center gap-1.5 rounded-xl border border-white/20 bg-[#1F6878]/95 px-2.5 py-1 text-white shadow-md backdrop-blur-md sm:top-3.5 sm:right-3.5 animate-badge-pulse-soft">
-              <span className="font-sans text-[15px] sm:text-[17px] font-extrabold leading-none text-white">
+            <div className="absolute top-3.5 right-3.5 z-20 flex items-center gap-2 rounded-2xl border border-white/20 bg-[#133842]/95 px-3 py-1.5 text-white shadow-lg backdrop-blur-md animate-badge-pulse-soft">
+              <span className="font-sans text-[18px] sm:text-[20px] font-extrabold leading-none text-white">
                 {banner?.trustBadgeText || "12 +"}
               </span>
               <div className="text-left leading-none">
-                <span className="block text-[7px] font-bold uppercase tracking-wider text-[#E4F0F2]/75">
+                <span className="block text-[7.5px] font-bold uppercase tracking-wider text-[#3CE5D3]">
                   Years of
                 </span>
-                <span className="block text-[8.5px] font-bold leading-tight text-white">
+                <span className="block mt-0.5 text-[9.5px] font-bold leading-tight text-white">
                   Excellence
                 </span>
               </div>
             </div>
 
             {/* Bottom-Left Google Review Card with Smooth Fade-in */}
-            <div className="absolute bottom-3 left-3 z-20 flex items-center gap-2 rounded-xl border border-[#dce4e5] bg-white/95 px-2.5 py-1.5 shadow-[0_8px_20px_-8px_rgba(31,104,120,0.25)] backdrop-blur-md sm:bottom-3.5 sm:left-3.5 animate-hero-fade-in">
-              <span className="grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-[#fff7e6] text-[#f5a623]">
-                <Star className="h-3.5 w-3.5 fill-current" />
-              </span>
-              <div>
-                <div className="flex items-center gap-1">
-                  <span className="text-[11px] font-bold text-[#1F6878]">
+            <div className="absolute bottom-3.5 left-3.5 z-20 flex items-center gap-2.5 rounded-[18px] border border-white/80 bg-white px-3.5 py-2 shadow-lg backdrop-blur-md animate-hero-fade-in">
+              <div className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-[#FFF7E8] text-[#FB8500]">
+                <Star className="h-4 w-4 fill-[#FB8500] text-[#FB8500]" />
+              </div>
+              <div className="text-left leading-tight">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[12px] font-bold text-[#073B43]">
                     {banner?.ratingScore ? `${banner.ratingScore} Rating` : "4.8 Rating"}
                   </span>
-                  <span className="flex text-[#f5a623] text-[8.5px]">★★★★★</span>
+                  <span className="flex text-[#FB8500] text-[9.5px]">★★★★★</span>
                 </div>
-                <span className="block text-[8.5px] text-[#707574]">
-                  {banner?.reviewCount ? `${banner.reviewCount} Reviews` : "1.1k Verified Reviews"}
+                <span className="block mt-0.5 text-[9.5px] font-medium text-[#707574]">
+                  {banner?.reviewCount ? `${banner.reviewCount} Verified Patient Reviews` : "1.1k Verified Patient Reviews"}
                 </span>
               </div>
             </div>
           </div>
 
-          {/* Compact Before & After Component directly below promotional container */}
+          {/* Transformation Showcase Component directly below promotional container */}
           <HeroBeforeAfter settings={beforeAfterSettings} cases={heroCases} />
         </div>
       </div>
