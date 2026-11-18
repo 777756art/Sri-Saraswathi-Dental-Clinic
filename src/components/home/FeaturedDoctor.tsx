@@ -55,7 +55,7 @@ export function FeaturedDoctor() {
             </div>
 
             {/* Floating verification badge */}
-            <div className="absolute -bottom-3 -right-2 z-10 flex items-center gap-2.5 rounded-2xl border border-[#1F6878]/20 bg-white px-4 py-3 shadow-[0_12px_32px_-16px_rgba(31,104,120,0.35)] sm:-bottom-4 sm:right-2 sm:px-5">
+            <div className="absolute -bottom-3 right-2 sm:right-2 z-10 flex items-center gap-2.5 rounded-2xl border border-[#1F6878]/20 bg-white px-3.5 py-2.5 shadow-[0_12px_32px_-16px_rgba(31,104,120,0.35)] sm:-bottom-4 sm:px-5 sm:py-3">
               <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#E4F0F2] text-[#1F6878]">
                 <UserCheck className="h-5 w-5" />
               </span>

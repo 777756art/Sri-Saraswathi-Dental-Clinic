@@ -456,25 +456,26 @@ export function Navbar() {
                             transition={{ duration: 0.2, ease: "easeOut" }}
                             className="overflow-hidden"
                           >
-                            <div className="grid grid-cols-2 gap-1 px-2 pb-2">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 px-2 pb-2">
                               {link.children.map((child) => (
                                 <Link
                                   key={child.label}
                                   to={child.href}
                                   className={cn(
-                                    "rounded-xl px-3 py-2.5 text-[12.5px] leading-snug transition-colors active:bg-secondary-100",
+                                    "flex items-center gap-2.5 rounded-xl px-3.5 py-3 text-[13px] leading-snug transition-colors active:bg-secondary-100",
                                     pathname === child.href
-                                      ? "bg-primary-50 font-medium text-primary-800"
+                                      ? "bg-primary-50 font-semibold text-primary-800"
                                       : "text-secondary-700 hover:bg-secondary-100"
                                   )}
                                   onClick={() => setMobileOpen(false)}
                                 >
-                                  {child.label}
+                                  <child.icon className="h-4 w-4 text-[#1F6878]" />
+                                  <span>{child.label}</span>
                                 </Link>
                               ))}
                               <Link
                                 to="/booking"
-                                className="col-span-2 mt-1 flex items-center justify-between rounded-xl bg-[#E95A35] px-4 py-3 text-[13px] font-semibold text-white shadow-[0_8px_18px_-8px_rgba(233,90,53,0.55)] transition hover:bg-[#D14824]"
+                                className="sm:col-span-2 mt-1 flex items-center justify-between rounded-xl bg-[#E95A35] px-4 py-3 text-[13px] font-semibold text-white shadow-[0_8px_18px_-8px_rgba(233,90,53,0.55)] transition hover:bg-[#D14824]"
                                 onClick={() => setMobileOpen(false)}
                               >
                                 Not sure what you need? Book a free consult

@@ -35,11 +35,11 @@ export function ClinicHighlights() {
   return (
     <section className="border-y border-[#dce4e5] bg-[#F5F2EB] py-6 sm:py-8" aria-label="Clinic Highlights">
       <div className="container-x">
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-4">
           {stats.map(({ icon: Icon, value, title, detail, tone }) => (
             <div
               key={title}
-              className="group flex flex-col justify-between rounded-[20px] border border-[#dce4e5] bg-white p-4 shadow-[0_6px_20px_-16px_rgba(31,104,120,0.2)] transition duration-300 hover:-translate-y-0.5 hover:border-[#1F6878]/35 hover:shadow-[0_12px_28px_-16px_rgba(31,104,120,0.28)] sm:p-5"
+              className="group flex flex-col justify-between rounded-[20px] border border-[#dce4e5] bg-white p-3.5 sm:p-5 shadow-[0_6px_20px_-16px_rgba(31,104,120,0.2)] transition duration-300 hover:-translate-y-0.5 hover:border-[#1F6878]/35 hover:shadow-[0_12px_28px_-16px_rgba(31,104,120,0.28)]"
             >
               <div className="flex items-center justify-between">
                 <span className="grid h-11 w-11 place-items-center rounded-2xl bg-[#E4F0F2] text-[#1F6878] transition duration-300 group-hover:bg-[#1F6878] group-hover:text-white">

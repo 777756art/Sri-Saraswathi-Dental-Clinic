@@ -3,7 +3,7 @@ import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { ScrollToTop } from "@/components/layout/ScrollToTop";
-import { FloatingEmergencyButton } from "@/components/ui/FloatingEmergencyButton";
+import { FloatingActions } from "@/components/ui/FloatingActions";
 import { CursorFollow } from "@/components/animations/CursorFollow";
 import { Providers } from "@/components/layout/Providers";
 import { RequireRole } from "@/components/auth/RequireRole";
@@ -168,7 +168,7 @@ export default function App() {
               <AppRoutes />
             </main>
             <Footer />
-            <FloatingEmergencyButton />
+            <FloatingActions />
             <CursorFollow />
           </>
         </SiteContentProvider>

@@ -52,7 +52,7 @@ export function Modal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
       <div
         className="fixed inset-0 bg-ink-950/45 backdrop-blur-sm transition-opacity"
         onClick={onClose}
@@ -63,7 +63,7 @@ export function Modal({
         aria-modal="true"
         aria-label={title ?? "Dialog"}
         className={cn(
-          "relative w-full animate-scale-in overflow-hidden rounded-2xl border border-border/70 bg-card shadow-lift",
+          "relative flex max-h-[90dvh] w-full flex-col animate-scale-in overflow-hidden rounded-2xl border border-border/70 bg-card shadow-lift",
           sizes[size]
         )}
       >
@@ -71,22 +71,22 @@ export function Modal({
           <button
             onClick={onClose}
             aria-label="Close dialog"
-            className="absolute right-4 top-4 rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-secondary-100 hover:text-foreground"
+            className="absolute right-3.5 top-3.5 sm:right-4 sm:top-4 z-10 rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-secondary-100 hover:text-foreground"
           >
             <X className="h-5 w-5" />
           </button>
         )}
         {(title || description) && (
-          <div className="border-b border-border/70 px-6 py-5">
+          <div className="shrink-0 border-b border-border/70 px-4 py-4 sm:px-6 sm:py-5 pr-12">
             {title && (
-              <h2 className="font-display text-xl font-bold text-[#1F6878]">{title}</h2>
+              <h2 className="font-display text-lg sm:text-xl font-bold text-[#1F6878]">{title}</h2>
             )}
             {description && (
-              <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+              <p className="mt-1 text-xs sm:text-sm text-muted-foreground">{description}</p>
             )}
           </div>
         )}
-        <div className="px-6 py-5">{children}</div>
+        <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">{children}</div>
       </div>
     </div>
   );

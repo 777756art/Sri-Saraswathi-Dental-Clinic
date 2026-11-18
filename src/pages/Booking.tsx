@@ -315,51 +315,68 @@ export default function BookingPage() {
           <div className="mx-auto max-w-4xl">
             {/* Step Progress Indicators */}
             {step < 7 && (
-              <div className="mb-8 overflow-x-auto pb-2">
-                <div className="flex min-w-[620px] items-center justify-between gap-1 sm:gap-2">
-                  {[1, 2, 3, 4, 5, 6].map((s) => (
-                    <div key={s} className="flex items-center gap-1 sm:gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (s < step) setStep(s);
-                        }}
-                        disabled={s > step}
-                        className={cn(
-                          "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[12px] font-bold transition-all",
-                          step === s
-                            ? "bg-[#1F6878] text-white ring-4 ring-[#1F6878]/15"
-                            : step > s
-                              ? "bg-[#1F6878] text-white hover:opacity-90"
-                              : "border border-[#1F6878]/20 bg-white text-[#707574]",
-                        )}
-                      >
-                        {step > s ? <Check className="h-4 w-4" /> : s}
-                      </button>
-                      <span
-                        className={cn(
-                          "text-[12px] font-semibold transition-colors",
-                          step === s ? "text-[#1F6878]" : step > s ? "text-[#1F6878]/80" : "text-[#707574]/70",
-                        )}
-                      >
-                        {STEPS[s - 1]}
-                      </span>
-                      {s < 6 && (
-                        <div
+              <div className="mb-6 sm:mb-8">
+                {/* Mobile Compact Progress Bar (screens < 640px) */}
+                <div className="sm:hidden rounded-2xl border border-[#1F6878]/15 bg-white p-3.5 shadow-sm mb-3">
+                  <div className="flex items-center justify-between text-xs font-bold text-[#1F6878]">
+                    <span>Step {step} of 6</span>
+                    <span className="text-[#E95A35]">{STEPS[step - 1]}</span>
+                  </div>
+                  <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-[#E4F0F2]">
+                    <div
+                      className="h-full bg-[#1F6878] transition-all duration-300"
+                      style={{ width: `${(step / 6) * 100}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Tablet and Desktop Multi-step Row (screens >= 640px) */}
+                <div className="hidden sm:block overflow-x-auto pb-2">
+                  <div className="flex min-w-[620px] items-center justify-between gap-1 sm:gap-2">
+                    {[1, 2, 3, 4, 5, 6].map((s) => (
+                      <div key={s} className="flex items-center gap-1 sm:gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (s < step) setStep(s);
+                          }}
+                          disabled={s > step}
                           className={cn(
-                            "h-0.5 w-3 shrink-0 sm:w-6 transition-colors",
-                            step > s ? "bg-[#1F6878]" : "bg-[#1F6878]/15",
+                            "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[12px] font-bold transition-all",
+                            step === s
+                              ? "bg-[#1F6878] text-white ring-4 ring-[#1F6878]/15"
+                              : step > s
+                                ? "bg-[#1F6878] text-white hover:opacity-90"
+                                : "border border-[#1F6878]/20 bg-white text-[#707574]",
                           )}
-                        />
-                      )}
-                    </div>
-                  ))}
+                        >
+                          {step > s ? <Check className="h-4 w-4" /> : s}
+                        </button>
+                        <span
+                          className={cn(
+                            "text-[12px] font-semibold transition-colors",
+                            step === s ? "text-[#1F6878]" : step > s ? "text-[#1F6878]/80" : "text-[#707574]/70",
+                          )}
+                        >
+                          {STEPS[s - 1]}
+                        </span>
+                        {s < 6 && (
+                          <div
+                            className={cn(
+                              "h-0.5 w-3 shrink-0 sm:w-6 transition-colors",
+                              step > s ? "bg-[#1F6878]" : "bg-[#1F6878]/15",
+                            )}
+                          />
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
 
             {/* Main Booking Container */}
-            <div className="rounded-3xl border border-[#1F6878]/15 bg-white p-6 shadow-card md:p-9">
+            <div className="rounded-3xl border border-[#1F6878]/15 bg-white p-4 sm:p-6 md:p-9 shadow-card">
               {/* STEP 1: SELECT TREATMENT */}
               {step === 1 && (
                 <div className="animate-fade-in">
@@ -564,7 +581,7 @@ export default function BookingPage() {
                     </div>
                   </div>
 
-                  <div className="mx-auto mt-6 max-w-md rounded-2xl border border-[#1F6878]/15 bg-white p-5 shadow-soft">
+                  <div className="mx-auto mt-6 max-w-md rounded-2xl border border-[#1F6878]/15 bg-white p-3.5 sm:p-5 shadow-soft">
                     <div className="mb-4 flex items-center justify-between">
                       <button
                         type="button"
@@ -587,7 +604,7 @@ export default function BookingPage() {
 
                     <div className="grid grid-cols-7 gap-1 text-center">
                       {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d) => (
-                        <div key={d} className="py-1 text-[11px] font-bold uppercase tracking-wider text-[#707574]">
+                        <div key={d} className="py-1 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[#707574]">
                           {d}
                         </div>
                       ))}
@@ -610,7 +627,7 @@ export default function BookingPage() {
                             title={isSunday ? "Closed on Sundays" : isPast ? "Past date" : undefined}
                             onClick={() => handleSelectDate(day)}
                             className={cn(
-                              "flex h-10 w-10 mx-auto items-center justify-center rounded-full text-[13px] font-medium transition-all",
+                              "flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 mx-auto items-center justify-center rounded-full text-[12px] sm:text-[13px] font-medium transition-all",
                               selectedDay === day
                                 ? "bg-[#1F6878] font-bold text-white shadow-sm"
                                 : isDisabled

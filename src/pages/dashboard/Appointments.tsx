@@ -1019,8 +1019,170 @@ export default function AppointmentsPage() {
           }
 
           return (
-            <div className="overflow-x-auto rounded-2xl border border-[#1F6878]/15 bg-white shadow-soft">
-              <table className="w-full min-w-[1120px]">
+            <div className="space-y-4">
+              {/* Mobile View: Responsive Cards (screens < 768px) */}
+              <div className="md:hidden space-y-3">
+                {rows.map((apt) => {
+                  const next = nextStatus(apt.status);
+                  const label = actionLabel(apt.status);
+
+                  return (
+                    <article
+                      key={apt.id}
+                      className="rounded-2xl border border-[#1F6878]/15 bg-white p-4 shadow-sm"
+                    >
+                      {/* Card Header: Patient Name & Status */}
+                      <div className="flex items-start justify-between gap-2 border-b border-[#1F6878]/10 pb-3">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#E4F0F2] text-[12px] font-bold text-[#1F6878]">
+                            {apt.patientName
+                              .split(" ")
+                              .map((n) => n[0])
+                              .slice(0, 2)
+                              .join("")}
+                          </div>
+                          <div className="min-w-0">
+                            <h3 className="truncate font-semibold text-[14px] text-[#1F6878]">
+                              {apt.patientName}
+                            </h3>
+                            <span className="text-[11px] font-medium text-[#707574]">
+                              Ref: {apt.ref}
+                            </span>
+                          </div>
+                        </div>
+                        <Badge variant={statusTone[apt.status]} size="sm">
+                          {apt.statusLabel}
+                        </Badge>
+                      </div>
+
+                      {/* Info Grid */}
+                      <div className="mt-3 grid grid-cols-2 gap-2.5 text-xs">
+                        <div>
+                          <span className="block text-[10px] font-bold uppercase tracking-wider text-[#707574]">
+                            Treatment
+                          </span>
+                          <span className="font-semibold text-[#1F6878] truncate block">
+                            {apt.serviceLabel}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="block text-[10px] font-bold uppercase tracking-wider text-[#707574]">
+                            Doctor
+                          </span>
+                          <span className="font-semibold text-[#1F6878] truncate block">
+                            {apt.dentist || "First available"}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="block text-[10px] font-bold uppercase tracking-wider text-[#707574]">
+                            Date &amp; Time
+                          </span>
+                          <span className="font-bold text-[#1F6878] block">
+                            {apt.dateLabel}
+                          </span>
+                          <span className="text-[#707574] text-[11px] block">
+                            {apt.time}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="block text-[10px] font-bold uppercase tracking-wider text-[#707574]">
+                            Contact
+                          </span>
+                          <a
+                            href={`tel:${apt.patientPhone}`}
+                            className="font-semibold text-[#1F6878] hover:underline block truncate"
+                          >
+                            {apt.patientPhone}
+                          </a>
+                        </div>
+                      </div>
+
+                      {apt.notes && (
+                        <p className="mt-2.5 rounded-lg bg-[#F5F2EB] p-2 text-[11px] italic text-[#707574]">
+                          “{apt.notes}”
+                        </p>
+                      )}
+
+                      {/* Action Bar */}
+                      <div className="mt-3.5 flex flex-wrap items-center justify-between gap-2 border-t border-[#1F6878]/10 pt-3">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {apt.status === "pending" && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => setStatusDialog({ booking: apt, action: "confirm" })}
+                                disabled={busyId === apt.id}
+                                className="inline-flex items-center gap-1 rounded-full bg-[#1F6878] px-3 py-1.5 text-[11px] font-semibold text-white shadow-sm transition hover:bg-[#185360] disabled:opacity-50"
+                              >
+                                <CheckCircle2 className="h-3.5 w-3.5" /> Confirm
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => { setRejectReason("Schedule conflict"); setRejectMessage(""); setStatusDialog({ booking: apt, action: "reject" }); }}
+                                disabled={busyId === apt.id}
+                                className="inline-flex items-center gap-1 rounded-full border border-rose-200 px-3 py-1.5 text-[11px] font-semibold text-rose-700 transition hover:bg-rose-50 disabled:opacity-50"
+                              >
+                                <X className="h-3.5 w-3.5" /> Reject
+                              </button>
+                            </>
+                          )}
+                          {next && label && apt.status !== "pending" && (
+                            <button
+                              onClick={() => void updateStatus(apt, next)}
+                              disabled={busyId === apt.id}
+                              className="inline-flex items-center gap-1 rounded-full bg-[#1F6878] px-3 py-1.5 text-[11px] font-semibold text-white shadow-sm transition hover:bg-[#185360] disabled:opacity-50"
+                            >
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                              {label}
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-1.5 ml-auto">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenCustomWa(apt, "confirmed")}
+                            aria-label={`WhatsApp ${apt.patientName}`}
+                            title="Open WhatsApp Web"
+                            className="inline-flex items-center gap-1 rounded-full bg-[#19B987] px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-[#139A70] transition shadow-xs"
+                          >
+                            <MessageCircle className="h-3.5 w-3.5" />
+                            <span>WhatsApp</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenReschedule(apt)}
+                            aria-label={`Reschedule ${apt.patientName}`}
+                            title="Reschedule"
+                            className="rounded-full border border-[#1F6878]/20 p-1.5 text-[#707574] hover:bg-[#E4F0F2] hover:text-[#1F6878]"
+                          >
+                            <CalendarClock className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDetailsBooking(apt)}
+                            aria-label="View details"
+                            title="View details"
+                            className="rounded-full border border-[#1F6878]/20 p-1.5 text-[#707574] hover:bg-[#E4F0F2] hover:text-[#1F6878]"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+
+                {rows.length === 0 && (
+                  <div className="rounded-2xl border border-[#1F6878]/15 bg-white p-8 text-center text-sm text-[#707574]">
+                    No appointments found in this view.
+                  </div>
+                )}
+              </div>
+
+              {/* Desktop / Tablet View: Full Table (screens >= 768px) */}
+              <div className="hidden md:block overflow-x-auto rounded-2xl border border-[#1F6878]/15 bg-white shadow-soft">
+                <table className="w-full min-w-[1120px]">
                 <thead>
                   <tr className="border-b border-[#1F6878]/15 bg-[#F5F2EB]">
                     {["Booking ID", "Patient", "Phone / WhatsApp", "Treatment", "Date & time", "Dentist", "Status", "Actions"].map((h) => (
@@ -1175,6 +1337,7 @@ export default function AppointmentsPage() {
                 </tbody>
               </table>
             </div>
+          </div>
           );
         }}
       </Tabs>

@@ -178,15 +178,15 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       {/* Sidebar */}
       <aside
         className={cn(
-          "dashboard-sidebar fixed inset-y-0 left-0 z-40 flex flex-col bg-ink-950 transition-all duration-300 lg:static",
-          collapsed ? "w-[76px]" : "w-[300px]",
-          mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+          "dashboard-sidebar fixed inset-y-0 left-0 z-40 flex flex-col bg-ink-950 transition-all duration-300 md:static",
+          collapsed ? "w-[76px]" : "w-[280px] lg:w-[300px]",
+          mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         )}
       >
         <button
           onClick={() => setMobileOpen(false)}
           aria-label="Close menu"
-          className="absolute right-3 top-5 z-10 rounded-lg p-2 text-white/50 transition-colors hover:bg-white/10 hover:text-white lg:hidden"
+          className="absolute right-3 top-5 z-10 rounded-lg p-2 text-white/50 transition-colors hover:bg-white/10 hover:text-white md:hidden"
         >
           <X className="h-5 w-5" />
         </button>
@@ -211,7 +211,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             <button
               onClick={() => setCollapsed(true)}
               aria-label="Collapse sidebar"
-              className="hidden rounded-lg p-1.5 text-[#E4F0F2]/75 transition-colors hover:bg-white/10 hover:text-white lg:block"
+              className="hidden rounded-lg p-1.5 text-[#E4F0F2]/75 transition-colors hover:bg-white/10 hover:text-white md:block"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
@@ -222,7 +222,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           <button
             onClick={() => setCollapsed(false)}
             aria-label="Expand sidebar"
-            className="mx-auto mt-3 hidden rounded-lg p-1.5 text-[#E4F0F2]/75 transition-colors hover:bg-white/10 hover:text-white lg:block"
+            className="mx-auto mt-3 hidden rounded-lg p-1.5 text-[#E4F0F2]/75 transition-colors hover:bg-white/10 hover:text-white md:block"
           >
             <ChevronRight className="h-4 w-4" />
           </button>
@@ -336,22 +336,59 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       {/* Overlay for mobile */}
       {mobileOpen && (
         <div
-          className="fixed inset-0 z-30 bg-ink-950/50 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-30 bg-ink-950/50 backdrop-blur-sm md:hidden"
           onClick={() => setMobileOpen(false)}
         />
       )}
 
       {/* Main content */}
       <div className="flex min-w-0 flex-1 flex-col">
+        {/* Mobile Sticky Header (screens < 768px) */}
+        <div className="flex md:hidden items-center justify-between border-b border-[#1F6878]/15 bg-white px-4 py-3 shrink-0 shadow-sm z-20">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setMobileOpen(true)}
+              aria-label="Open menu"
+              className="rounded-xl border border-[#1F6878]/20 p-2 text-[#1F6878] transition hover:bg-[#E4F0F2]"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+            <Link to="/dashboard" className="flex items-center">
+              <img
+                src={clinicImages.logo}
+                alt="Sri Saraswathi Dental Clinic"
+                className="h-8 w-auto object-contain"
+              />
+            </Link>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => { setNotificationsOpen((v) => !v); setProfileOpen(false); }}
+              className="relative grid h-9 w-9 place-items-center rounded-full border border-[#1F6878]/20 bg-white text-[#1F6878]"
+              aria-label="Notifications"
+            >
+              <Bell className="h-4 w-4" />
+              {unreadCount > 0 && <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-[#E95A35]" />}
+            </button>
+            <button
+              onClick={() => { setProfileOpen((v) => !v); setNotificationsOpen(false); }}
+              className="grid h-9 w-9 place-items-center rounded-full bg-[#E4F0F2] text-[11px] font-bold text-[#1F6878]"
+              aria-label="Account menu"
+            >
+              {initials}
+            </button>
+          </div>
+        </div>
+
         {/* Page content */}
         <main className="dashboard-main min-h-0 flex-1 overflow-y-auto">
           <div className="dashboard-content mx-auto w-full max-w-[1640px] p-4 sm:p-6 lg:p-8">
-            <header className="dashboard-welcome mb-8 flex flex-wrap items-center justify-between gap-5 sm:mb-10">
+            <header className="dashboard-welcome mb-6 sm:mb-8 hidden md:flex flex-wrap items-center justify-between gap-5">
               <div className="flex min-w-0 items-start gap-3">
                 <button
                   onClick={() => setMobileOpen(true)}
                   aria-label="Open menu"
-                  className="mt-1 rounded-lg p-1.5 text-[#1F6878] transition hover:bg-[#E4F0F2] lg:hidden"
+                  className="mt-1 rounded-lg p-1.5 text-[#1F6878] transition hover:bg-[#E4F0F2] md:hidden"
                 >
                   <Menu className="h-5 w-5" />
                 </button>

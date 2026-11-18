@@ -138,7 +138,7 @@ export function Hero() {
           </span>
 
           {/* Main Headline */}
-          <h1 className="mt-4 sm:mt-5 font-sans text-[36px] font-extrabold leading-[1.08] tracking-[-0.04em] text-[#1F6878] sm:text-[46px] lg:text-[52px] animate-hero-fade-up">
+          <h1 className="mt-4 sm:mt-5 font-sans text-[30px] sm:text-[46px] lg:text-[52px] font-extrabold leading-[1.1] tracking-[-0.04em] text-[#1F6878] animate-hero-fade-up">
             {renderHeroHeading(banner?.title)}
           </h1>
 
@@ -209,7 +209,7 @@ export function Hero() {
           <div className="mt-5 sm:mt-6 flex flex-wrap items-center gap-3.5">
             <Link
               to={banner?.linkUrl || DEFAULT_HERO_CONTENT.btnLink}
-              className="inline-flex h-[50px] items-center gap-2.5 rounded-full px-7 text-[14px] font-bold text-white shadow-[0_12px_28px_-8px_rgba(233,90,53,0.55)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_16px_32px_-6px_rgba(233,90,53,0.65)] hover:brightness-105 active:translate-y-0 active:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1F6878] focus-visible:ring-offset-2"
+              className="inline-flex h-[50px] w-full sm:w-auto justify-center items-center gap-2.5 rounded-full px-7 text-[14px] font-bold text-white shadow-[0_12px_28px_-8px_rgba(233,90,53,0.55)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_16px_32px_-6px_rgba(233,90,53,0.65)] hover:brightness-105 active:translate-y-0 active:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1F6878] focus-visible:ring-offset-2"
               style={{
                 backgroundColor: btnBackgroundColor,
               }}
