@@ -22,7 +22,7 @@ export const CLINIC_NAP = {
     latitude: 11.3283,
     longitude: 77.7161,
   },
-  googleMapsUrl: "https://share.google/dA3bDaHxhJZC87HdT",
+  googleMapsUrl: "https://share.google/Audp52vAIaRkaW1vL",
   priceRange: "₹₹",
   openingHours: [
     "Mo-Sa 09:00-20:45",

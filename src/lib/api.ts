@@ -122,13 +122,13 @@ export type GoogleReviewItem = {
   reviewDate: string;
   relativeTime: string;
   source: GoogleReviewSource;
-  authorPhotoUrl: string;
+  authorPhotoUrl?: string;
   reviewUrl: string;
   isVerified?: boolean;
   published: boolean;
-  displayOrder: number;
-  createdAt: string;
-  updatedAt: string;
+  displayOrder?: number;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export type GoogleReviewsStatus =
@@ -213,7 +213,7 @@ export type AdminGoogleReviewsResponse = GoogleReviewsResponse & {
   cacheMinutes: number;
 };
 
-export const DEFAULT_GOOGLE_REVIEWS_URL = "https://share.google/dA3bDaHxhJZC87HdT";
+export const DEFAULT_GOOGLE_REVIEWS_URL = "https://share.google/Audp52vAIaRkaW1vL";
 
 export const DEFAULT_GOOGLE_REVIEWS_CONFIG: GoogleReviewsConfig = {
   enabled: true,

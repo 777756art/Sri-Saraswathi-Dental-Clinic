@@ -528,7 +528,7 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
   };
 
   /* ------------------------------------------------------------- GOOGLE BUSINESS PROFILE REVIEWS */
-  const DEFAULT_GOOGLE_REVIEWS_URL = "https://share.google/dA3bDaHxhJZC87HdT";
+  const DEFAULT_GOOGLE_REVIEWS_URL = "https://share.google/Audp52vAIaRkaW1vL";
   const GOOGLE_REVIEWS_CONFIG_KEY = "google_reviews_config";
   const DEFAULT_GOOGLE_REVIEWS_CONFIG = {
     enabled: true,

@@ -422,7 +422,7 @@ export default function GoogleReviewsPage() {
                   type="url"
                   value={googleReviewsUrl}
                   onChange={(e) => setGoogleReviewsUrl(e.target.value)}
-                  placeholder="https://share.google/dA3bDaHxhJZC87HdT"
+                  placeholder="https://share.google/Audp52vAIaRkaW1vL"
                 />
                 <p className="mt-1 text-[11px] text-muted-foreground">
                   The primary button &quot;Read All Google Reviews&quot; directs patients here.
@@ -754,7 +754,7 @@ export default function GoogleReviewsPage() {
               type="url"
               value={formData.reviewUrl}
               onChange={(e) => setFormData({ ...formData, reviewUrl: e.target.value })}
-              placeholder="https://share.google/dA3bDaHxhJZC87HdT"
+              placeholder="https://share.google/Audp52vAIaRkaW1vL"
             />
           </div>
 
