@@ -350,6 +350,10 @@ export function GoogleReviewsSection() {
   const hasOverallRating = typeof config.overallRating === "number" && config.overallRating > 0;
   const hasTotalReviews = typeof config.totalReviews === "number" && config.totalReviews > 0;
 
+  if (config.enabled === false) {
+    return null;
+  }
+
   return (
     <section
       id="google-reviews"
@@ -369,7 +373,7 @@ export function GoogleReviewsSection() {
               id="google-reviews-heading"
               className="mt-4 font-sans text-[32px] font-bold leading-tight tracking-[-0.03em] text-[#073B43] sm:text-[42px]"
             >
-              What Our Customers Say
+              What Our Patients Say
             </h2>
 
             {/* Overall Rating Summary Bar */}

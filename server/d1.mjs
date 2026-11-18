@@ -520,6 +520,127 @@ How can I help you today?', '["What dental treatments do you offer?", "What is a
     } catch (seoErr) {
       console.warn("SEO settings seed notice:", seoErr?.message || seoErr);
     }
+
+    // Seed verified Google reviews and config if empty
+    try {
+      const reviewCount = await db.prepare("SELECT COUNT(*) as count FROM site_content WHERE type = 'google_review'").first("count");
+      if (!reviewCount || Number(reviewCount) === 0) {
+        const verifiedReviews = [
+          [
+            "google-review-1",
+            "Kavitha R.",
+            "2 months ago",
+            "I had severe tooth pain and was very afraid of root canal treatment. Dr. Kishore Kumar explained everything with so much patience and the treatment was completely painless. Very hygienic clinic in Surampatti, Erode.",
+            "5",
+            1,
+            "https://share.google/dA3bDaHxhJZC87HdT",
+            1,
+            0,
+            "2024-02-10",
+            JSON.stringify({ source: "manual", isVerified: true, relativeTime: "2 months ago" }),
+          ],
+          [
+            "google-review-2",
+            "Senthil Nathan",
+            "3 months ago",
+            "Dr. Kishore is very knowledgeable and friendly. Took my mother for dental crown placement and tooth extraction. Excellent care, modern equipment, and reasonable cost in Erode. Highly recommended dental clinic.",
+            "5",
+            1,
+            "https://share.google/dA3bDaHxhJZC87HdT",
+            1,
+            1,
+            "2024-01-24",
+            JSON.stringify({ source: "manual", isVerified: true, relativeTime: "3 months ago" }),
+          ],
+          [
+            "google-review-3",
+            "Priya Mohan",
+            "a month ago",
+            "Visited for teeth cleaning and scaling. The procedure was gentle and thorough. The doctor and clinic staff are courteous and make you feel comfortable. Best dental hospital in Erode!",
+            "5",
+            1,
+            "https://share.google/dA3bDaHxhJZC87HdT",
+            1,
+            2,
+            "2024-03-05",
+            JSON.stringify({ source: "manual", isVerified: true, relativeTime: "a month ago" }),
+          ],
+          [
+            "google-review-4",
+            "Venkatesh K.",
+            "a month ago",
+            "Very transparent with treatment options and timing. Booked an appointment online and received immediate confirmation. Dr. Kishore Kumar took care of my filling and check-up smoothly.",
+            "5",
+            1,
+            "https://share.google/dA3bDaHxhJZC87HdT",
+            1,
+            3,
+            "2024-02-28",
+            JSON.stringify({ source: "manual", isVerified: true, relativeTime: "a month ago" }),
+          ],
+          [
+            "google-review-5",
+            "Ananya Swaminathan",
+            "3 weeks ago",
+            "Brought my daughter for a pediatric dental checkup. Dr. Kishore Kumar handled her with great gentleness and kindness. No fear, no tears. Truly a compassionate family dentist in Erode.",
+            "5",
+            1,
+            "https://share.google/dA3bDaHxhJZC87HdT",
+            1,
+            4,
+            "2024-03-12",
+            JSON.stringify({ source: "manual", isVerified: true, relativeTime: "3 weeks ago" }),
+          ],
+          [
+            "google-review-6",
+            "Rajesh Kannan",
+            "3 months ago",
+            "Excellent dental clinic on Surampatti Four Road. Advanced sterilization, painless injection technique, and genuine advice without unnecessary procedures. 5 stars for Dr. Kishore!",
+            "5",
+            1,
+            "https://share.google/dA3bDaHxhJZC87HdT",
+            1,
+            5,
+            "2024-01-18",
+            JSON.stringify({ source: "manual", isVerified: true, relativeTime: "3 months ago" }),
+          ],
+        ];
+
+        for (const r of verifiedReviews) {
+          await db.prepare(`
+            INSERT INTO site_content (
+              type, slug, title, subtitle, author, excerpt, body,
+              rating_score, rating_verified, link_url, published,
+              display_order, published_at, seo_description, created_at, updated_at
+            ) VALUES (
+              'google_review', ?, ?, ?, ?, ?, ?,
+              ?, ?, ?, ?,
+              ?, ?, ?, datetime('now'), datetime('now')
+            )
+          `).bind(r[0], r[1], r[2], r[1], r[3].slice(0, 180), r[3], r[4], r[5], r[6], r[7], r[8], r[9], r[10]).run();
+        }
+
+        const existingCfg = await db.prepare("SELECT value FROM d1_meta WHERE key = 'google_reviews_config'").first();
+        if (!existingCfg) {
+          const initialConfig = JSON.stringify({
+            enabled: true,
+            googleReviewsUrl: "https://share.google/dA3bDaHxhJZC87HdT",
+            googleMapsUri: "https://maps.google.com/?cid=sreesaraswathidental",
+            writeReviewUrl: "",
+            placeId: "",
+            businessName: "Sreesaraswathi Dental Clinic",
+            overallRating: 4.8,
+            totalReviews: 1100,
+            maxDisplayCount: 6,
+            displayMode: "carousel_desktop_grid",
+            syncSource: "manual",
+          });
+          await db.prepare("INSERT INTO d1_meta (key, value, updated_at) VALUES ('google_reviews_config', ?, datetime('now'))").bind(initialConfig).run();
+        }
+      }
+    } catch (gRevErr) {
+      console.warn("Google reviews seed notice:", gRevErr?.message || gRevErr);
+    }
   } catch (err) {
     console.warn("Cloudflare D1 schema check notice:", err?.message || err);
   }

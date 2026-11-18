@@ -16,7 +16,7 @@ export const DEFAULT_HERO_CONTENT = {
   title: "Your Smile Deserves Expert Care. A Lifetime of Confidence",
   description:
     "From your child's first dental visit to advanced smile transformations, our team brings compassionate care, modern treatments, and personalized attention together under one roof. Discover a dental experience where comfort comes first, every concern is heard, and every smile matters.",
-  heroImage: "/images/clinic/hero-dark-promo.png",
+  heroImage: "/images/clinic/hero-promotional-default.jpg",
   backgroundImage: "/images/clinic/hero-clinic-interior.jpg",
   btnText: "Book an appointment",
   btnLink: "/booking",

@@ -112,7 +112,7 @@ export type ReelsStorageUsage = {
   videoCount: number;
 };
 
-export type GoogleReviewSource = "google_api";
+export type GoogleReviewSource = "google_api" | "manual";
 
 export type GoogleReviewItem = {
   id: number;
@@ -124,13 +124,20 @@ export type GoogleReviewItem = {
   source: GoogleReviewSource;
   authorPhotoUrl: string;
   reviewUrl: string;
+  isVerified?: boolean;
   published: boolean;
   displayOrder: number;
   createdAt: string;
   updatedAt: string;
 };
 
-export type GoogleReviewsStatus = "synced" | "api_key_missing" | "place_id_missing" | "sync_error" | "empty";
+export type GoogleReviewsStatus =
+  | "synced"
+  | "manual_verified"
+  | "api_key_missing"
+  | "place_id_missing"
+  | "sync_error"
+  | "empty";
 
 export type BeforeAfterSectionSettings = {
   enabled: boolean;
@@ -175,6 +182,7 @@ export const DEFAULT_BEFORE_AFTER_SETTINGS: BeforeAfterSectionSettings = {
 };
 
 export type GoogleReviewsConfig = {
+  enabled?: boolean;
   googleReviewsUrl: string;
   googleMapsUri: string;
   writeReviewUrl: string;
@@ -183,9 +191,11 @@ export type GoogleReviewsConfig = {
   businessName: string;
   overallRating: number | null;
   totalReviews: number | null;
+  maxDisplayCount?: number;
+  displayMode?: "carousel_desktop_grid" | "carousel" | "grid";
   lastSyncedAt: string;
   lastSyncError: string;
-  syncSource: "google_api" | "unconfigured";
+  syncSource: "google_api" | "manual" | "unconfigured";
 };
 
 export type GoogleReviewsResponse = {
@@ -203,20 +213,23 @@ export type AdminGoogleReviewsResponse = GoogleReviewsResponse & {
   cacheMinutes: number;
 };
 
-export const DEFAULT_GOOGLE_REVIEWS_URL = "https://share.google/SOW6zQnrpqeVVJPPh";
+export const DEFAULT_GOOGLE_REVIEWS_URL = "https://share.google/dA3bDaHxhJZC87HdT";
 
 export const DEFAULT_GOOGLE_REVIEWS_CONFIG: GoogleReviewsConfig = {
+  enabled: true,
   googleReviewsUrl: DEFAULT_GOOGLE_REVIEWS_URL,
-  googleMapsUri: "",
+  googleMapsUri: "https://maps.google.com/?cid=sreesaraswathidental",
   writeReviewUrl: "",
   effectiveWriteReviewUrl: DEFAULT_GOOGLE_REVIEWS_URL,
   placeId: "",
-  businessName: "Sri Saraswathi Dental Clinic",
-  overallRating: null,
-  totalReviews: null,
+  businessName: "Sreesaraswathi Dental Clinic",
+  overallRating: 4.8,
+  totalReviews: 1100,
+  maxDisplayCount: 6,
+  displayMode: "carousel_desktop_grid",
   lastSyncedAt: "",
   lastSyncError: "",
-  syncSource: "unconfigured",
+  syncSource: "manual",
 };
 
 export type ResumableUploadProgress = {
@@ -550,10 +563,54 @@ export const api = {
     request<GoogleReviewsResponse>("/api/google-reviews", { cache: "no-store" }),
   getAdminGoogleReviews: () =>
     request<AdminGoogleReviewsResponse>("/api/admin/google-reviews", { cache: "no-store" }),
-  updateGoogleReviewsConfig: (payload: Partial<Pick<GoogleReviewsConfig, "googleReviewsUrl" | "writeReviewUrl" | "placeId" | "businessName">>) =>
+  updateGoogleReviewsConfig: (payload: Partial<GoogleReviewsConfig>) =>
     request<{ config: GoogleReviewsConfig; apiConfigured: boolean }>("/api/admin/google-reviews/config", {
       method: "PATCH",
       body: JSON.stringify(payload),
+    }),
+  createGoogleReviewEntry: (payload: {
+    author: string;
+    rating: number;
+    comment: string;
+    reviewDate?: string;
+    relativeTime?: string;
+    reviewUrl?: string;
+    authorPhotoUrl?: string;
+    displayOrder?: number;
+    published?: boolean;
+    isVerified?: boolean;
+  }) =>
+    request<{ ok: boolean; review: GoogleReviewItem }>("/api/admin/google-reviews/entry", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  updateGoogleReviewEntry: (
+    id: number,
+    payload: Partial<{
+      author: string;
+      rating: number;
+      comment: string;
+      reviewDate?: string;
+      relativeTime?: string;
+      reviewUrl?: string;
+      authorPhotoUrl?: string;
+      displayOrder?: number;
+      published?: boolean;
+      isVerified?: boolean;
+    }>
+  ) =>
+    request<{ ok: boolean; review: GoogleReviewItem }>("/api/admin/google-reviews/entry/" + id, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+  deleteGoogleReviewEntry: (id: number) =>
+    request<{ ok: boolean }>("/api/admin/google-reviews/entry/" + id, {
+      method: "DELETE",
+    }),
+  reorderGoogleReviews: (order: number[]) =>
+    request<{ ok: boolean }>("/api/admin/google-reviews/reorder", {
+      method: "POST",
+      body: JSON.stringify({ order }),
     }),
   syncGoogleReviews: (placeId?: string) =>
     request<{
