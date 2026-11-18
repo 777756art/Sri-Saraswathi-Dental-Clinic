@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, BookOpenText, CalendarDays, LoaderCircle } from "lucide-react";
-import { LiveChat } from "@/components/home/LiveChat";
 import { Button } from "@/components/ui/Button";
 import { api, resolveApiAsset, type SiteContent } from "@/lib/api";
 import { formatArticleDate } from "@/lib/blog";
+import { SEOHead } from "@/components/seo/SEOHead";
+import { getBreadcrumbSchema } from "@/components/seo/schemas";
 
 export default function BlogPage() {
   const [articles, setArticles] = useState<SiteContent[]>([]);
@@ -13,7 +14,6 @@ export default function BlogPage() {
   const [category, setCategory] = useState("All");
 
   useEffect(() => {
-    document.title = "Clinic journal · Sri Saraswathi Dental Clinic";
     let active = true;
     api
       .get<{ items: SiteContent[] }>("/api/blog")
@@ -43,8 +43,19 @@ export default function BlogPage() {
         ? "mx-auto max-w-4xl sm:grid-cols-2"
         : "sm:grid-cols-2 lg:grid-cols-3";
 
+  const breadcrumbSchema = getBreadcrumbSchema([
+    { name: "Home", url: "https://drkishoredentist.com/" },
+    { name: "Dental Health Journal", url: "https://drkishoredentist.com/blog" },
+  ]);
+
   return (
     <>
+      <SEOHead
+        title="Dental Health Journal & Articles | Sreesaraswathi Dental Clinic Erode"
+        description="Read clinical insights, oral hygiene tips, and dental guides from Dr. Kishore Kumar and the expert dentists at Sreesaraswathi Dental Clinic in Erode."
+        canonical="https://drkishoredentist.com/blog"
+        schema={[breadcrumbSchema]}
+      />
       <main className="min-h-screen bg-[#F5F2EB]">
         <section className="px-4 pb-11 pt-[118px] text-center sm:pb-14 sm:pt-[135px]">
           <div className="container-x">
@@ -161,7 +172,6 @@ export default function BlogPage() {
         </section>
 
       </main>
-      <LiveChat />
     </>
   );
 }

@@ -24,6 +24,8 @@ import { TextArea } from "@/components/ui/TextArea";
 import { useAuth } from "@/lib/use-auth";
 import { api, ApiError, resolveApiAsset, type Availability, type Booking } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { SEOHead } from "@/components/seo/SEOHead";
+import { getBreadcrumbSchema } from "@/components/seo/schemas";
 
 export type TreatmentItem = {
   id: number;
@@ -284,8 +286,20 @@ export default function BookingPage() {
     );
   }
 
+  const breadcrumbSchema = getBreadcrumbSchema([
+    { name: "Home", url: "https://drkishoredentist.com/" },
+    { name: "Book Appointment", url: "https://drkishoredentist.com/booking" },
+  ]);
+
   return (
-    <main className="min-h-screen bg-[#FDFBF7]">
+    <>
+      <SEOHead
+        title="Book Dental Appointment Online in Erode | Sreesaraswathi Dental"
+        description="Book your dental appointment online at Sreesaraswathi Dental Clinic in Erode. Select treatment, choose your dentist, and schedule a convenient date & time."
+        canonical="https://drkishoredentist.com/booking"
+        schema={[breadcrumbSchema]}
+      />
+      <main className="min-h-screen bg-[#FDFBF7]">
       <PageHero
         eyebrow="Sri Saraswathi Dental Clinic"
         align="center"
@@ -1004,5 +1018,6 @@ export default function BookingPage() {
         </div>
       </section>
     </main>
+    </>
   );
 }

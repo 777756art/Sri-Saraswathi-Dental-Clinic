@@ -1,4 +1,6 @@
 import { useEffect } from "react";
+import { SEOHead } from "@/components/seo/SEOHead";
+import { getDentistLocalBusinessSchema, getWebSiteSchema } from "@/components/seo/schemas";
 import { Hero } from "@/components/home/Hero";
 import { ClinicHighlights } from "@/components/home/ClinicHighlights";
 import { FeaturedDoctor } from "@/components/home/FeaturedDoctor";
@@ -14,12 +16,29 @@ import { FinalHomepageGallery } from "@/components/home/FinalHomepageGallery";
 
 export default function HomePage() {
   useEffect(() => {
-    document.title = "Sri Saraswathi Dental Clinic — Comprehensive Care in Erode";
     window.scrollTo(0, 0);
   }, []);
 
   return (
     <main className="min-h-screen bg-[#F5F2EB]">
+      <SEOHead
+        title="Sreesaraswathi Dental Clinic | Dentist & Dental Care in Erode"
+        description="Looking for professional dental care? Explore dental treatments, meet our doctors and book your appointment at Sreesaraswathi Dental Clinic in Erode."
+        canonicalPath="/"
+        keywords={[
+          "Dentist in Erode",
+          "Dental Clinic in Erode",
+          "Best Dentist in Erode",
+          "Dental Hospital in Erode",
+          "Dr Kishore Kumar Dentist",
+          "Surampatti Dental Clinic",
+          "Root Canal Treatment in Erode",
+          "Teeth Cleaning in Erode",
+          "Dental Implants in Erode",
+        ]}
+        schema={[getDentistLocalBusinessSchema(), getWebSiteSchema()]}
+      />
+
       {/* Section 01 – Hero Banner */}
       <Hero />
 

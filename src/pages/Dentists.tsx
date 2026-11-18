@@ -2,6 +2,8 @@ import { Link } from "react-router-dom";
 import { ArrowRight, Award, CalendarDays, Stethoscope } from "lucide-react";
 import { useSiteContent } from "@/components/home/SiteContentSections";
 import { resolveApiAsset } from "@/lib/api";
+import { SEOHead } from "@/components/seo/SEOHead";
+import { getBreadcrumbSchema, getDentistSchema } from "@/components/seo/schemas";
 
 function isValidDoctor(doc: any): boolean {
   if (!doc) return false;
@@ -34,8 +36,20 @@ export default function DentistsPage() {
     return "mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4";
   };
 
+  const breadcrumbSchema = getBreadcrumbSchema([
+    { name: "Home", url: "https://drkishoredentist.com/" },
+    { name: "Our Dentists", url: "https://drkishoredentist.com/our-dentists" },
+  ]);
+
   return (
-    <main className="min-h-screen bg-[#F5F2EB] pb-20 pt-[124px] sm:pt-[145px]">
+    <>
+      <SEOHead
+        title="Best Dentists in Erode | Dr. Kishore Kumar | Sreesaraswathi Dental"
+        description="Meet Dr. Kishore Kumar and the expert dental team at Sreesaraswathi Dental Clinic in Erode. Dedicated specialists providing gentle, modern dental care."
+        canonical="https://drkishoredentist.com/our-dentists"
+        schema={[breadcrumbSchema, getDentistSchema()]}
+      />
+      <main className="min-h-screen bg-[#F5F2EB] pb-20 pt-[124px] sm:pt-[145px]">
       <section className="container-x">
         <div className="mx-auto max-w-3xl text-center">
           <p className="inline-flex items-center gap-2 rounded-full border border-[#E95A35] bg-[#E95A35] px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white shadow-[0_10px_22px_-8px_rgba(233,90,53,0.6)]">
@@ -140,5 +154,6 @@ export default function DentistsPage() {
         </div>
       </section>
     </main>
+    </>
   );
 }

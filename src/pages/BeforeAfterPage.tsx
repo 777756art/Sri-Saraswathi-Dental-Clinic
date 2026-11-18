@@ -4,6 +4,8 @@ import { ArrowRight, MessageCircle, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useSiteContent } from "@/components/home/SiteContentSections";
 import { resolveApiAsset, type SiteContent } from "@/lib/api";
+import { SEOHead } from "@/components/seo/SEOHead";
+import { getBreadcrumbSchema } from "@/components/seo/schemas";
 
 const whatsappNumber = (import.meta.env.VITE_CLINIC_WHATSAPP || "919345743409").replace(/\D/g, "");
 function dmLink(item: SiteContent) {
@@ -84,7 +86,24 @@ function BeforeAfterShowcase({ homepage = false }: { homepage?: boolean }) {
 }
 
 export default function BeforeAfterPage() {
-  return <main className="min-h-screen"><BeforeAfterShowcase /></main>;
+  const breadcrumbSchema = getBreadcrumbSchema([
+    { name: "Home", url: "https://drkishoredentist.com/" },
+    { name: "Smile Gallery", url: "https://drkishoredentist.com/gallery/before-after" },
+  ]);
+
+  return (
+    <>
+      <SEOHead
+        title="Smile Makeover Before & After Results | Sreesaraswathi Dental Clinic Erode"
+        description="See real patient smile transformations and clinical before & after cases treated by Dr. Kishore Kumar at Sreesaraswathi Dental Clinic in Erode."
+        canonical="https://drkishoredentist.com/gallery/before-after"
+        schema={[breadcrumbSchema]}
+      />
+      <main className="min-h-screen">
+        <BeforeAfterShowcase />
+      </main>
+    </>
+  );
 }
 
 export function HomepageBeforeAfter() {

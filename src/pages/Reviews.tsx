@@ -3,13 +3,27 @@ import { ArrowRight, MessageCircleHeart, Star } from "lucide-react";
 import { PageHero } from "@/components/layout/PageHero";
 import { useSiteContent } from "@/components/home/SiteContentSections";
 import { resolveApiAsset } from "@/lib/api";
+import { SEOHead } from "@/components/seo/SEOHead";
+import { getBreadcrumbSchema, getDentistSchema } from "@/components/seo/schemas";
 
 export default function ReviewsPage() {
   const { items, loading } = useSiteContent("testimonial");
   const stories = [...items].sort((a, b) => a.displayOrder - b.displayOrder || b.id - a.id);
 
+  const breadcrumbSchema = getBreadcrumbSchema([
+    { name: "Home", url: "https://drkishoredentist.com/" },
+    { name: "Patient Reviews", url: "https://drkishoredentist.com/reviews" },
+  ]);
+
   return (
-    <main className="min-h-screen bg-[#F5F2EB]">
+    <>
+      <SEOHead
+        title="Patient Reviews & Ratings | Sreesaraswathi Dental Clinic Erode"
+        description="Read verified patient reviews and smile transformation feedback for Dr. Kishore Kumar and the clinical team at Sreesaraswathi Dental Clinic, Erode (Rated 4.8/5)."
+        canonical="https://drkishoredentist.com/reviews"
+        schema={[breadcrumbSchema, getDentistSchema()]}
+      />
+      <main className="min-h-screen bg-[#F5F2EB]">
       <PageHero
         eyebrow="Patient stories"
         align="center"
@@ -62,5 +76,6 @@ export default function ReviewsPage() {
         </div>
       </section>
     </main>
+    </>
   );
 }

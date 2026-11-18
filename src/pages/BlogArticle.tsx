@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, ArrowRight, CalendarDays, LoaderCircle, MapPin, PhoneCall, UserRound } from "lucide-react";
-import { LiveChat } from "@/components/home/LiveChat";
 import { ArticleBody } from "@/components/blog/ArticleBody";
 import { api, resolveApiAsset, type SiteContent } from "@/lib/api";
 import { formatArticleDate, readingMinutes } from "@/lib/blog";
 import { clinicImages } from "@/lib/images";
 import { Button } from "@/components/ui/Button";
+import { SEOHead } from "@/components/seo/SEOHead";
+import { getArticleSchema, getBreadcrumbSchema } from "@/components/seo/schemas";
 
 const slugHeading = (value: string) => value.toLowerCase().replace(/[^a-z0-9\s-]/g, "").trim().replace(/\s+/g, "-");
 
@@ -37,28 +38,6 @@ export default function BlogArticlePage() {
     return () => { active = false; };
   }, [slug]);
 
-  useEffect(() => {
-    if (!article) return;
-    const previousTitle = document.title;
-    const descriptionTag = document.querySelector('meta[name="description"]');
-    const previousDescription = descriptionTag?.getAttribute("content") ?? "";
-    document.title = article.seoTitle || `${article.title} · Sri Saraswathi Dental Clinic`;
-    const description = article.seoDescription || article.excerpt;
-    if (description) {
-      if (descriptionTag) descriptionTag.setAttribute("content", description);
-      else {
-        const tag = document.createElement("meta");
-        tag.setAttribute("name", "description");
-        tag.setAttribute("content", description);
-        document.head.appendChild(tag);
-      }
-    }
-    return () => {
-      document.title = previousTitle;
-      if (descriptionTag) descriptionTag.setAttribute("content", previousDescription);
-    };
-  }, [article]);
-
   const minutes = useMemo(() => (article ? readingMinutes(article.body) : 1), [article]);
   const titleWords = article?.title.trim().split(/\s+/) ?? [];
   const titleSplit = Math.max(1, Math.ceil(titleWords.length * 0.55));
@@ -86,8 +65,41 @@ export default function BlogArticlePage() {
     );
   }
 
+  const canonicalUrl = `https://drkishoredentist.com/blog/${article.slug || article.id}`;
+  const ogImageUrl = article.mediaUrl ? resolveApiAsset(article.mediaUrl) : undefined;
+  const pageTitle = article.seoTitle || `${article.title} | Sreesaraswathi Dental Clinic`;
+  const pageDescription =
+    article.seoDescription ||
+    article.excerpt ||
+    "Dental care advice and clinical guidance from Sreesaraswathi Dental Clinic in Erode.";
+
+  const breadcrumbSchema = getBreadcrumbSchema([
+    { name: "Home", url: "https://drkishoredentist.com/" },
+    { name: "Dental Journal", url: "https://drkishoredentist.com/blog" },
+    { name: article.title, url: canonicalUrl },
+  ]);
+
+  const articleSchema = getArticleSchema({
+    headline: article.title,
+    description: pageDescription,
+    image: ogImageUrl,
+    datePublished: article.createdAt,
+    dateModified: article.updatedAt,
+    authorName: article.badgeText || "Dr. Kishore Kumar",
+    publisherName: "Sreesaraswathi Dental Clinic",
+    url: canonicalUrl,
+  });
+
   return (
     <>
+      <SEOHead
+        title={pageTitle}
+        description={pageDescription}
+        canonical={canonicalUrl}
+        ogImage={ogImageUrl}
+        ogType="article"
+        schema={[breadcrumbSchema, articleSchema]}
+      />
       <main className="min-h-screen bg-[#F5F2EB]">
         <article>
           <header className="bg-[#F5F2EB] pb-8 pt-[112px] md:pb-10 md:pt-[128px]">
@@ -187,7 +199,6 @@ export default function BlogArticlePage() {
           </section>
         )}
       </main>
-      <LiveChat />
     </>
   );
 }

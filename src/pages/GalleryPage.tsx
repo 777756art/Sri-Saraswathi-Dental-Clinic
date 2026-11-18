@@ -4,6 +4,8 @@ import { ArrowLeft, ArrowRight, Building2, Images, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useSiteContent } from "@/components/home/SiteContentSections";
 import { resolveApiAsset, type SiteContent } from "@/lib/api";
+import { SEOHead } from "@/components/seo/SEOHead";
+import { getBreadcrumbSchema } from "@/components/seo/schemas";
 
 function ClinicGalleryGrid({ homepage = false }: { homepage?: boolean }) {
   const { items, loading } = useSiteContent("image");
@@ -97,7 +99,24 @@ function ClinicGalleryGrid({ homepage = false }: { homepage?: boolean }) {
 }
 
 export default function ClinicGalleryPage() {
-  return <main className="min-h-screen bg-[#F5F2EB]"><ClinicGalleryGrid /></main>;
+  const breadcrumbSchema = getBreadcrumbSchema([
+    { name: "Home", url: "https://drkishoredentist.com/" },
+    { name: "Clinic Gallery", url: "https://drkishoredentist.com/clinic-gallery" },
+  ]);
+
+  return (
+    <>
+      <SEOHead
+        title="Clinic Tour & Treatment Rooms Gallery | Sreesaraswathi Dental Clinic Erode"
+        description="Take a visual tour of Sreesaraswathi Dental Clinic in Erode. Explore our modern sterilization, dental operatories, comfortable waiting lounge, and patient care facilities."
+        canonical="https://drkishoredentist.com/clinic-gallery"
+        schema={[breadcrumbSchema]}
+      />
+      <main className="min-h-screen bg-[#F5F2EB]">
+        <ClinicGalleryGrid />
+      </main>
+    </>
+  );
 }
 
 export function HomepageClinicGallery() {

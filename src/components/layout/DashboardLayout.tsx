@@ -16,6 +16,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ExternalLink,
+  Globe,
   type LucideIcon,
   Home,
   Images,
@@ -59,6 +60,7 @@ const sidebarGroups: { label: string; links: DashboardNavLink[] }[] = [
   { label: "Other", links: [
     { label: "Contact enquiries", href: "/dashboard/enquiries", icon: MessageSquareText },
     { label: "AI Dental Assistant", href: "/dashboard/ai-assistant", icon: Bot },
+    { label: "SEO Management", href: "/dashboard/seo", icon: Globe },
     { label: "Website Settings", href: "/dashboard/settings", icon: Settings },
   ] },
 ];

@@ -4,6 +4,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, MessageCircle, Minus, Plus, Search } from "lucide-react";
 import { PageHero } from "@/components/layout/PageHero";
 import { Button } from "@/components/ui/Button";
+import { SEOHead } from "@/components/seo/SEOHead";
+import { getBreadcrumbSchema, getFAQPageSchema } from "@/components/seo/schemas";
 
 const faqs = [
   {
@@ -56,8 +58,26 @@ export default function FaqPage() {
     }))
     .filter((cat) => cat.items.length > 0);
 
+  const allFaqItems = faqs.flatMap((category) =>
+    category.items.map((item) => ({ question: item.q, answer: item.a }))
+  );
+
+  const breadcrumbSchema = getBreadcrumbSchema([
+    { name: "Home", url: "https://drkishoredentist.com/" },
+    { name: "FAQs", url: "https://drkishoredentist.com/faq" },
+  ]);
+
+  const faqSchema = getFAQPageSchema(allFaqItems);
+
   return (
-    <main className="min-h-screen bg-background">
+    <>
+      <SEOHead
+        title="Dental FAQs & Patient Guide | Sreesaraswathi Dental Clinic Erode"
+        description="Frequently asked questions about dental appointments, root canal treatments, teeth cleaning, implants, clinic hours, and pricing at Sreesaraswathi Dental Clinic, Erode."
+        canonical="https://drkishoredentist.com/faq"
+        schema={[breadcrumbSchema, faqSchema]}
+      />
+      <main className="min-h-screen bg-background">
       <PageHero
         eyebrow="Help centre"
         align="center"
@@ -180,5 +200,6 @@ export default function FaqPage() {
         </div>
       </section>
     </main>
+    </>
   );
 }

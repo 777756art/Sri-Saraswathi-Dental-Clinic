@@ -1,9 +1,14 @@
 import { useState } from "react";
 import { ArrowUpRight, CheckCircle, Clock3, HeartHandshake, Mail, MapPin, MessageCircle, Phone, Send, ShieldCheck, Users } from "lucide-react";
-import { LiveChat } from "@/components/home/LiveChat";
 import { clinicImages } from "@/lib/images";
 import { useClinicSettings } from "@/lib/clinic-settings";
 import { api } from "@/lib/api";
+import { SEOHead } from "@/components/seo/SEOHead";
+import {
+  getBreadcrumbSchema,
+  getDentistSchema,
+  getLocalBusinessSchema,
+} from "@/components/seo/schemas";
 
 const values = [
   { icon: HeartHandshake, title: "We listen first", copy: "Your concerns and priorities are part of the care conversation." },
@@ -17,7 +22,7 @@ export default function ContactPage() {
   const details = [
     { icon: Phone, label: "Phone", value: settings.phone || "0424 427 2494", href: `tel:${(settings.phone || "04244272494").replace(/\s+/g, "")}` },
     { icon: Mail, label: "Email", value: settings.email || "info@srisaraswathidental.com", href: `mailto:${settings.email || "info@srisaraswathidental.com"}` },
-    { icon: MapPin, label: "Visit", value: settings.address || "866, Soli Complex, Surampatti Four Rd, Erode, Tamil Nadu 638009", href: "https://share.google/Izecs47hnhjCpmBBs" },
+    { icon: MapPin, label: "Visit", value: settings.address || "866, Soli Complex, Surampatti Four Rd, Erode, Tamil Nadu 638009", href: "https://share.google/dA3bDaHxhJZC87HdT" },
     { icon: Clock3, label: "Opening hours", value: settings.opening_hours || "Mon–Sat · 9:00 AM–8:45 PM · Sunday emergency only" },
   ];
   const [state, setState] = useState<"idle" | "sending" | "success" | "error">("idle");
@@ -41,8 +46,20 @@ export default function ContactPage() {
     }
   };
 
-  return <>
-    <main className="min-h-screen bg-[#F5F2EB]">
+  const breadcrumbSchema = getBreadcrumbSchema([
+    { name: "Home", url: "https://drkishoredentist.com/" },
+    { name: "Contact & Clinic Location", url: "https://drkishoredentist.com/contact" },
+  ]);
+
+  return (
+    <>
+      <SEOHead
+        title="Contact Sreesaraswathi Dental Clinic | Dentist in Erode"
+        description="Visit Sreesaraswathi Dental Clinic at 866, Soli Complex, Surampatti Four Rd, Erode, Tamil Nadu 638009. Call 0424 427 2494 or message on WhatsApp for appointments."
+        canonical="https://drkishoredentist.com/contact"
+        schema={[breadcrumbSchema, getDentistSchema(), getLocalBusinessSchema()]}
+      />
+      <main className="min-h-screen bg-[#F5F2EB]">
       <section className="relative mt-[108px] min-h-[370px] overflow-hidden bg-[#1F6878] sm:min-h-[445px]">
         <img src={clinicImages.practiceErode} alt="Inside Sri Saraswathi Dental Clinic in Erode" loading="eager" fetchPriority="high" decoding="async" className="absolute inset-0 h-full w-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-r from-[#1F6878]/85 via-[#1F6878]/55 to-[#1F6878]/15" />
@@ -56,6 +73,6 @@ export default function ContactPage() {
         <div className="rounded-[22px] border border-[#dce4e5] bg-[#F5F2EB] p-5 shadow-[0_14px_36px_-28px_rgba(31,104,120,.28)] sm:p-7">{state === "success" ? <div className="flex min-h-[360px] flex-col items-center justify-center text-center"><span className="grid h-14 w-14 place-items-center rounded-full bg-[#E4F0F2] text-[#1F6878]"><CheckCircle className="h-7 w-7" /></span><h3 className="mt-5 font-display text-2xl font-bold text-[#1F6878]">Your enquiry has been sent</h3><p className="mt-2 max-w-sm text-[13px] leading-6 text-[#707574]">The clinic team has received your message and can follow up using the contact information you provided.</p><button type="button" onClick={() => setState("idle")} className="mt-5 text-[11px] font-semibold text-[#E95A35]">Send another message</button></div> : <><div><span className="grid h-10 w-10 place-items-center rounded-full bg-[#E4F0F2] text-[#1F6878] shadow-sm"><Send className="h-4 w-4" /></span><h3 className="mt-4 font-display text-[23px] font-bold text-[#1F6878]">Send an enquiry</h3><p className="mt-1.5 text-[12px] leading-5 text-[#707574]">Share your question and the clinic team can get back to you.</p></div><form key={formKey} onSubmit={submit} className="mt-6 space-y-4"><div className="grid gap-4 sm:grid-cols-2"><label className="text-[11px] font-semibold text-[#1F6878]">Full name<input name="name" required autoComplete="name" minLength={2} maxLength={120} className="mt-1.5 h-11 w-full rounded-xl border border-[#dce4e5] bg-white px-3.5 text-[13px] text-[#1F6878] outline-none focus:border-[#1F6878] focus:ring-4 focus:ring-[#1F6878]/15" /></label><label className="text-[11px] font-semibold text-[#1F6878]">Phone<input name="phone" type="tel" autoComplete="tel" className="mt-1.5 h-11 w-full rounded-xl border border-[#dce4e5] bg-white px-3.5 text-[13px] text-[#1F6878] outline-none focus:border-[#1F6878] focus:ring-4 focus:ring-[#1F6878]/15" placeholder="Phone or email is required" /></label></div><label className="block text-[11px] font-semibold text-[#1F6878]">Email (optional)<input name="email" type="email" autoComplete="email" className="mt-1.5 h-11 w-full rounded-xl border border-[#dce4e5] bg-white px-3.5 text-[13px] text-[#1F6878] outline-none focus:border-[#1F6878] focus:ring-4 focus:ring-[#1F6878]/15" /></label><label className="block text-[11px] font-semibold text-[#1F6878]">Message<textarea name="message" required minLength={5} maxLength={4000} rows={5} className="mt-1.5 w-full resize-y rounded-xl border border-[#dce4e5] bg-white px-3.5 py-3 text-[13px] leading-6 text-[#1F6878] outline-none focus:border-[#1F6878] focus:ring-4 focus:ring-[#1F6878]/15" /></label>{state === "error" && <p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] text-rose-800">{error}</p>}<button type="submit" disabled={state === "sending"} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[#E95A35] px-5 text-[11px] font-bold text-white shadow-[0_10px_22px_-8px_rgba(233,90,53,0.65)] transition hover:bg-[#D14824] disabled:cursor-wait disabled:opacity-70">{state === "sending" ? "Sending…" : "Send Enquiry"}<ArrowUpRight className="h-4 w-4" /></button><p className="text-center text-[10px] leading-5 text-[#707574]">Your enquiry is saved for the clinic team to follow up. Avoid including urgent or highly sensitive clinical details.</p></form></>}</div>
       </div></div></section>
     </main>
-    <LiveChat />
-  </>;
+    </>
+  );
 }

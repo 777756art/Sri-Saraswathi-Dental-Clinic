@@ -14,9 +14,10 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { TextArea } from "@/components/ui/TextArea";
-import { LiveChat } from "@/components/home/LiveChat";
 import { useClinicSettings } from "@/lib/clinic-settings";
 import { api } from "@/lib/api";
+import { SEOHead } from "@/components/seo/SEOHead";
+import { getBreadcrumbSchema, getDentistSchema } from "@/components/seo/schemas";
 
 const emergencies = [
   "Severe toothache",
@@ -61,8 +62,19 @@ export default function EmergencyPage() {
     }
   };
 
+  const breadcrumbSchema = getBreadcrumbSchema([
+    { name: "Home", url: "https://drkishoredentist.com/" },
+    { name: "Emergency Dental Care", url: "https://drkishoredentist.com/emergency" },
+  ]);
+
   return (
     <>
+      <SEOHead
+        title="Emergency Dentist in Erode | Urgent Dental Care | Sreesaraswathi Dental"
+        description="Need urgent dental care in Erode? Sreesaraswathi Dental Clinic provides emergency dentist support for toothache, broken teeth, infections, and dental trauma. Call 0424 427 2494."
+        canonical="https://drkishoredentist.com/emergency"
+        schema={[breadcrumbSchema, getDentistSchema()]}
+      />
       <main className="min-h-screen bg-background">
         <PageHero
           tone="ink"
@@ -246,7 +258,6 @@ export default function EmergencyPage() {
           </div>
         </section>
       </main>
-      <LiveChat />
     </>
   );
 }

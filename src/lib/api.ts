@@ -1174,3 +1174,44 @@ export const chatbotApi = {
       method: "DELETE",
     }),
 };
+
+/* ------------------------------------------------------------- SEO & SITEMAP / ROBOTS API */
+
+export type PublicSeoSettings = {
+  ok: boolean;
+  siteTitle: string;
+  defaultDescription: string;
+  canonicalDomain: string;
+  googleSiteVerification: string;
+  googleAnalyticsId: string;
+  defaultOgImage: string;
+  indexingEnabled: boolean;
+  pageOverrides: Record<string, { title?: string; description?: string; keywords?: string; noindex?: boolean }>;
+  updatedAt?: string;
+};
+
+export type AdminSeoSettingsResponse = {
+  ok: boolean;
+  settings: PublicSeoSettings;
+  audit: {
+    sitemapUrl: string;
+    robotsUrl: string;
+    activeTreatments: number;
+    publishedBlogs: number;
+    activeDoctors: number;
+    canonicalConfigured: boolean;
+    googleBusinessProfileLinked: boolean;
+  };
+};
+
+export const seoApi = {
+  getPublicSettings: () => request<PublicSeoSettings>("/api/seo/settings"),
+
+  getAdminSettings: () => request<AdminSeoSettingsResponse>("/api/admin/seo/settings"),
+
+  updateAdminSettings: (data: Partial<PublicSeoSettings>) =>
+    request<{ ok: boolean; message: string }>("/api/admin/seo/settings", {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+};

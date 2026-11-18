@@ -16,6 +16,7 @@ import {
   ALLOWED_MIME_TYPES,
 } from "./r2.mjs";
 import { registerChatbotRoutes } from "./chatbot-routes.mjs";
+import { registerSeoRoutes } from "./seo-routes.mjs";
 
 const COOKIE_NAME = "sc_session";
 const SESSION_DAYS = 7;
@@ -4811,5 +4812,8 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
 
   /* ------------------------------------------------------------- 8. OPENAI AI DENTAL CARE ASSISTANT */
   registerChatbotRoutes(app, d1, requireAdmin);
+
+  /* ------------------------------------------------------------- 9. SEO & SITEMAP / ROBOTS */
+  registerSeoRoutes(app, d1, requireAdmin);
 
 }

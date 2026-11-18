@@ -315,6 +315,18 @@ How can I help you today?',
       CREATE INDEX IF NOT EXISTS idx_chatbot_messages_session ON chatbot_messages(session_id, id);
       CREATE INDEX IF NOT EXISTS idx_chatbot_sessions_created ON chatbot_sessions(created_at DESC);
       CREATE INDEX IF NOT EXISTS idx_chatbot_faqs_status ON chatbot_faqs(status, display_order);
+      CREATE TABLE IF NOT EXISTS seo_settings (
+        id INTEGER PRIMARY KEY DEFAULT 1,
+        site_title TEXT NOT NULL DEFAULT 'Sreesaraswathi Dental Clinic | Dentist & Dental Care',
+        default_description TEXT NOT NULL DEFAULT 'Looking for professional dental care? Explore dental treatments, meet our doctors and book your appointment at Sreesaraswathi Dental Clinic.',
+        canonical_domain TEXT NOT NULL DEFAULT 'https://drkishoredentist.com',
+        google_site_verification TEXT DEFAULT '',
+        google_analytics_id TEXT DEFAULT '',
+        default_og_image TEXT DEFAULT '/images/clinic/clinic-exterior.webp',
+        indexing_enabled INTEGER NOT NULL DEFAULT 1,
+        page_overrides TEXT DEFAULT '{}',
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
     `);
 
     const schemaUpgrades = [
@@ -487,6 +499,28 @@ How can I help you today?', '["What dental treatments do you offer?", "What is a
     } catch (faqErr) {
       console.warn("Chatbot FAQ seed notice:", faqErr?.message || faqErr);
     }
+
+    // Seed default SEO settings if not exists
+    try {
+      const existingSeo = await db.prepare("SELECT id FROM seo_settings WHERE id = 1").first();
+      if (!existingSeo) {
+        await db.prepare(`
+          INSERT INTO seo_settings (
+            id, site_title, default_description, canonical_domain, default_og_image, indexing_enabled
+          ) VALUES (
+            1,
+            'Sreesaraswathi Dental Clinic | Dentist & Dental Care in Erode',
+            'Looking for professional dental care? Explore dental treatments, meet our doctors and book your appointment at Sreesaraswathi Dental Clinic in Erode.',
+            'https://drkishoredentist.com',
+            '/images/clinic/clinic-exterior.webp',
+            1
+          )
+        `).run();
+      }
+    } catch (seoErr) {
+      console.warn("SEO settings seed notice:", seoErr?.message || seoErr);
+    }
+  } catch (err) {
     console.warn("Cloudflare D1 schema check notice:", err?.message || err);
   }
 }

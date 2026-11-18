@@ -1,8 +1,13 @@
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, ArrowRight, CalendarDays, CheckCircle2, ChevronRight, Clock3, Phone } from "lucide-react";
-import { LiveChat } from "@/components/home/LiveChat";
 import { useSiteContent } from "@/components/home/SiteContentSections";
 import { resolveApiAsset } from "@/lib/api";
+import { SEOHead } from "@/components/seo/SEOHead";
+import {
+  getBreadcrumbSchema,
+  getFAQPageSchema,
+  getMedicalProcedureSchema,
+} from "@/components/seo/schemas";
 
 const careSteps = [
   { title: "Share your concerns", text: "Tell the clinic team what you would like help with." },
@@ -22,8 +27,58 @@ export default function ServicePage() {
   const related = treatments.filter((item) => item.id !== treatment.id && (treatment.category ? item.category === treatment.category : true)).slice(0, 3);
   const description = treatment.excerpt || "Talk with the clinic team about your dental concern and the care options that may suit you.";
 
-  return <>
-    <main className="min-h-screen bg-white">
+  const treatmentFaqs = [
+    {
+      question: `Is ${treatment.title.toLowerCase()} suitable for me?`,
+      answer: "Your dentist can assess your needs and explain suitable options during a visit.",
+    },
+    {
+      question: "How much time and cost should I plan for?",
+      answer:
+        "Timing and fees depend on your assessment and care plan. The clinic team will discuss these with you before treatment.",
+    },
+    {
+      question: "How do I book?",
+      answer:
+        "Choose an available date and time in the existing appointment booking flow, or contact the clinic for help.",
+    },
+  ];
+
+  const pageTitle = `${treatment.title} in Erode | Dr. Kishore Kumar | Sreesaraswathi Dental Clinic`;
+  const pageDescription =
+    treatment.excerpt && treatment.excerpt.length > 20
+      ? `${treatment.excerpt.slice(0, 150)}... Provided at Sreesaraswathi Dental Clinic, Erode.`
+      : `${treatment.title} at Sreesaraswathi Dental Clinic, Surampatti, Erode. Consult Dr. Kishore Kumar for expert dental care. Book your appointment online today.`;
+  const canonicalUrl = `https://drkishoredentist.com/treatments/${treatment.slug || treatment.id}`;
+  const ogImageUrl = treatment.mediaUrl ? resolveApiAsset(treatment.mediaUrl) : undefined;
+
+  const breadcrumbSchema = getBreadcrumbSchema([
+    { name: "Home", url: "https://drkishoredentist.com/" },
+    { name: "Treatments", url: "https://drkishoredentist.com/treatments" },
+    { name: treatment.title, url: canonicalUrl },
+  ]);
+
+  const medicalProcedureSchema = getMedicalProcedureSchema({
+    name: treatment.title,
+    description: treatment.excerpt || description,
+    procedureType: "MedicalProcedure",
+    duration: treatment.duration,
+    price: treatment.price && treatment.price > 0 ? treatment.price : undefined,
+  });
+
+  const faqSchema = getFAQPageSchema(treatmentFaqs);
+
+  return (
+    <>
+      <SEOHead
+        title={pageTitle}
+        description={pageDescription}
+        canonical={canonicalUrl}
+        ogImage={ogImageUrl}
+        ogType="article"
+        schema={[breadcrumbSchema, medicalProcedureSchema, faqSchema]}
+      />
+      <main className="min-h-screen bg-white">
       <section className="bg-[#F5F2EB] px-4 pb-12 pt-[118px] md:pb-16 md:pt-[140px]"><div className="container-x"><div className="mb-5 flex items-center gap-2 text-[10px] text-[#707574]"><Link to="/treatments" className="hover:text-[#1F6878]">Treatments</Link><ChevronRight className="h-3 w-3" /><span className="font-semibold text-[#1F6878]">{treatment.title}</span></div><div className="grid items-center gap-8 lg:grid-cols-[1fr_.9fr] lg:gap-12"><div><p className="inline-flex items-center gap-2 rounded-full border border-[#E95A35] bg-[#E95A35] px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white shadow-[0_10px_22px_-8px_rgba(233,90,53,0.6)]">{treatment.category || "Treatment guide"} · Erode</p><h1 className="mt-3 max-w-[670px] font-display text-[36px] font-bold leading-[1.06] tracking-[-.04em] text-[#1F6878] sm:text-[48px]">{treatment.title}</h1><p className="mt-4 max-w-[600px] text-[14px] leading-7 text-[#707574]">{description}</p><div className="mt-5 flex flex-wrap gap-2 text-[10px] font-semibold text-[#1F6878]">{treatment.duration && <span className="inline-flex items-center gap-1.5 rounded-full bg-[#E4F0F2] px-3 py-1.5"><Clock3 className="h-3.5 w-3.5 text-[#1F6878]" />{treatment.duration}</span>}{treatment.sessions && <span className="inline-flex items-center gap-1.5 rounded-full bg-[#E4F0F2] px-3 py-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-[#1F6878]" />{treatment.sessions}</span>}{treatment.price > 0 && <span className="rounded-full bg-[#E4F0F2] px-3 py-1.5 text-[#1F6878]">₹{treatment.price.toLocaleString("en-IN")}</span>}</div><div className="mt-6 flex flex-wrap gap-2.5">{treatment.availableForBooking ? <Link to={bookingHref} className="inline-flex h-11 items-center gap-2 rounded-full bg-[#E95A35] px-5 text-[11px] font-bold text-white shadow-[0_12px_24px_-12px_rgba(233,90,53,0.55)] transition hover:-translate-y-0.5 hover:bg-[#D14824]"><CalendarDays className="h-4 w-4" /> Book This Treatment</Link> : <Link to="/contact" className="inline-flex h-11 items-center gap-2 rounded-full bg-[#E95A35] px-5 text-[11px] font-bold text-white shadow-[0_12px_24px_-12px_rgba(233,90,53,0.55)] transition hover:bg-[#D14824]"><Phone className="h-4 w-4" /> Ask about availability</Link>}<a href="tel:+914244272494" className="inline-flex h-11 items-center gap-2 rounded-full border border-[#1F6878]/25 bg-white px-5 text-[11px] font-semibold text-[#1F6878] transition hover:border-[#1F6878] hover:bg-[#E4F0F2]"><Phone className="h-3.5 w-3.5 text-[#1F6878]" /> Call the clinic</a></div></div>
           <div className="relative overflow-hidden rounded-[22px] border border-[#1F6878]/15 bg-[#E4F0F2] shadow-[0_14px_36px_-24px_rgba(31,104,120,.35)]">{treatment.mediaUrl && <img src={resolveApiAsset(treatment.mediaUrl)} alt={treatment.title} loading="eager" decoding="async" className="aspect-[1.35/1] w-full object-cover" />}<div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#1F6878]/80 to-transparent p-5 pt-12 text-white"><p className="text-[10px] font-semibold uppercase tracking-[.13em]">Care discussed with your dentist</p></div></div>
         </div></div></section>
@@ -35,6 +90,6 @@ export default function ServicePage() {
       {related.length > 0 && <section className="px-4 py-12 sm:py-16"><div className="container-x"><div className="flex flex-wrap items-end justify-between gap-3"><div><p className="inline-flex items-center gap-2 rounded-full border border-[#E95A35] bg-[#E95A35] px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white shadow-[0_10px_22px_-8px_rgba(233,90,53,0.6)]">Keep exploring</p><h2 className="mt-3 font-display text-[26px] font-bold text-[#1F6878]">Explore Other <span className="text-[#1F6878]">Treatments</span></h2></div><Link to="/treatments" className="text-[11px] font-semibold text-[#1F6878] transition hover:text-[#E95A35]">All treatments <ArrowRight className="inline h-3 w-3" /></Link></div><div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{related.map((item) => <Link key={item.id} to={`/treatments/${item.slug || item.id}`} className="group overflow-hidden rounded-[17px] border border-[#1F6878]/15 bg-white transition hover:-translate-y-0.5 hover:border-[#1F6878]/40 hover:shadow-md">{item.mediaUrl && <img src={resolveApiAsset(item.mediaUrl)} alt={item.title} loading="lazy" className="aspect-[16/9] w-full object-cover" />}<div className="p-4"><p className="text-[9px] font-bold uppercase tracking-[.15em] text-[#1F6878]">{item.category || "Dental care"}</p><h3 className="mt-1 font-display text-[17px] font-bold text-[#1F6878]">{item.title}</h3><p className="mt-1 line-clamp-2 text-[11px] leading-5 text-[#707574]">{item.excerpt}</p><span className="mt-3 inline-flex items-center gap-1 text-[10px] font-bold text-[#E95A35]">View details <ArrowRight className="h-3 w-3" /></span></div></Link>)}</div></div></section>}
       <section className="container-x pb-14 sm:pb-20"><div className="flex flex-col gap-5 rounded-[22px] bg-[#1F6878] p-6 text-white shadow-[0_20px_40px_-24px_rgba(31,104,120,.5)] sm:flex-row sm:items-center sm:justify-between sm:p-9"><div><p className="inline-flex items-center gap-2 rounded-full border border-[#E95A35] bg-[#E95A35] px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white shadow-[0_10px_22px_-8px_rgba(233,90,53,0.6)]">Selected treatment · {treatment.title}</p><h2 className="mt-3 font-display text-[26px] font-bold leading-tight">Talk through your options.</h2><p className="mt-2 max-w-xl text-[12px] leading-6 text-[#E4F0F2]/75">Your dentist can discuss your concerns and next steps at a visit.</p></div>{treatment.availableForBooking && <Link to={bookingHref} className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-[#E95A35] px-5 text-[11px] font-bold text-white shadow-[0_10px_22px_-12px_rgba(233,90,53,0.55)] transition hover:bg-[#D14824]"><CalendarDays className="h-4 w-4" /> Book This Treatment</Link>}</div></section>
     </main>
-    <LiveChat />
-  </>;
+    </>
+  );
 }

@@ -3,6 +3,8 @@ import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, ArrowRight, CalendarDays, Stethoscope, UserRound } from "lucide-react";
 import { useSiteContent } from "@/components/home/SiteContentSections";
 import { resolveApiAsset } from "@/lib/api";
+import { SEOHead } from "@/components/seo/SEOHead";
+import { getBreadcrumbSchema, getPersonSchema } from "@/components/seo/schemas";
 
 export default function DoctorProfilePage() {
   const { slug = "" } = useParams();
@@ -46,8 +48,39 @@ export default function DoctorProfilePage() {
     );
   }
 
+  const canonicalUrl = `https://drkishoredentist.com/our-dentists/${doctor.slug || doctor.id}`;
+  const ogImageUrl = doctor.mediaUrl ? resolveApiAsset(doctor.mediaUrl) : undefined;
+  const pageTitle = `${doctor.title} | Dentist in Erode | Sreesaraswathi Dental Clinic`;
+  const pageDescription =
+    doctor.excerpt && doctor.excerpt.length > 20
+      ? `${doctor.excerpt.slice(0, 150)}... Sreesaraswathi Dental Clinic, Erode.`
+      : `${doctor.title} at Sreesaraswathi Dental Clinic in Erode. Dedicated dental care, modern treatments, and consultations. Book an appointment today.`;
+
+  const breadcrumbSchema = getBreadcrumbSchema([
+    { name: "Home", url: "https://drkishoredentist.com/" },
+    { name: "Our Dentists", url: "https://drkishoredentist.com/our-dentists" },
+    { name: doctor.title, url: canonicalUrl },
+  ]);
+
+  const personSchema = getPersonSchema({
+    name: doctor.title,
+    jobTitle: doctor.badgeText || "Dental Surgeon",
+    worksFor: "Sreesaraswathi Dental Clinic",
+    description: doctor.excerpt || doctor.body || "Dentist at Sreesaraswathi Dental Clinic, Erode.",
+    image: ogImageUrl,
+  });
+
   return (
-    <main className="min-h-screen bg-[#F5F2EB] pb-20 pt-[120px] sm:pt-[145px]">
+    <>
+      <SEOHead
+        title={pageTitle}
+        description={pageDescription}
+        canonical={canonicalUrl}
+        ogImage={ogImageUrl}
+        ogType="profile"
+        schema={[breadcrumbSchema, personSchema]}
+      />
+      <main className="min-h-screen bg-[#F5F2EB] pb-20 pt-[120px] sm:pt-[145px]">
       <div className="container-x">
         <Link
           to="/our-dentists"
@@ -120,5 +153,6 @@ export default function DoctorProfilePage() {
         </article>
       </div>
     </main>
+    </>
   );
 }
