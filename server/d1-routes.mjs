@@ -15,6 +15,7 @@ import {
   resolveMediaMimeType,
   ALLOWED_MIME_TYPES,
 } from "./r2.mjs";
+import { registerChatbotRoutes } from "./chatbot-routes.mjs";
 
 const COOKIE_NAME = "sc_session";
 const SESSION_DAYS = 7;
@@ -4807,5 +4808,8 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
       res.status(500).json({ error: err.message });
     }
   });
+
+  /* ------------------------------------------------------------- 8. OPENAI AI DENTAL CARE ASSISTANT */
+  registerChatbotRoutes(app, d1, requireAdmin);
 
 }

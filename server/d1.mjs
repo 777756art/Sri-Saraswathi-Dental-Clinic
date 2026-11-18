@@ -268,6 +268,53 @@ export async function initD1Schema(db) {
       CREATE INDEX IF NOT EXISTS idx_site_content_type_order ON site_content(type, published, display_order, id);
       CREATE INDEX IF NOT EXISTS idx_site_content_slug ON site_content(slug);
       CREATE INDEX IF NOT EXISTS idx_site_content_legacy ON site_content(legacy_table, legacy_id);
+      CREATE TABLE IF NOT EXISTS chatbot_settings (
+        id INTEGER PRIMARY KEY DEFAULT 1,
+        enabled INTEGER NOT NULL DEFAULT 1,
+        chatbot_name TEXT NOT NULL DEFAULT 'Dental Care Assistant',
+        welcome_message TEXT NOT NULL DEFAULT 'Hello! 👋 Welcome to Sreesaraswathi Dental Clinic.
+
+I''m your AI Dental Assistant. I can help you explore our dental treatments, understand our clinic services, and guide you through appointment booking.
+
+How can I help you today?',
+        system_instructions TEXT DEFAULT '',
+        suggested_questions TEXT NOT NULL DEFAULT '["What dental treatments do you offer?", "What is a root canal treatment?", "How can I book an appointment?", "What are your clinic timings?", "Where is your clinic located?", "What should I do if I have a toothache?"]',
+        model_name TEXT NOT NULL DEFAULT 'gpt-4o-mini',
+        appearance_settings TEXT DEFAULT '{"theme":"teal","placement":"bottom-right"}',
+        updated_at TEXT NOT NULL DEFAULT (datetime(''now''))
+      );
+      CREATE TABLE IF NOT EXISTS chatbot_sessions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        session_id TEXT UNIQUE NOT NULL,
+        patient_name TEXT DEFAULT '',
+        patient_phone TEXT DEFAULT '',
+        patient_email TEXT DEFAULT '',
+        appointment_id INTEGER DEFAULT NULL,
+        status TEXT NOT NULL DEFAULT 'active',
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+      CREATE TABLE IF NOT EXISTS chatbot_messages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        session_id TEXT NOT NULL,
+        role TEXT NOT NULL,
+        message TEXT NOT NULL,
+        metadata TEXT DEFAULT '{}',
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+      CREATE TABLE IF NOT EXISTS chatbot_faqs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        question TEXT NOT NULL,
+        answer TEXT NOT NULL,
+        category TEXT NOT NULL DEFAULT 'General',
+        status TEXT NOT NULL DEFAULT 'active',
+        display_order INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_chatbot_messages_session ON chatbot_messages(session_id, id);
+      CREATE INDEX IF NOT EXISTS idx_chatbot_sessions_created ON chatbot_sessions(created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_chatbot_faqs_status ON chatbot_faqs(status, display_order);
     `);
 
     const schemaUpgrades = [
@@ -401,7 +448,45 @@ export async function initD1Schema(db) {
         "INSERT INTO admins (name, email, password_hash, role, status, created_at, updated_at) VALUES (?, ?, ?, 'admin', 'active', datetime('now'), datetime('now'))"
       ).bind("Clinic Administrator", adminEmail, passwordHash).run();
     }
-  } catch (err) {
+
+    // Seed default chatbot settings if not exists
+    try {
+      const existingSettings = await db.prepare("SELECT id FROM chatbot_settings WHERE id = 1").first();
+      if (!existingSettings) {
+        await db.prepare(`
+          INSERT INTO chatbot_settings (id, enabled, chatbot_name, welcome_message, suggested_questions, model_name, appearance_settings)
+          VALUES (1, 1, 'Dental Care Assistant', 'Hello! 👋 Welcome to Sreesaraswathi Dental Clinic.
+
+I''m your AI Dental Assistant. I can help you explore our dental treatments, understand our clinic services, and guide you through appointment booking.
+
+How can I help you today?', '["What dental treatments do you offer?", "What is a root canal treatment?", "How can I book an appointment?", "What are your clinic timings?", "Where is your clinic located?", "What should I do if I have a toothache?"]', 'gpt-4o-mini', '{"theme":"teal","placement":"bottom-right"}')
+        `).run();
+      }
+    } catch (cbSetErr) {
+      console.warn("Chatbot settings seed notice:", cbSetErr?.message || cbSetErr);
+    }
+
+    // Seed default FAQs if table is empty
+    try {
+      const faqCount = await db.prepare("SELECT COUNT(*) as count FROM chatbot_faqs").first("count");
+      if (!faqCount || Number(faqCount) === 0) {
+        const defaultFaqs = [
+          ["What dental treatments do you offer?", "Sreesaraswathi Dental Clinic offers comprehensive dental services including Root Canal Treatment, Dental Implants, Teeth Whitening, Orthodontics (Braces & Clear Aligners), Cosmetic Dentistry, Pediatric Dentistry, Gum Care, Crowns & Bridges, and Wisdom Tooth Extractions.", "Treatments", 1],
+          ["What is a root canal treatment?", "Root canal treatment is a safe, tooth-saving procedure that removes infected or inflamed pulp tissue from inside the tooth, relieves discomfort, and seals the canal to preserve your natural tooth.", "Treatments", 2],
+          ["How can I book an appointment?", "You can easily book online by choosing your preferred treatment, doctor, date, and live time slot through our booking page, or ask me here to help arrange your visit!", "Appointments", 3],
+          ["What are your clinic timings?", "Our clinic is open Monday to Saturday from 9:00 AM to 8:45 PM. Sundays are reserved for scheduled emergency dental visits only.", "Clinic Info", 4],
+          ["Where is your clinic located?", "We are located at 866, Soli Complex, Surampatti Four Rd, Erode, Tamil Nadu 638009. We have convenient parking and easy ground-floor accessibility.", "Clinic Info", 5],
+          ["What should I do if I have a toothache?", "Rinse your mouth gently with warm salt water and avoid chewing hard foods on that side. For severe pain, swelling, or fever, please contact our clinic at 0424 427 2494 immediately for a gentle chairside examination.", "Emergency & Symptoms", 6]
+        ];
+        for (const [q, a, cat, ord] of defaultFaqs) {
+          await db.prepare(
+            "INSERT INTO chatbot_faqs (question, answer, category, status, display_order, created_at, updated_at) VALUES (?, ?, ?, 'active', ?, datetime('now'), datetime('now'))"
+          ).bind(q, a, cat, ord).run();
+        }
+      }
+    } catch (faqErr) {
+      console.warn("Chatbot FAQ seed notice:", faqErr?.message || faqErr);
+    }
     console.warn("Cloudflare D1 schema check notice:", err?.message || err);
   }
 }

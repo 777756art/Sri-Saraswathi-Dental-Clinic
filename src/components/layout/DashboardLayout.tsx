@@ -9,6 +9,7 @@ import { api, type AdminSummary } from "@/lib/api";
 import {
   Bell,
   BookOpenText,
+  Bot,
   Award,
   Calendar,
   Clock3,
@@ -57,7 +58,7 @@ const sidebarGroups: { label: string; links: DashboardNavLink[] }[] = [
   ] },
   { label: "Other", links: [
     { label: "Contact enquiries", href: "/dashboard/enquiries", icon: MessageSquareText },
-    { label: "Messages", href: "/dashboard/ai-assistant", icon: MessageCircle },
+    { label: "AI Dental Assistant", href: "/dashboard/ai-assistant", icon: Bot },
     { label: "Website Settings", href: "/dashboard/settings", icon: Settings },
   ] },
 ];

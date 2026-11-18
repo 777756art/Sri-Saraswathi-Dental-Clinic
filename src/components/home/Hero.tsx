@@ -51,13 +51,9 @@ export function Hero() {
     ? resolveApiAsset(banner.mediaUrl)
     : DEFAULT_HERO_CONTENT.heroImage;
 
-  // Check if promotional image is a custom photo uploaded by admin (e.g. real clinic photo, doctor photo)
-  // vs default logo card or screenshot placeholder
-  const isCustomPromoPhoto = Boolean(
-    banner?.mediaUrl &&
-      !banner.mediaUrl.includes("hero-dark-promo") &&
-      !banner.mediaUrl.includes("screenshot-2026-11-05") &&
-      !banner.mediaUrl.includes("sri-saraswathi-logo")
+  // Check whether to display the photo edge-to-edge (no black border) vs transparent logo
+  const isLogoOnly = Boolean(
+    promotionalImage.includes("logo") && !promotionalImage.includes("promo")
   );
 
   // Button background color with targeted alpha (adapts to global theme accent if using default)
@@ -228,10 +224,8 @@ export function Hero() {
           {/* Top Promotional Container with Smooth Floating Animation and Shimmer Sweep */}
           <div
             className={cn(
-              "hero-visual relative aspect-[1.58/1] w-full overflow-hidden shadow-[0_20px_50px_-16px_rgba(7,59,67,0.38)] animate-float-subtle",
-              isCustomPromoPhoto
-                ? "border border-white/20 bg-transparent"
-                : "border border-white/10 bg-[#0C2127]"
+              "hero-visual relative aspect-[1.58/1] w-full overflow-hidden shadow-[0_20px_50px_-16px_rgba(7,59,67,0.38)] animate-float-subtle border border-white/20",
+              isLogoOnly ? "bg-[#0C2127]" : "bg-transparent"
             )}
             style={{ borderRadius: "24px" }}
           >
@@ -244,19 +238,19 @@ export function Hero() {
             <div
               className={cn(
                 "absolute inset-0 flex items-center justify-center select-none",
-                isCustomPromoPhoto ? "p-0" : "p-6 sm:p-8"
+                isLogoOnly ? "p-6 sm:p-8" : "p-0"
               )}
             >
               <img
-                src={isCustomPromoPhoto ? promotionalImage : "/images/clinic/sri-saraswathi-logo-hd-transparent.png"}
+                src={promotionalImage}
                 alt="Sri Saraswathi Dental Clinic - 12+ Years of Excellence"
                 fetchPriority="high"
                 loading="eager"
                 decoding="async"
                 className={
-                  isCustomPromoPhoto
-                    ? "h-full w-full object-cover object-center block select-none"
-                    : "max-h-[105px] sm:max-h-[120px] w-auto max-w-[68%] object-contain block select-none filter drop-shadow-[0_4px_16px_rgba(0,0,0,0.35)]"
+                  isLogoOnly
+                    ? "max-h-[105px] sm:max-h-[120px] w-auto max-w-[68%] object-contain block select-none filter drop-shadow-[0_4px_16px_rgba(0,0,0,0.35)]"
+                    : "h-full w-full object-cover object-center block select-none"
                 }
               />
             </div>

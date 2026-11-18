@@ -1,76 +1,30 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Phone, MessageCircle, X, Send, Bot } from "lucide-react";
+import { Phone, Bot, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-
-type ChatMessage = { role: "bot" | "user"; text: string };
-
-function clinicHelpReply(question: string) {
-  const value = question.toLowerCase();
-  if (/urgent|emergency|pain|swollen|bleed|injur/.test(value)) {
-    return "For an urgent dental concern, please call the clinic directly at 0424 427 2494 to discuss emergency slot availability. For a life-threatening emergency, please visit the nearest hospital emergency room.";
-  }
-  if (/book|appointment|visit|slot|time/.test(value)) {
-    return "You can use our online Booking page to choose your doctor, treatment, and live IST time slot. Our clinic team confirms appointments promptly with automated WhatsApp updates.";
-  }
-  if (/where|address|location|directions/.test(value)) {
-    return "Sri Saraswathi Dental Clinic is located at 866, Soli Complex, Surampatti Four Road, Erode, Tamil Nadu 638009. Google Maps directions are available on our Contact page.";
-  }
-  if (/hour|open|close|sunday/.test(value)) {
-    return "Our regular clinic hours are Monday to Saturday, 9:00 AM – 8:45 PM. Sundays are reserved for scheduled emergency visits. Please call 0424 427 2494 before travelling.";
-  }
-  if (/treatment|service|tooth|implant|clean|braces|whiten|root canal/.test(value)) {
-    return "We offer comprehensive treatments including Root Canals, Dental Implants, Orthodontic Braces, Laser Dentistry, Smile Design, and Children's Dentistry. Visit our Treatments page for full details.";
-  }
-  if (/contact|phone|call|email|whatsapp/.test(value)) {
-    return "Call our clinic desk at 0424 427 2494 or WhatsApp us at +91 93457 43409 for quick enquiries.";
-  }
-  return "I can answer questions regarding clinic hours, address, treatments, and booking steps. For personal medical diagnosis or urgent appointments, please call 0424 427 2494 or WhatsApp our team.";
-}
+import { useChatbot } from "@/components/chatbot/ChatbotContext";
+import { ChatbotWidget } from "@/components/chatbot/ChatbotWidget";
 
 export function FloatingActions() {
   const [scrolled, setScrolled] = useState(false);
-  const [chatOpen, setChatOpen] = useState(false);
-  const [draft, setDraft] = useState("");
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    { role: "bot", text: "Hello! Welcome to Sri Saraswathi Dental Clinic." },
-    { role: "bot", text: "How can we assist your smile today? You can ask about treatments, clinic hours, or directions." },
-  ]);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const { isOpen, toggleChat } = useChatbot();
 
   useEffect(() => {
     const handleScroll = () => {
-      setScrolled(window.scrollY > 400);
+      setScrolled(window.scrollY > 300);
     };
     handleScroll();
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (el && chatOpen) {
-      el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
-    }
-  }, [messages, chatOpen]);
-
-  const handleSendMessage = () => {
-    const text = draft.trim();
-    if (!text) return;
-    setMessages((prev) => [...prev, { role: "user", text }]);
-    setDraft("");
-    setTimeout(() => {
-      setMessages((prev) => [...prev, { role: "bot", text: clinicHelpReply(text) }]);
-    }, 350);
-  };
-
   return (
     <>
       {/* Unified Floating Actions Stack - Single Container guarantees ZERO overlapping */}
       <div
-        className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40 flex flex-col items-end gap-2.5 pointer-events-none"
+        className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40 flex flex-col items-end gap-2.5 pointer-events-none select-none"
         aria-label="Quick contact actions"
       >
         {/* 1. Emergency Action Button (Orange) - Smoothly revealed when scrolled */}
@@ -96,31 +50,32 @@ export function FloatingActions() {
           )}
         </AnimatePresence>
 
-        {/* 2. Clinic FAQ Assistant Chat Toggle (Teal) - Revealed when scrolled */}
-        <AnimatePresence>
-          {scrolled && (
-            <motion.div
-              initial={{ scale: 0, opacity: 0, y: 10 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0, opacity: 0, y: 10 }}
-              transition={{ duration: 0.22, ease: "easeOut", delay: 0.05 }}
-              className="pointer-events-auto"
-            >
-              <button
-                type="button"
-                onClick={() => setChatOpen(!chatOpen)}
-                className="flex h-11 w-11 sm:h-auto sm:w-auto items-center justify-center sm:gap-2 rounded-full bg-[#1F6878] sm:px-4 sm:py-2.5 text-white shadow-[0_10px_24px_-10px_rgba(31,104,120,0.65)] transition-all hover:-translate-y-0.5 hover:bg-[#185360] active:translate-y-0"
-                title={chatOpen ? "Close Assistant" : "Clinic Assistant"}
-                aria-label="Toggle Clinic Assistant Chat"
-              >
-                {chatOpen ? <X className="h-4 w-4 shrink-0" /> : <Bot className="h-4 w-4 shrink-0" />}
-                <span className="hidden sm:inline font-sans text-[12.5px] font-bold">
-                  {chatOpen ? "Close" : "Assistant"}
-                </span>
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* 2. OpenAI AI Dental Assistant Chat Toggle (Teal) */}
+        <div className="pointer-events-auto">
+          <button
+            type="button"
+            onClick={toggleChat}
+            className={`flex h-12 w-12 sm:h-auto sm:w-auto items-center justify-center sm:gap-2 rounded-full text-white shadow-[0_10px_24px_-10px_rgba(7,59,67,0.7)] transition-all hover:-translate-y-0.5 active:translate-y-0 ${
+              isOpen
+                ? "bg-[#D14824] hover:bg-[#B33B1C] sm:px-4 sm:py-2.5"
+                : "bg-gradient-to-r from-[#073B43] to-[#0E8A5E] hover:brightness-110 sm:px-4 sm:py-2.5"
+            }`}
+            title={isOpen ? "Close Dental Assistant" : "Ask AI Dental Assistant"}
+            aria-label="Toggle Dental Assistant Chat"
+          >
+            {isOpen ? (
+              <X className="h-5 w-5 sm:h-4 sm:w-4 shrink-0" />
+            ) : (
+              <div className="relative">
+                <Bot className="h-5 w-5 sm:h-4 sm:w-4 shrink-0" />
+                <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-[#19B987] animate-pulse" />
+              </div>
+            )}
+            <span className="hidden sm:inline font-sans text-[12.5px] font-bold">
+              {isOpen ? "Close" : "AI Assistant"}
+            </span>
+          </button>
+        </div>
 
         {/* 3. Primary WhatsApp Action Button (Green) - Always easily accessible */}
         <div className="pointer-events-auto">
@@ -146,81 +101,8 @@ export function FloatingActions() {
         </div>
       </div>
 
-      {/* Interactive Chat Assistant Modal Drawer */}
-      <AnimatePresence>
-        {chatOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: 15, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 15, scale: 0.95 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            className="fixed bottom-20 right-4 sm:bottom-24 sm:right-6 z-50 w-[calc(100vw-2rem)] max-w-sm overflow-hidden rounded-3xl border border-[#1F6878]/25 bg-white shadow-2xl pointer-events-auto"
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between bg-[#1F6878] px-5 py-4 text-white">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 text-[#E4F0F2]">
-                  <Bot className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-[14px] font-bold leading-tight">Sri Saraswathi Assistant</p>
-                  <p className="text-[11px] text-[#E4F0F2]/80">Instant Clinic Information &amp; FAQ</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setChatOpen(false)}
-                aria-label="Close assistant"
-                className="rounded-full p-1.5 text-white/80 transition hover:bg-white/10 hover:text-white"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            {/* Scrollable Conversation */}
-            <div ref={scrollRef} className="h-72 space-y-3 overflow-y-auto bg-[#F5F2EB] p-4">
-              {messages.map((msg, index) => (
-                <div
-                  key={index}
-                  className={`max-w-[85%] rounded-2xl px-4 py-3 text-[13px] leading-relaxed shadow-xs ${
-                    msg.role === "user"
-                      ? "ml-auto rounded-br-md bg-[#1F6878] text-white"
-                      : "rounded-bl-md border border-[#dce4e5] bg-white text-[#15191B]"
-                  }`}
-                >
-                  {msg.text}
-                </div>
-              ))}
-            </div>
-
-            {/* Text Input Form */}
-            <div className="border-t border-[#dce4e5] bg-white p-3">
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  handleSendMessage();
-                }}
-                className="flex items-center gap-2"
-              >
-                <input
-                  type="text"
-                  value={draft}
-                  onChange={(e) => setDraft(e.target.value)}
-                  placeholder="Ask a question..."
-                  className="flex-1 rounded-full border border-[#dce4e5] bg-[#F5F2EB] px-4 py-2.5 text-[13px] text-[#15191B] placeholder:text-[#707574] focus:border-[#1F6878] focus:outline-none focus:ring-2 focus:ring-[#1F6878]/20"
-                />
-                <button
-                  type="submit"
-                  aria-label="Send message"
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#E95A35] text-white shadow-sm transition hover:bg-[#D14824]"
-                >
-                  <Send className="h-4 w-4" />
-                </button>
-              </form>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* OpenAI AI Dental Care Assistant Floating Window */}
+      <ChatbotWidget />
     </>
   );
 }

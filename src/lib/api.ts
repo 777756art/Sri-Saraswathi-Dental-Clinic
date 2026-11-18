@@ -1017,3 +1017,160 @@ export const statusTone: Record<
   cancelled: "danger",
   no_show: "danger",
 };
+
+/* ------------------------------------------------------------- AI DENTAL CARE ASSISTANT API */
+
+export type PublicChatbotSettings = {
+  ok: boolean;
+  enabled: boolean;
+  chatbotName: string;
+  welcomeMessage: string;
+  suggestedQuestions: string[];
+  appearance: { theme: string; placement: string };
+  aiConfigured: boolean;
+  modelName: string;
+};
+
+export type ChatbotMessageItem = {
+  id?: number;
+  role: "user" | "assistant" | "system";
+  message: string;
+  metadata?: {
+    bookingResult?: any;
+    bookingAction?: any;
+    [key: string]: any;
+  };
+  createdAt?: string;
+};
+
+export type ChatbotSendResponse = {
+  ok: boolean;
+  sessionId: string;
+  reply: string;
+  bookingResult?: any;
+  bookingAction?: any;
+};
+
+export type AdminChatbotSettings = {
+  enabled: boolean;
+  chatbotName: string;
+  welcomeMessage: string;
+  systemInstructions: string;
+  suggestedQuestions: string[];
+  modelName: string;
+  appearanceSettings: { theme: string; placement: string };
+  updatedAt?: string;
+};
+
+export type AdminChatbotFAQ = {
+  id: number;
+  question: string;
+  answer: string;
+  category: string;
+  status: "active" | "inactive";
+  display_order: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AdminChatbotConversation = {
+  id: number;
+  session_id: string;
+  patient_name: string;
+  patient_phone: string;
+  patient_email: string;
+  appointment_id?: number | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  message_count: number;
+  latest_message: string;
+};
+
+export const chatbotApi = {
+  getSettings: () => request<PublicChatbotSettings>("/api/chat/settings"),
+  
+  sendMessage: (payload: { message: string; sessionId?: string; patientName?: string; patientPhone?: string }) =>
+    request<ChatbotSendResponse>("/api/chat", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  getHistory: (sessionId: string) =>
+    request<{ ok: boolean; sessionId: string; messages: ChatbotMessageItem[] }>(`/api/chat/history/${encodeURIComponent(sessionId)}`),
+
+  submitBooking: (bookingData: {
+    sessionId?: string;
+    patientName: string;
+    phone: string;
+    email?: string;
+    date: string;
+    time: string;
+    treatmentId?: number;
+    doctorId?: number;
+    notes?: string;
+  }) =>
+    request<{ ok: boolean; booking: any }>("/api/chat/booking", {
+      method: "POST",
+      body: JSON.stringify(bookingData),
+    }),
+
+  // Admin endpoints
+  getAdminSettings: () =>
+    request<{ ok: boolean; settings: AdminChatbotSettings; environment: { openaiApiKeyConfigured: boolean; activeModel: string } }>(
+      "/api/admin/chatbot/settings"
+    ),
+
+  updateAdminSettings: (settings: Partial<AdminChatbotSettings>) =>
+    request<{ ok: boolean; message: string }>("/api/admin/chatbot/settings", {
+      method: "PUT",
+      body: JSON.stringify(settings),
+    }),
+
+  testOpenAIConnection: (modelName?: string) =>
+    request<{ ok: boolean; model?: string; reply?: string; configured: boolean; error?: string }>(
+      "/api/admin/chatbot/test-connection",
+      {
+        method: "POST",
+        body: JSON.stringify({ modelName }),
+      }
+    ),
+
+  getConversations: (limit = 50) =>
+    request<{ ok: boolean; conversations: AdminChatbotConversation[] }>(
+      `/api/admin/chatbot/conversations?limit=${limit}`
+    ),
+
+  getConversationDetails: (sessionId: string) =>
+    request<{ ok: boolean; session: any; messages: ChatbotMessageItem[]; appointment?: any }>(
+      `/api/admin/chatbot/conversations/${encodeURIComponent(sessionId)}`
+    ),
+
+  deleteConversation: (sessionId: string) =>
+    request<{ ok: boolean; message: string }>(
+      `/api/admin/chatbot/conversations/${encodeURIComponent(sessionId)}`,
+      { method: "DELETE" }
+    ),
+
+  getFAQs: () => request<{ ok: boolean; faqs: AdminChatbotFAQ[] }>("/api/admin/chatbot/faqs"),
+
+  createFAQ: (faq: { question: string; answer: string; category?: string; displayOrder?: number; status?: string }) =>
+    request<{ ok: boolean; id: number; message: string }>("/api/admin/chatbot/faqs", {
+      method: "POST",
+      body: JSON.stringify(faq),
+    }),
+
+  updateFAQ: (
+    id: number,
+    faq: { question: string; answer: string; category?: string; displayOrder?: number; status?: string }
+  ) =>
+    request<{ ok: boolean; message: string }>(`/api/admin/chatbot/faqs/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(faq),
+    }),
+
+  deleteFAQ: (id: number) =>
+    request<{ ok: boolean; message: string }>(`/api/admin/chatbot/faqs/${id}`, {
+      method: "DELETE",
+    }),
+};
