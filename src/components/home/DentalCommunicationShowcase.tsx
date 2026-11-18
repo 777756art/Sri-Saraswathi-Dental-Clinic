@@ -39,21 +39,21 @@ export function DentalCommunicationShowcase() {
           </div>
 
           {/* Dialogue Presentation */}
-          <div className="space-y-4 p-5 sm:p-7">
+          <div className="space-y-4 p-4 sm:p-7">
             {/* Patient Message */}
             <div className="flex justify-end">
-              <div className="max-w-[85%] rounded-2xl rounded-tr-sm bg-white/15 px-4.5 py-3 text-[13px] leading-relaxed text-white shadow-sm sm:text-[14px]">
+              <div className="max-w-[90%] sm:max-w-[85%] rounded-2xl rounded-tr-sm bg-white/15 px-4 py-3 text-[13px] leading-relaxed text-white shadow-sm sm:text-[14px]">
                 <p className="font-semibold text-[#E4F0F2]/75 text-[10px] uppercase tracking-wider mb-1">Patient</p>
                 I have tooth sensitivity while drinking cold water. How do I request an appointment with Dr. Kishore?
               </div>
             </div>
 
             {/* Clinic Assistant Response */}
-            <div className="flex items-start gap-3">
-              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-[#E4F0F2] text-[#1F6878] mt-1">
+            <div className="flex items-start gap-2.5 sm:gap-3">
+              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-[#E4F0F2] text-[#1F6878] mt-1 shadow-xs">
                 <MessageCircle className="h-4 w-4" />
               </span>
-              <div className="max-w-[85%] rounded-2xl rounded-tl-sm border border-white/15 bg-[#0F3841]/70 px-4.5 py-3.5 text-[13px] leading-relaxed text-white/95 shadow-sm sm:text-[14px]">
+              <div className="flex-1 min-w-0 max-w-[90%] sm:max-w-[85%] rounded-2xl rounded-tl-sm border border-white/15 bg-[#0F3841]/70 px-4 py-3.5 text-[13px] leading-relaxed text-white/95 shadow-sm sm:text-[14px]">
                 <p className="font-semibold text-[#E4F0F2] text-[10px] uppercase tracking-wider mb-1">Sri Saraswathi Team</p>
                 <p>
                   Tooth sensitivity can often be treated promptly with a gentle check-up and digital exam. Dr. Kishore Kumar evaluates the enamel and gums to provide clear relief.

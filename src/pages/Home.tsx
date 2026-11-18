@@ -11,7 +11,6 @@ import { GoogleReviewsSection } from "@/components/home/GoogleReviewsSection";
 import { WhyChooseUs } from "@/components/home/WhyChooseUs";
 import { LatestDentalBlogs } from "@/components/home/LatestDentalBlogs";
 import { FinalHomepageGallery } from "@/components/home/FinalHomepageGallery";
-import { LiveChat } from "@/components/home/LiveChat";
 
 export default function HomePage() {
   useEffect(() => {
@@ -56,9 +55,6 @@ export default function HomePage() {
 
       {/* Section 11 – Final Homepage Showcase / Gallery */}
       <FinalHomepageGallery />
-
-      {/* Interactive Live Chat Floating Drawer */}
-      <LiveChat />
     </main>
   );
 }
