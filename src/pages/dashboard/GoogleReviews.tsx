@@ -70,8 +70,8 @@ export default function GoogleReviewsPage() {
   const [googleReviewsUrl, setGoogleReviewsUrl] = useState(DEFAULT_GOOGLE_REVIEWS_URL);
   const [writeReviewUrl, setWriteReviewUrl] = useState("");
   const [placeId, setPlaceId] = useState("");
-  const [overallRating, setOverallRating] = useState("4.8");
-  const [totalReviews, setTotalReviews] = useState("1100");
+  const [overallRating, setOverallRating] = useState("4.9");
+  const [totalReviews, setTotalReviews] = useState("449");
   const [maxDisplayCount, setMaxDisplayCount] = useState("6");
   const [savingConfig, setSavingConfig] = useState(false);
   const [syncingApi, setSyncingApi] = useState(false);
@@ -93,10 +93,10 @@ export default function GoogleReviewsPage() {
     setPlaceId(nextCfg.placeId || "");
     setWriteReviewUrl(nextCfg.writeReviewUrl || "");
     setOverallRating(
-      typeof nextCfg.overallRating === "number" ? String(nextCfg.overallRating) : "4.8"
+      typeof nextCfg.overallRating === "number" ? String(nextCfg.overallRating) : "4.9"
     );
     setTotalReviews(
-      typeof nextCfg.totalReviews === "number" ? String(nextCfg.totalReviews) : "1100"
+      typeof nextCfg.totalReviews === "number" ? String(nextCfg.totalReviews) : "449"
     );
     setMaxDisplayCount(
       typeof nextCfg.maxDisplayCount === "number" ? String(nextCfg.maxDisplayCount) : "6"

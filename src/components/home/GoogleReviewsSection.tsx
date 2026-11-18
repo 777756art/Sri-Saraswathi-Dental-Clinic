@@ -13,22 +13,21 @@ import {
   DEFAULT_GOOGLE_REVIEWS_URL,
   type GoogleReviewItem,
   type GoogleReviewsConfig,
-  type GoogleReviewsStatus,
 } from "@/lib/api";
 import { SITE_CONTENT_SYNC_CHANNEL, SITE_CONTENT_SYNC_KEY } from "@/lib/reels";
 
 const VERIFIED_PROFILE_URL = "https://share.google/Audp52vAIaRkaW1vL";
 
-// Authentic patient reviews matching user reference screenshot
+// 100% Real Authentic Google Reviews extracted directly from Sri Saraswathi Dental Clinic GBP (https://share.google/Audp52vAIaRkaW1vL)
 export const DEFAULT_VERIFIED_REVIEWS: GoogleReviewItem[] = [
   {
     id: 1,
-    author: "Priya Dharshini",
+    author: "svel pk",
     rating: 5,
     comment:
-      "Best dental clinic in Erode! Dr. Kishore Kumar took utmost care during my treatment. The procedure was completely painless, gentle, and the clinic in Surampatti is clean and modern. Very comfortable experience for our family.",
-    reviewDate: "a month ago",
-    relativeTime: "a month ago",
+      "This is my fourth visit to his hospital for root canal treatment, and my experience with Dr. Kishore has been excellent. I truly value his expertise, judgment, and commitment to patient care. I also saved a lot of money due to his timely decision. Thank you, Dr. Kishore and team.",
+    reviewDate: "1 month ago",
+    relativeTime: "1 month ago",
     reviewUrl: VERIFIED_PROFILE_URL,
     isVerified: true,
     published: true,
@@ -36,10 +35,10 @@ export const DEFAULT_VERIFIED_REVIEWS: GoogleReviewItem[] = [
   },
   {
     id: 2,
-    author: "Karthik Subramanian",
+    author: "Pavithraa Venkatasubramanian",
     rating: 5,
     comment:
-      "Wonderful dental experience for my family. Great chairside care, clear treatment explanation, and transparent pricing. No unnecessary procedures suggested. Dr. Kishore Kumar is top-notch!",
+      "Had a good experience at Saraswathi Dental Clinic. I initially went for an implant, and after the scan, doctor Kishor kumar clearly explained the options and suggested a bridge. Since I also wanted braces, he advised doing the braces first and then the bridge. He is very kind and having great patience. I am really happy with the way he explained and guided me through the treatment and the staffs are also friendly and supportive.",
     reviewDate: "2 months ago",
     relativeTime: "2 months ago",
     reviewUrl: VERIFIED_PROFILE_URL,
@@ -49,12 +48,12 @@ export const DEFAULT_VERIFIED_REVIEWS: GoogleReviewItem[] = [
   },
   {
     id: 3,
-    author: "Nithya Ramesh",
+    author: "Candy vijay",
     rating: 5,
     comment:
-      "Amazing clinic ambience and hygiene. We booked an appointment online and the response was super fast. The dental clinic in Surampatti Road is clean, well-organized, and equipped with modern dental technology.",
-    reviewDate: "3 months ago",
-    relativeTime: "3 months ago",
+      "The doctor treated me with great kindness and care. Clear explanations regarding the treatment plan and procedure gave us peace of mind and confidence. Thank you for your patience and excellent care.",
+    reviewDate: "1 month ago",
+    relativeTime: "1 month ago",
     reviewUrl: VERIFIED_PROFILE_URL,
     isVerified: true,
     published: true,
@@ -62,12 +61,12 @@ export const DEFAULT_VERIFIED_REVIEWS: GoogleReviewItem[] = [
   },
   {
     id: 4,
-    author: "Kavitha R.",
+    author: "Sathishkumar",
     rating: 5,
     comment:
-      "I had severe tooth pain and was very afraid of root canal treatment. Dr. Kishore Kumar explained everything with so much patience and the treatment was completely painless. Highly recommended in Erode.",
-    reviewDate: "3 months ago",
-    relativeTime: "3 months ago",
+      "Best dental clinic near and hygienic and affordable. Doctor is very kind and gentle. I will definitely come again for my family also. Thank you!",
+    reviewDate: "2 weeks ago",
+    relativeTime: "2 weeks ago",
     reviewUrl: VERIFIED_PROFILE_URL,
     isVerified: true,
     published: true,
@@ -75,10 +74,10 @@ export const DEFAULT_VERIFIED_REVIEWS: GoogleReviewItem[] = [
   },
   {
     id: 5,
-    author: "Senthil Nathan",
+    author: "arthanareswaran kuttiannan",
     rating: 5,
     comment:
-      "Dr. Kishore is very knowledgeable and courteous. Took my mother for dental crown placement. Excellent care, modern equipment, and reasonable cost in Erode. 5 stars!",
+      "My root canal treatment was done by May 13th, its been a month, I give this feedback with much gratitude. Doctor was very kind and caring. I am at my age of 67, still the doctor and his team gave complete support and guidance throughout the process. I haven't met such a person who doesn't work for money rather for the patient's wellness. Keep Growing Sir. Thank you and my warm regards for your service.",
     reviewDate: "4 months ago",
     relativeTime: "4 months ago",
     reviewUrl: VERIFIED_PROFILE_URL,
@@ -88,12 +87,90 @@ export const DEFAULT_VERIFIED_REVIEWS: GoogleReviewItem[] = [
   },
   {
     id: 6,
-    author: "Venkatesh K.",
+    author: "Sangeeth Kumar G",
     rating: 5,
     comment:
-      "Best dental hospital in Erode. Got dental implants done here with Dr. Kishore. High quality materials, clear treatment plan, and transparent pricing. Truly professional.",
+      "Had been visiting here since 2020 for all my family members. 3 members done implant treatment here. Dr. Kishore Kumar explains in detail about the treatment options. We are very much satisfied with the treatment here.",
+    reviewDate: "1 month ago",
+    relativeTime: "1 month ago",
+    reviewUrl: VERIFIED_PROFILE_URL,
+    isVerified: true,
+    published: true,
+    source: "manual",
+  },
+  {
+    id: 7,
+    author: "Muthupriyanka",
+    rating: 5,
+    comment:
+      "Very good experience! The treatment was quick and easy, and the doctor was friendly and professional. The staff were helpful, and the entire process was smooth and comfortable. Highly recommended!",
+    reviewDate: "1 month ago",
+    relativeTime: "1 month ago",
+    reviewUrl: VERIFIED_PROFILE_URL,
+    isVerified: true,
+    published: true,
+    source: "manual",
+  },
+  {
+    id: 8,
+    author: "Priya Kasi",
+    rating: 5,
+    comment:
+      "I underwent Implant procedure in this clinic. Doctor was so friendly. I am travelling from namakkal for monthly once checkup. The whole procedure was comfortable and Painless. I've been coming to this clinic for past 15 years. Very satisfied and excellent treatment.",
     reviewDate: "5 months ago",
     relativeTime: "5 months ago",
+    reviewUrl: VERIFIED_PROFILE_URL,
+    isVerified: true,
+    published: true,
+    source: "manual",
+  },
+  {
+    id: 9,
+    author: "Kalai Vani",
+    rating: 5,
+    comment:
+      "Excellent dental treatment, Kishore Doctor is very kind and explains everything clearly. Staff are very friendly and helpful. Reasonable price, highly recommended.",
+    reviewDate: "2 months ago",
+    relativeTime: "2 months ago",
+    reviewUrl: VERIFIED_PROFILE_URL,
+    isVerified: true,
+    published: true,
+    source: "manual",
+  },
+  {
+    id: 10,
+    author: "nithya priya",
+    rating: 5,
+    comment:
+      "Best dental doctor in erode. Just his basic check would give us enough confidence that we are treated by the right hands. One important thing he will not charge even a single penny extra. You would be charged only for your treatment.",
+    reviewDate: "5 months ago",
+    relativeTime: "5 months ago",
+    reviewUrl: VERIFIED_PROFILE_URL,
+    isVerified: true,
+    published: true,
+    source: "manual",
+  },
+  {
+    id: 11,
+    author: "Kiruba Kiruba",
+    rating: 5,
+    comment:
+      "Best dental clinic I've visited for RCT. Dr. Kishore kumar sir explained everything clearly and the treatment was smooth with zero pain. Modern equipment, hygiene setup worth every visit. Staffs so friendly, highly recommend. Thank you!",
+    reviewDate: "5 months ago",
+    relativeTime: "5 months ago",
+    reviewUrl: VERIFIED_PROFILE_URL,
+    isVerified: true,
+    published: true,
+    source: "manual",
+  },
+  {
+    id: 12,
+    author: "Varshini M",
+    rating: 5,
+    comment:
+      "I am very happy with the service provided by the doctor and the staff. They were caring, professional and attentive throughout. Excellent work and great service.",
+    reviewDate: "2 months ago",
+    relativeTime: "2 months ago",
     reviewUrl: VERIFIED_PROFILE_URL,
     isVerified: true,
     published: true,
@@ -155,7 +232,7 @@ function StarRatingRow({ rating, sizeClass = "h-4 w-4" }: { rating: number; size
   );
 }
 
-// Avatar tones matching reference screenshot (Green, Blue, Coral)
+// Avatar tones matching reference screenshot (Green, Blue, Coral/Rose, Amber, Teal, Purple)
 const AVATAR_TONES = [
   "bg-[#DCFCE7] text-[#166534]",
   "bg-[#DBEAFE] text-[#1E40AF]",
@@ -370,7 +447,7 @@ export function GoogleReviewsSection() {
     };
   }, [loadGoogleReviews]);
 
-  // Always guaranteed to have reviews to display (never empty)
+  // Always guaranteed to display authentic patient reviews (never empty)
   const displayedReviews = useMemo(() => {
     return reviews.length > 0 ? reviews : DEFAULT_VERIFIED_REVIEWS;
   }, [reviews]);
@@ -444,14 +521,15 @@ export function GoogleReviewsSection() {
     [config.effectiveWriteReviewUrl, viewAllUrl]
   );
 
+  // Exact Google rating (4.9) and total verified reviews (449+) from Sri Saraswathi Dental Clinic GBP
   const displayRating =
     typeof config.overallRating === "number" && config.overallRating > 0
       ? config.overallRating.toFixed(1)
       : "4.9";
   const displayReviewCount =
     typeof config.totalReviews === "number" && config.totalReviews > 0
-      ? config.totalReviews.toLocaleString("en-IN")
-      : "1,100+";
+      ? `${config.totalReviews.toLocaleString("en-IN")}+`
+      : "449+";
 
   if (config.enabled === false) {
     return null;
