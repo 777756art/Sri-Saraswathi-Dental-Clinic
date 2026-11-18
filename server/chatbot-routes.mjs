@@ -11,6 +11,10 @@ import {
   generateLocalKnowledgeReply,
   checkRateLimit,
   CHATBOT_TOOLS,
+  CLINIC_FALLBACK,
+  DEFAULT_DOCTORS,
+  DEFAULT_CLINIC_TREATMENTS,
+  DEFAULT_CLINIC_FAQS,
 } from "./chatbot-service.mjs";
 
 const CLINIC_TIMEZONE = "Asia/Kolkata";
@@ -43,7 +47,7 @@ export function registerChatbotRoutes(app, d1, requireAdmin) {
   // Public Chatbot Settings & Status
   app.get("/api/chat/settings", async (_req, res) => {
     try {
-      const settings = (await d1.prepare("SELECT * FROM chatbot_settings WHERE id = 1").first()) || {
+      let settings = {
         enabled: 1,
         chatbot_name: "Dental Care Assistant",
         welcome_message: "Hello! 👋 Welcome to Sreesaraswathi Dental Clinic.\n\nI'm your AI Dental Assistant. How can I help you today?",
@@ -51,6 +55,15 @@ export function registerChatbotRoutes(app, d1, requireAdmin) {
         model_name: "gpt-4o-mini",
         appearance_settings: '{"theme":"teal","placement":"bottom-right"}',
       };
+
+      try {
+        if (d1?.prepare) {
+          const row = await d1.prepare("SELECT * FROM chatbot_settings WHERE id = 1").first();
+          if (row) settings = { ...settings, ...row };
+        }
+      } catch (dbErr) {
+        console.warn("Chatbot settings db read warning:", dbErr?.message || dbErr);
+      }
 
       let suggestedQuestions = [];
       try {
@@ -86,7 +99,24 @@ export function registerChatbotRoutes(app, d1, requireAdmin) {
         modelName: settings.model_name || process.env.OPENAI_MODEL || "gpt-4o-mini",
       });
     } catch (err) {
-      res.status(500).json({ error: "Failed to load chatbot settings." });
+      console.warn("Chatbot settings endpoint fallback:", err?.message || err);
+      res.json({
+        ok: true,
+        enabled: true,
+        chatbotName: "Dental Care Assistant",
+        welcomeMessage: "Hello! 👋 Welcome to Sreesaraswathi Dental Clinic.\n\nI'm your AI Dental Assistant. How can I help you today?",
+        suggestedQuestions: [
+          "What dental treatments do you offer?",
+          "What is a root canal treatment?",
+          "How can I book an appointment?",
+          "What are your clinic timings?",
+          "Where is your clinic located?",
+          "What should I do if I have a toothache?",
+        ],
+        appearance: { theme: "teal", placement: "bottom-right" },
+        aiConfigured: Boolean(process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.trim()),
+        modelName: process.env.OPENAI_MODEL || "gpt-4o-mini",
+      });
     }
   });
 
@@ -98,29 +128,37 @@ export function registerChatbotRoutes(app, d1, requireAdmin) {
         return res.status(400).json({ error: "Session ID is required." });
       }
 
-      const rows = await d1.prepare(
-        "SELECT id, role, message, metadata, created_at FROM chatbot_messages WHERE session_id = ? ORDER BY id ASC LIMIT 50"
-      ).bind(sessionId).all();
+      let messages = [];
+      try {
+        if (d1?.prepare) {
+          const rows = await d1.prepare(
+            "SELECT id, role, message, metadata, created_at FROM chatbot_messages WHERE session_id = ? ORDER BY id ASC LIMIT 50"
+          ).bind(sessionId).all();
 
-      const messages = (rows.results || []).map((m) => {
-        let meta = {};
-        try {
-          meta = typeof m.metadata === "string" ? JSON.parse(m.metadata) : m.metadata || {};
-        } catch {
-          meta = {};
+          messages = (rows.results || []).map((m) => {
+            let meta = {};
+            try {
+              meta = typeof m.metadata === "string" ? JSON.parse(m.metadata) : m.metadata || {};
+            } catch {
+              meta = {};
+            }
+            return {
+              id: m.id,
+              role: m.role,
+              message: m.message,
+              metadata: meta,
+              createdAt: m.created_at,
+            };
+          });
         }
-        return {
-          id: m.id,
-          role: m.role,
-          message: m.message,
-          metadata: meta,
-          createdAt: m.created_at,
-        };
-      });
+      } catch (dbErr) {
+        console.warn("Chat history db read warning:", dbErr?.message || dbErr);
+      }
 
       res.json({ ok: true, sessionId, messages });
     } catch (err) {
-      res.status(500).json({ error: "Failed to load chat history." });
+      console.warn("Chat history fallback:", err?.message || err);
+      res.json({ ok: true, sessionId: req.params.sessionId || "", messages: [] });
     }
   });
 
@@ -267,17 +305,25 @@ export function registerChatbotRoutes(app, d1, requireAdmin) {
       }
 
       // 2. Fetch or initialize chatbot settings
-      const settings = (await d1.prepare("SELECT * FROM chatbot_settings WHERE id = 1").first()) || {
+      let settings = {
         enabled: 1,
         chatbot_name: "Dental Care Assistant",
         system_instructions: "",
         model_name: "gpt-4o-mini",
       };
+      try {
+        if (d1?.prepare) {
+          const s = await d1.prepare("SELECT * FROM chatbot_settings WHERE id = 1").first();
+          if (s) settings = { ...settings, ...s };
+        }
+      } catch (dbErr) {
+        console.warn("Chatbot settings db fetch warning:", dbErr?.message || dbErr);
+      }
 
       if (settings.enabled === 0) {
         return res.json({
           ok: true,
-          sessionId,
+          sessionId: sessionId || `sess_${Date.now()}`,
           reply:
             "The AI Dental Assistant is currently resting. Please call our clinic directly at **0424 427 2494** or message us on WhatsApp at **+91 93457 43409** for immediate assistance.",
         });
@@ -288,30 +334,49 @@ export function registerChatbotRoutes(app, d1, requireAdmin) {
         sessionId = `sess_${crypto.randomUUID()}`;
       }
 
-      // Upsert Session in D1
-      const existingSession = await d1.prepare("SELECT id FROM chatbot_sessions WHERE session_id = ?").bind(sessionId).first();
-      if (!existingSession) {
-        await d1.prepare(`
-          INSERT INTO chatbot_sessions (session_id, patient_name, patient_phone, status, created_at, updated_at)
-          VALUES (?, ?, ?, 'active', datetime('now'), datetime('now'))
-        `).bind(
-          sessionId,
-          body.patientName ? String(body.patientName).trim() : "",
-          body.patientPhone ? String(body.patientPhone).trim() : ""
-        ).run();
+      // Upsert Session in D1 safely
+      try {
+        if (d1?.prepare) {
+          const existingSession = await d1.prepare("SELECT id FROM chatbot_sessions WHERE session_id = ?").bind(sessionId).first();
+          if (!existingSession) {
+            await d1.prepare(`
+              INSERT INTO chatbot_sessions (session_id, patient_name, patient_phone, status, created_at, updated_at)
+              VALUES (?, ?, ?, 'active', datetime('now'), datetime('now'))
+            `).bind(
+              sessionId,
+              body.patientName ? String(body.patientName).trim() : "",
+              body.patientPhone ? String(body.patientPhone).trim() : ""
+            ).run();
+          }
+        }
+      } catch (sessErr) {
+        console.warn("Chatbot session upsert warning:", sessErr?.message || sessErr);
       }
 
-      // 4. Save User Message into D1
-      await d1.prepare(`
-        INSERT INTO chatbot_messages (session_id, role, message, metadata, created_at)
-        VALUES (?, 'user', ?, '{}', datetime('now'))
-      `).bind(sessionId, rawMessage).run();
+      // 4. Save User Message into D1 safely
+      try {
+        if (d1?.prepare) {
+          await d1.prepare(`
+            INSERT INTO chatbot_messages (session_id, role, message, metadata, created_at)
+            VALUES (?, 'user', ?, '{}', datetime('now'))
+          `).bind(sessionId, rawMessage).run();
+        }
+      } catch (msgErr) {
+        console.warn("Chatbot user message log warning:", msgErr?.message || msgErr);
+      }
 
-      // 5. Fetch recent conversation history for context (last 8 messages)
-      const historyRows = await d1.prepare(
-        "SELECT role, message FROM chatbot_messages WHERE session_id = ? ORDER BY id DESC LIMIT 10"
-      ).bind(sessionId).all();
-      const reversedHistory = (historyRows.results || []).reverse();
+      // 5. Fetch recent conversation history for context safely
+      let reversedHistory = [];
+      try {
+        if (d1?.prepare) {
+          const historyRows = await d1.prepare(
+            "SELECT role, message FROM chatbot_messages WHERE session_id = ? ORDER BY id DESC LIMIT 10"
+          ).bind(sessionId).all();
+          reversedHistory = (historyRows.results || []).reverse();
+        }
+      } catch (histErr) {
+        console.warn("Chatbot history fetch warning:", histErr?.message || histErr);
+      }
 
       // 6. Connect to OpenAI if configured
       const openAIClient = getOpenAIClient();
@@ -373,9 +438,15 @@ export function registerChatbotRoutes(app, d1, requireAdmin) {
                 bookingResult = await createAppointmentInternal(args);
                 toolOutput = bookingResult;
                 // Update session with appointment details
-                await d1.prepare(
-                  "UPDATE chatbot_sessions SET appointment_id = ?, patient_name = ?, patient_phone = ?, updated_at = datetime('now') WHERE session_id = ?"
-                ).bind(bookingResult.id, bookingResult.patientName, bookingResult.phone, sessionId).run();
+                try {
+                  if (d1?.prepare) {
+                    await d1.prepare(
+                      "UPDATE chatbot_sessions SET appointment_id = ?, patient_name = ?, patient_phone = ?, updated_at = datetime('now') WHERE session_id = ?"
+                    ).bind(bookingResult.id, bookingResult.patientName, bookingResult.phone, sessionId).run();
+                  }
+                } catch {
+                  // ignore
+                }
               } catch (bookingErr) {
                 toolOutput = { error: bookingErr.message };
               }
@@ -402,30 +473,40 @@ export function registerChatbotRoutes(app, d1, requireAdmin) {
           }
         } catch (openaiErr) {
           console.warn("OpenAI API call notice:", openaiErr?.message || openaiErr);
-          // Fall back seamlessly to database knowledge
+          // Fall back seamlessly to verified clinic knowledge
           const clinicContext = await getVerifiedClinicContext(d1);
           assistantReply = generateLocalKnowledgeReply(rawMessage, clinicContext);
         }
       } else {
-        // OpenAI not configured: use verified database knowledge base
+        // OpenAI not configured: use verified clinic knowledge base
         const clinicContext = await getVerifiedClinicContext(d1);
         assistantReply = generateLocalKnowledgeReply(rawMessage, clinicContext);
       }
 
       if (!assistantReply) {
-        assistantReply =
-          "I'm here to assist you with treatments, clinic hours, and booking. For immediate assistance, please call our front desk at **0424 427 2494**.";
+        assistantReply = generateLocalKnowledgeReply(rawMessage, {
+          clinic: CLINIC_FALLBACK,
+          doctors: DEFAULT_DOCTORS,
+          treatments: DEFAULT_CLINIC_TREATMENTS,
+          faqs: DEFAULT_CLINIC_FAQS,
+        });
       }
 
-      // 7. Save Assistant Reply into D1
+      // 7. Save Assistant Reply into D1 safely
       const meta = {};
       if (bookingResult) meta.bookingResult = bookingResult;
       if (interactiveBookingAction) meta.bookingAction = interactiveBookingAction;
 
-      await d1.prepare(`
-        INSERT INTO chatbot_messages (session_id, role, message, metadata, created_at)
-        VALUES (?, 'assistant', ?, ?, datetime('now'))
-      `).bind(sessionId, assistantReply, JSON.stringify(meta)).run();
+      try {
+        if (d1?.prepare) {
+          await d1.prepare(`
+            INSERT INTO chatbot_messages (session_id, role, message, metadata, created_at)
+            VALUES (?, 'assistant', ?, ?, datetime('now'))
+          `).bind(sessionId, assistantReply, JSON.stringify(meta)).run();
+        }
+      } catch (saveErr) {
+        console.warn("Assistant reply save warning:", saveErr?.message || saveErr);
+      }
 
       // Return clean response
       res.json({
@@ -437,8 +518,17 @@ export function registerChatbotRoutes(app, d1, requireAdmin) {
       });
     } catch (err) {
       console.error("Chatbot completion error:", err);
-      res.status(500).json({
-        error: "We could not process your message right now. Please call our clinic desk at 0424 427 2494.",
+      // Even in the worst unhandled exception, return status 200 with verified clinic knowledge!
+      const fallbackReply = generateLocalKnowledgeReply(rawMessage, {
+        clinic: CLINIC_FALLBACK,
+        doctors: DEFAULT_DOCTORS,
+        treatments: DEFAULT_CLINIC_TREATMENTS,
+        faqs: DEFAULT_CLINIC_FAQS,
+      });
+      res.json({
+        ok: true,
+        sessionId: sessionId || `sess_${Date.now()}`,
+        reply: fallbackReply,
       });
     }
   });
