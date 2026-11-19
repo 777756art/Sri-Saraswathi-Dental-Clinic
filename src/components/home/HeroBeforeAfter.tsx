@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
 import { resolveApiAsset } from "@/lib/api";
 import type { BeforeAfterSectionSettings } from "@/lib/api";
 
@@ -12,11 +13,24 @@ export interface HeroTransformationCase {
 }
 
 interface HeroBeforeAfterProps {
-  settings: BeforeAfterSectionSettings;
+  settings?: BeforeAfterSectionSettings;
   cases: HeroTransformationCase[];
+  heading?: string;
+  subtitle?: string;
+  beforeLabel?: string;
+  afterLabel?: string;
+  linkUrl?: string;
 }
 
-export function HeroBeforeAfter({ settings, cases }: HeroBeforeAfterProps) {
+export function HeroBeforeAfter({
+  settings,
+  cases,
+  heading,
+  subtitle,
+  beforeLabel = "BEFORE",
+  afterLabel = "AFTER",
+  linkUrl = "/smile-gallery",
+}: HeroBeforeAfterProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   // Auto-cycle if there are multiple cases (smooth 6s interval, respecting reduced motion)
@@ -31,11 +45,14 @@ export function HeroBeforeAfter({ settings, cases }: HeroBeforeAfterProps) {
     return () => clearInterval(timer);
   }, [cases.length]);
 
-  if (!settings.enabled || settings.displayStatus === "draft" || cases.length === 0) {
+  if (settings && (!settings.enabled || settings.displayStatus === "draft") && cases.length === 0) {
     return null;
   }
+  if (cases.length === 0) return null;
 
   const activeCase = cases[currentIndex] || cases[0];
+  const displayHeading = heading || settings?.heading || "REAL SMILES. CONFIDENT RESULTS.";
+  const displaySubtitle = subtitle || settings?.subtitle || "Your Smile Transformation Starts Here.";
 
   return (
     <div
@@ -52,15 +69,15 @@ export function HeroBeforeAfter({ settings, cases }: HeroBeforeAfterProps) {
           <span className="h-[1px] w-6 sm:w-8 bg-[#C9D6D8]" aria-hidden="true" />
         </div>
         <h3 className="mt-1 font-sans text-[13.5px] sm:text-[14.5px] font-black uppercase tracking-[0.05em] text-[#073B43]">
-          {settings.heading || "REAL SMILES. CONFIDENT RESULTS."}
+          {displayHeading}
         </h3>
         <p className="mt-0.5 font-sans text-[10.5px] sm:text-[11px] font-medium text-[#667085]">
-          {settings.subtitle || "Your Smile Transformation Starts Here."}
+          {displaySubtitle}
         </p>
       </div>
 
       {/* Optional Dedicated Promotional Hero Image Accent */}
-      {settings.heroImage && (
+      {settings?.heroImage && (
         <div className="mt-2 overflow-hidden rounded-xl border border-[#1F6878]/15 bg-[#E4F0F2]">
           <picture>
             {settings.heroImageMobile && (
@@ -79,12 +96,10 @@ export function HeroBeforeAfter({ settings, cases }: HeroBeforeAfterProps) {
       {/* Before & After Cards: Two cards side by side with centered badges & orange arrow */}
       <div className="mt-2.5 sm:mt-3 flex items-center justify-between gap-2 sm:gap-2.5">
         {/* Left: BEFORE Card */}
-        <div
-          className="group relative flex-1 aspect-[1.12/1] overflow-hidden rounded-[14px] sm:rounded-[16px] bg-[#E4F0F2] shadow-sm transition-all duration-300 hover:-translate-y-0.5"
-        >
+        <div className="group relative flex-1 aspect-[1.12/1] overflow-hidden rounded-[14px] sm:rounded-[16px] bg-[#E4F0F2] shadow-sm transition-all duration-300 hover:-translate-y-0.5">
           {/* Centered Teal Badge */}
           <span className="absolute top-1.5 left-1/2 -translate-x-1/2 z-20 rounded-full bg-[#073B43] px-3 py-0.5 text-[7.5px] sm:text-[8px] font-black tracking-[0.12em] text-white shadow-sm select-none">
-            BEFORE
+            {beforeLabel}
           </span>
           <img
             key={`before-${activeCase.id}`}
@@ -108,12 +123,10 @@ export function HeroBeforeAfter({ settings, cases }: HeroBeforeAfterProps) {
         </div>
 
         {/* Right: AFTER Card */}
-        <div
-          className="group relative flex-1 aspect-[1.12/1] overflow-hidden rounded-[14px] sm:rounded-[16px] bg-[#E4F0F2] shadow-sm transition-all duration-300 hover:-translate-y-0.5"
-        >
+        <div className="group relative flex-1 aspect-[1.12/1] overflow-hidden rounded-[14px] sm:rounded-[16px] bg-[#E4F0F2] shadow-sm transition-all duration-300 hover:-translate-y-0.5">
           {/* Centered Teal Badge */}
           <span className="absolute top-1.5 left-1/2 -translate-x-1/2 z-20 rounded-full bg-[#087E8B] px-3 py-0.5 text-[7.5px] sm:text-[8px] font-black tracking-[0.12em] text-white shadow-sm select-none">
-            AFTER
+            {afterLabel}
           </span>
           <img
             key={`after-${activeCase.id}`}
@@ -127,10 +140,18 @@ export function HeroBeforeAfter({ settings, cases }: HeroBeforeAfterProps) {
         </div>
       </div>
 
-      {/* Centered Disclaimer Note */}
-      <p className="mt-2 sm:mt-2.5 text-center font-sans text-[9.5px] sm:text-[10px] font-medium text-[#8C98A4]">
-        Actual Patient Results. Results May Vary.
-      </p>
+      {/* Centered Disclaimer Note and CTA link */}
+      <div className="mt-2 sm:mt-2.5 flex items-center justify-between text-[9.5px] sm:text-[10px] text-[#8C98A4]">
+        <span>Actual Patient Results. Results May Vary.</span>
+        {linkUrl && (
+          <Link
+            to={linkUrl}
+            className="font-semibold text-[#087E8B] hover:text-[#073B43] hover:underline flex items-center gap-1 transition"
+          >
+            View Gallery <ArrowRight className="h-3 w-3" />
+          </Link>
+        )}
+      </div>
     </div>
   );
 }

@@ -41,7 +41,7 @@ const sidebarGroups: { label: string; links: DashboardNavLink[] }[] = [
     { label: "Availability & Schedule", href: "/dashboard/appointments", search: "?view=calendar&panel=availability", icon: Clock3 },
   ] },
   { label: "Website Content", links: [
-    { label: "Hero Banner", href: "/dashboard/hero-banners", icon: Images },
+    { label: "Hero Section", href: "/dashboard/hero-banners", icon: Images },
     { label: "Doctors", href: "/dashboard/staff", icon: Users },
     { label: "Treatments", href: "/dashboard/treatments", icon: Stethoscope },
     { label: "Treatment Highlights", href: "/dashboard/content", search: "?type=badge", icon: Images },

@@ -107,6 +107,7 @@ function AppRoutes() {
           <Route path="/dashboard/enquiries" element={<DashboardEnquiries />} />
           <Route path="/dashboard/documents" element={<DashboardDocuments />} />
           <Route path="/dashboard/hero-banners" element={<DashboardHeroBanners />} />
+          <Route path="/dashboard/hero-section" element={<DashboardHeroBanners />} />
           <Route path="/dashboard/inventory" element={<DashboardInventory />} />
           <Route path="/dashboard/marketing" element={<DashboardMarketing />} />
           <Route path="/dashboard/media" element={<DashboardMedia />} />
