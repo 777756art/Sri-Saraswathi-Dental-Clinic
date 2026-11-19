@@ -11,7 +11,7 @@ export function ChatMessages() {
   }, [messages, isLoading]);
 
   return (
-    <div className="flex-1 overflow-y-auto bg-[#07242A] p-4 sm:p-5 space-y-4">
+    <div className="flex-1 overflow-y-auto bg-[#F5F2EB]/50 p-3.5 sm:p-5 space-y-3.5 sm:space-y-4">
       {messages.map((msg, index) => (
         <ChatMessage key={msg.id ?? `msg-${index}`} message={msg} />
       ))}

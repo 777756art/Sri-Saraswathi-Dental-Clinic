@@ -270,7 +270,7 @@ export default function HeroBannersPage() {
     { id: "branding", label: "2. Clinic Branding", icon: Type },
     { id: "heading", label: "3. Heading & Text", icon: Layout },
     { id: "buttons", label: "4. Buttons & Links", icon: MousePointerClick },
-    { id: "stats", label: "5. Statistics", icon: Users },
+    { id: "stats", label: "5. Stats & Highlights", icon: Users },
     { id: "images", label: "6. Hero Images", icon: ImageIcon },
     { id: "showcase", label: "7. Transformation", icon: Sparkles },
     { id: "visibility", label: "8. Visibility", icon: Eye },
@@ -693,6 +693,157 @@ export default function HeroBannersPage() {
                     />
                   </div>
                 </div>
+
+                {/* 4 Clinic Highlight Cards (Section directly below Hero Banner) */}
+                <div className="border-t border-[#1F6878]/15 pt-5 mt-6">
+                  <div className="mb-4">
+                    <h4 className="font-sans text-sm font-bold text-[#073B43] flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-[#1F6878]" />
+                      Clinic Highlight Cards (Section directly below Hero Banner)
+                    </h4>
+                    <p className="text-xs text-[#707574]">
+                      Edit the 4 primary achievement cards displayed on the homepage right below the hero.
+                    </p>
+                  </div>
+
+                  <div className="space-y-3.5">
+                    {/* Card 1 */}
+                    <div className="rounded-xl border border-[#1F6878]/20 bg-[#F5F2EB]/40 p-4 space-y-3">
+                      <div className="flex items-center justify-between border-b border-[#1F6878]/10 pb-2">
+                        <span className="text-xs font-bold text-[#073B43]">Highlight Card 1</span>
+                        <span className="text-[11px] text-muted-foreground">Default: Years Experience</span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div>
+                          <label className="block text-[11px] font-bold text-[#073B43]">Value</label>
+                          <Input
+                            value={form.highlight1Value}
+                            onChange={(e) => updateField("highlight1Value", e.target.value)}
+                            placeholder="15+"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-bold text-[#073B43]">Title</label>
+                          <Input
+                            value={form.highlight1Title}
+                            onChange={(e) => updateField("highlight1Title", e.target.value)}
+                            placeholder="Years Experience"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-bold text-[#073B43]">Detail Subtitle</label>
+                          <Input
+                            value={form.highlight1Detail}
+                            onChange={(e) => updateField("highlight1Detail", e.target.value)}
+                            placeholder="Dedicated clinical care in Erode"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Card 2 */}
+                    <div className="rounded-xl border border-[#1F6878]/20 bg-[#F5F2EB]/40 p-4 space-y-3">
+                      <div className="flex items-center justify-between border-b border-[#1F6878]/10 pb-2">
+                        <span className="text-xs font-bold text-[#073B43]">Highlight Card 2</span>
+                        <span className="text-[11px] text-muted-foreground">Default: Happy Smiles</span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div>
+                          <label className="block text-[11px] font-bold text-[#073B43]">Value</label>
+                          <Input
+                            value={form.highlight2Value}
+                            onChange={(e) => updateField("highlight2Value", e.target.value)}
+                            placeholder="5,000+"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-bold text-[#073B43]">Title</label>
+                          <Input
+                            value={form.highlight2Title}
+                            onChange={(e) => updateField("highlight2Title", e.target.value)}
+                            placeholder="Happy Smiles"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-bold text-[#073B43]">Detail Subtitle</label>
+                          <Input
+                            value={form.highlight2Detail}
+                            onChange={(e) => updateField("highlight2Detail", e.target.value)}
+                            placeholder="Patients and families restored"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Card 3 */}
+                    <div className="rounded-xl border border-[#1F6878]/20 bg-[#F5F2EB]/40 p-4 space-y-3">
+                      <div className="flex items-center justify-between border-b border-[#1F6878]/10 pb-2">
+                        <span className="text-xs font-bold text-[#073B43]">Highlight Card 3</span>
+                        <span className="text-[11px] text-muted-foreground">Default: Dental Procedures</span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div>
+                          <label className="block text-[11px] font-bold text-[#073B43]">Value</label>
+                          <Input
+                            value={form.highlight3Value}
+                            onChange={(e) => updateField("highlight3Value", e.target.value)}
+                            placeholder="15+"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-bold text-[#073B43]">Title</label>
+                          <Input
+                            value={form.highlight3Title}
+                            onChange={(e) => updateField("highlight3Title", e.target.value)}
+                            placeholder="Dental Procedures"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-bold text-[#073B43]">Detail Subtitle</label>
+                          <Input
+                            value={form.highlight3Detail}
+                            onChange={(e) => updateField("highlight3Detail", e.target.value)}
+                            placeholder="Advanced restorative & aesthetic care"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Card 4 */}
+                    <div className="rounded-xl border border-[#1F6878]/20 bg-[#F5F2EB]/40 p-4 space-y-3">
+                      <div className="flex items-center justify-between border-b border-[#1F6878]/10 pb-2">
+                        <span className="text-xs font-bold text-[#073B43]">Highlight Card 4</span>
+                        <span className="text-[11px] text-muted-foreground">Default: Patient Rating</span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div>
+                          <label className="block text-[11px] font-bold text-[#073B43]">Value</label>
+                          <Input
+                            value={form.highlight4Value}
+                            onChange={(e) => updateField("highlight4Value", e.target.value)}
+                            placeholder="4.9★"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-bold text-[#073B43]">Title</label>
+                          <Input
+                            value={form.highlight4Title}
+                            onChange={(e) => updateField("highlight4Title", e.target.value)}
+                            placeholder="Patient Rating"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-bold text-[#073B43]">Detail Subtitle</label>
+                          <Input
+                            value={form.highlight4Detail}
+                            onChange={(e) => updateField("highlight4Detail", e.target.value)}
+                            placeholder="Verified clinic satisfaction in Erode"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -993,6 +1144,7 @@ export default function HeroBannersPage() {
                   { key: "showDescription", label: "Hero Description Paragraph", desc: "Detailed supportive text" },
                   { key: "showRatings", label: "Google Ratings & Star Bar", desc: "4.8/4.9 star rating and review count" },
                   { key: "showStats", label: "Statistic Badges", desc: "Experience, Patients, Specialists cards" },
+                  { key: "showHighlights", label: "Clinic Highlight Cards", desc: "4 achievement cards (Years, Smiles, Procedures, Rating) directly below hero" },
                   { key: "showPrimaryCta", label: "Primary CTA Button", desc: "'Book a Visit' main button" },
                   { key: "showSecondaryCta", label: "Secondary CTA Button", desc: "'Explore Treatments' outline button" },
                   { key: "showHeroImage", label: "Right Promotional Image Card", desc: "Visual container with experience & rating badges" },
@@ -1187,6 +1339,32 @@ export default function HeroBannersPage() {
                           className="h-full w-full object-cover"
                         />
                       </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 10. Clinic Highlights Live Preview */}
+                {form.visibility.showHighlights && (
+                  <div className="mt-3 grid grid-cols-2 gap-2 border-t border-[#1F6878]/15 pt-3">
+                    <div className="rounded-lg bg-white p-2 text-left shadow-2xs border border-gray-100">
+                      <p className="text-[14px] font-bold text-[#1F6878]">{form.highlight1Value || "15+"}</p>
+                      <p className="text-[10px] font-semibold text-[#15191B] truncate">{form.highlight1Title || "Years Experience"}</p>
+                      <p className="text-[8.5px] text-[#707574] truncate">{form.highlight1Detail || "Dedicated clinical care"}</p>
+                    </div>
+                    <div className="rounded-lg bg-white p-2 text-left shadow-2xs border border-gray-100">
+                      <p className="text-[14px] font-bold text-[#1F6878]">{form.highlight2Value || "5,000+"}</p>
+                      <p className="text-[10px] font-semibold text-[#15191B] truncate">{form.highlight2Title || "Happy Smiles"}</p>
+                      <p className="text-[8.5px] text-[#707574] truncate">{form.highlight2Detail || "Patients restored"}</p>
+                    </div>
+                    <div className="rounded-lg bg-white p-2 text-left shadow-2xs border border-gray-100">
+                      <p className="text-[14px] font-bold text-[#1F6878]">{form.highlight3Value || "15+"}</p>
+                      <p className="text-[10px] font-semibold text-[#15191B] truncate">{form.highlight3Title || "Dental Procedures"}</p>
+                      <p className="text-[8.5px] text-[#707574] truncate">{form.highlight3Detail || "Advanced care"}</p>
+                    </div>
+                    <div className="rounded-lg bg-white p-2 text-left shadow-2xs border border-gray-100">
+                      <p className="text-[14px] font-bold text-[#1F6878]">{form.highlight4Value || "4.9★"}</p>
+                      <p className="text-[10px] font-semibold text-[#15191B] truncate">{form.highlight4Title || "Patient Rating"}</p>
+                      <p className="text-[8.5px] text-[#707574] truncate">{form.highlight4Detail || "Verified satisfaction"}</p>
                     </div>
                   </div>
                 )}

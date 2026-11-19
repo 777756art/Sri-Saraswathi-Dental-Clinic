@@ -24,7 +24,9 @@ export function FloatingActions() {
     <>
       {/* Unified Floating Actions Stack - Single Container guarantees ZERO overlapping */}
       <div
-        className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40 flex flex-col items-end gap-2.5 pointer-events-none select-none"
+        className={`fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40 flex flex-col items-end gap-2.5 pointer-events-none select-none transition-all duration-200 ${
+          isOpen ? "hidden sm:flex" : "flex"
+        }`}
         aria-label="Quick contact actions"
       >
         {/* 1. Emergency Action Button (Orange) - Smoothly revealed when scrolled */}

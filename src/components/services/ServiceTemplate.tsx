@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 import { CalendarDays, CheckCircle2, ChevronRight, CircleHelp, Clock3, PhoneCall, ShieldCheck, Sparkles, Heart, Smile } from "lucide-react";
-import { LiveChat } from "@/components/home/LiveChat";
 import { ScrollReveal } from "@/components/animations/ScrollReveal";
 
 interface ServicePageProps {
@@ -164,7 +163,6 @@ export function ServiceTemplate({
           </details>
         </section>}
       </main>
-      <LiveChat />
     </>
   );
 }

@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 import { ArrowUpRight, Check, Clock3, Heart, MapPin, Microscope, PhoneCall, ShieldCheck, Sparkles, Users, Wind } from "lucide-react";
-import { LiveChat } from "@/components/home/LiveChat";
 import { clinicImages } from "@/lib/images";
 
 const values = [
@@ -131,7 +130,6 @@ export default function AboutPage() {
           </div>
         </section>
       </main>
-      <LiveChat />
     </>
   );
 }

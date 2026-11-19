@@ -114,9 +114,9 @@ export function DentalCommunicationShowcase() {
               </button>
               <Link
                 to="/booking"
-                className="inline-flex h-9 items-center gap-1.5 rounded-full bg-[#E95A35] px-4.5 text-[11.5px] font-bold text-white shadow-md transition hover:bg-[#D14824]"
+                className="inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-full bg-[#E95A35] px-5 text-[12px] font-bold text-white shadow-md transition hover:bg-[#D14824] shrink-0"
               >
-                <CalendarDays className="h-3.5 w-3.5" /> Book Your Visit
+                <CalendarDays className="h-3.5 w-3.5 shrink-0" /> Book Your Visit
               </Link>
             </div>
           </div>

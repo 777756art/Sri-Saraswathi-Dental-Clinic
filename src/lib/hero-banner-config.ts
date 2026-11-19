@@ -6,6 +6,7 @@ export interface HeroVisibilitySettings {
   showDescription: boolean;
   showRatings: boolean;
   showStats: boolean;
+  showHighlights: boolean;
   showPrimaryCta: boolean;
   showSecondaryCta: boolean;
   showHeroImage: boolean;
@@ -44,6 +45,27 @@ export interface HeroSectionSettings {
   reviewCount: string;
   subCaption: string;
 
+  // 5.1 Clinic Highlights Cards (Section under Hero Banner)
+  highlight1Value: string;
+  highlight1Title: string;
+  highlight1Detail: string;
+  highlight1Icon: string;
+
+  highlight2Value: string;
+  highlight2Title: string;
+  highlight2Detail: string;
+  highlight2Icon: string;
+
+  highlight3Value: string;
+  highlight3Title: string;
+  highlight3Detail: string;
+  highlight3Icon: string;
+
+  highlight4Value: string;
+  highlight4Title: string;
+  highlight4Detail: string;
+  highlight4Icon: string;
+
   // 6. Right-Side Hero Visual & Background
   heroImage: string;
   heroImageAlt: string;
@@ -77,6 +99,7 @@ export const DEFAULT_HERO_VISIBILITY: HeroVisibilitySettings = {
   showDescription: true,
   showRatings: true,
   showStats: true,
+  showHighlights: true,
   showPrimaryCta: true,
   showSecondaryCta: true,
   showHeroImage: true,
@@ -106,6 +129,22 @@ export const DEFAULT_HERO_SETTINGS: HeroSectionSettings = {
   ratingScore: "4.8",
   reviewCount: "1.1k",
   subCaption: "Caring for Coimbatore & Erode smiles since 2017 · Sri Saraswathi Dental Clinic",
+  highlight1Value: "15+",
+  highlight1Title: "Years Experience",
+  highlight1Detail: "Dedicated clinical care in Erode",
+  highlight1Icon: "award",
+  highlight2Value: "5,000+",
+  highlight2Title: "Happy Smiles",
+  highlight2Detail: "Patients and families restored",
+  highlight2Icon: "smile",
+  highlight3Value: "15+",
+  highlight3Title: "Dental Procedures",
+  highlight3Detail: "Advanced restorative & aesthetic care",
+  highlight3Icon: "stethoscope",
+  highlight4Value: "4.9★",
+  highlight4Title: "Patient Rating",
+  highlight4Detail: "Verified clinic satisfaction in Erode",
+  highlight4Icon: "star",
   heroImage: "/images/clinic/hero-promotional-default.jpg",
   heroImageAlt: "Sri Saraswathi Dental Clinic - 12+ Years of Excellence",
   backgroundImage: "/images/clinic/hero-clinic-interior.jpg",
@@ -230,6 +269,7 @@ export function parseHeroSectionSettings(banner?: any): HeroSectionSettings {
     showDescription: extraData.visibility?.showDescription ?? DEFAULT_HERO_VISIBILITY.showDescription,
     showRatings: extraData.visibility?.showRatings ?? DEFAULT_HERO_VISIBILITY.showRatings,
     showStats: extraData.visibility?.showStats ?? DEFAULT_HERO_VISIBILITY.showStats,
+    showHighlights: extraData.visibility?.showHighlights ?? DEFAULT_HERO_VISIBILITY.showHighlights,
     showPrimaryCta: extraData.visibility?.showPrimaryCta ?? DEFAULT_HERO_VISIBILITY.showPrimaryCta,
     showSecondaryCta: extraData.visibility?.showSecondaryCta ?? DEFAULT_HERO_VISIBILITY.showSecondaryCta,
     showHeroImage: extraData.visibility?.showHeroImage ?? DEFAULT_HERO_VISIBILITY.showHeroImage,
@@ -258,6 +298,22 @@ export function parseHeroSectionSettings(banner?: any): HeroSectionSettings {
     ratingScore: banner.ratingScore || extraData.ratingScore || DEFAULT_HERO_SETTINGS.ratingScore,
     reviewCount: banner.reviewCount || extraData.reviewCount || DEFAULT_HERO_SETTINGS.reviewCount,
     subCaption: extraData.subCaption || DEFAULT_HERO_SETTINGS.subCaption,
+    highlight1Value: extraData.highlight1Value || DEFAULT_HERO_SETTINGS.highlight1Value,
+    highlight1Title: extraData.highlight1Title || DEFAULT_HERO_SETTINGS.highlight1Title,
+    highlight1Detail: extraData.highlight1Detail || DEFAULT_HERO_SETTINGS.highlight1Detail,
+    highlight1Icon: extraData.highlight1Icon || DEFAULT_HERO_SETTINGS.highlight1Icon,
+    highlight2Value: extraData.highlight2Value || DEFAULT_HERO_SETTINGS.highlight2Value,
+    highlight2Title: extraData.highlight2Title || DEFAULT_HERO_SETTINGS.highlight2Title,
+    highlight2Detail: extraData.highlight2Detail || DEFAULT_HERO_SETTINGS.highlight2Detail,
+    highlight2Icon: extraData.highlight2Icon || DEFAULT_HERO_SETTINGS.highlight2Icon,
+    highlight3Value: extraData.highlight3Value || DEFAULT_HERO_SETTINGS.highlight3Value,
+    highlight3Title: extraData.highlight3Title || DEFAULT_HERO_SETTINGS.highlight3Title,
+    highlight3Detail: extraData.highlight3Detail || DEFAULT_HERO_SETTINGS.highlight3Detail,
+    highlight3Icon: extraData.highlight3Icon || DEFAULT_HERO_SETTINGS.highlight3Icon,
+    highlight4Value: extraData.highlight4Value || DEFAULT_HERO_SETTINGS.highlight4Value,
+    highlight4Title: extraData.highlight4Title || DEFAULT_HERO_SETTINGS.highlight4Title,
+    highlight4Detail: extraData.highlight4Detail || DEFAULT_HERO_SETTINGS.highlight4Detail,
+    highlight4Icon: extraData.highlight4Icon || DEFAULT_HERO_SETTINGS.highlight4Icon,
     heroImage: banner.mediaUrl || extraData.heroImage || DEFAULT_HERO_SETTINGS.heroImage,
     heroImageAlt: extraData.heroImageAlt || DEFAULT_HERO_SETTINGS.heroImageAlt,
     backgroundImage: banner.mobileMediaUrl || extraData.backgroundImage || DEFAULT_HERO_SETTINGS.backgroundImage,
@@ -306,6 +362,22 @@ export function serializeHeroSectionSettings(settings: HeroSectionSettings): str
     ratingScore: settings.ratingScore,
     reviewCount: settings.reviewCount,
     subCaption: settings.subCaption,
+    highlight1Value: settings.highlight1Value,
+    highlight1Title: settings.highlight1Title,
+    highlight1Detail: settings.highlight1Detail,
+    highlight1Icon: settings.highlight1Icon,
+    highlight2Value: settings.highlight2Value,
+    highlight2Title: settings.highlight2Title,
+    highlight2Detail: settings.highlight2Detail,
+    highlight2Icon: settings.highlight2Icon,
+    highlight3Value: settings.highlight3Value,
+    highlight3Title: settings.highlight3Title,
+    highlight3Detail: settings.highlight3Detail,
+    highlight3Icon: settings.highlight3Icon,
+    highlight4Value: settings.highlight4Value,
+    highlight4Title: settings.highlight4Title,
+    highlight4Detail: settings.highlight4Detail,
+    highlight4Icon: settings.highlight4Icon,
     heroImage: settings.heroImage,
     heroImageAlt: settings.heroImageAlt,
     backgroundImage: settings.backgroundImage,

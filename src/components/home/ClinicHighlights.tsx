@@ -1,42 +1,61 @@
-import { Award, Smile, Stethoscope, Star } from "lucide-react";
+import { Award, Smile, Stethoscope, Star, Heart, Users, ShieldCheck, Clock, Sparkles } from "lucide-react";
+import { useSiteContent } from "@/components/home/SiteContentSections";
+import { parseHeroSectionSettings } from "@/lib/hero-banner-config";
 
-const stats = [
-  {
-    icon: Award,
-    value: "15+",
-    title: "Years Experience",
-    detail: "Dedicated clinical care in Erode",
-    tone: "teal",
-  },
-  {
-    icon: Smile,
-    value: "5,000+",
-    title: "Happy Smiles",
-    detail: "Patients and families restored",
-    tone: "pink",
-  },
-  {
-    icon: Stethoscope,
-    value: "15+",
-    title: "Dental Procedures",
-    detail: "Advanced restorative & aesthetic care",
-    tone: "green",
-  },
-  {
-    icon: Star,
-    value: "4.9★",
-    title: "Patient Rating",
-    detail: "Verified clinic satisfaction in Erode",
-    tone: "amber",
-  },
-];
+const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+  award: Award,
+  smile: Smile,
+  stethoscope: Stethoscope,
+  star: Star,
+  heart: Heart,
+  users: Users,
+  shield: ShieldCheck,
+  clock: Clock,
+  sparkles: Sparkles,
+};
 
 export function ClinicHighlights() {
+  const { items } = useSiteContent("hero");
+  const publishedBanners = items.filter((item) => item.published);
+  const banner = publishedBanners[0] || null;
+  const settings = parseHeroSectionSettings(banner);
+
+  if (settings.visibility?.showHighlights === false) {
+    return null;
+  }
+
+  const stats = [
+    {
+      icon: ICON_MAP[settings.highlight1Icon?.toLowerCase()] || Award,
+      value: settings.highlight1Value || "15+",
+      title: settings.highlight1Title || "Years Experience",
+      detail: settings.highlight1Detail || "Dedicated clinical care in Erode",
+    },
+    {
+      icon: ICON_MAP[settings.highlight2Icon?.toLowerCase()] || Smile,
+      value: settings.highlight2Value || "5,000+",
+      title: settings.highlight2Title || "Happy Smiles",
+      detail: settings.highlight2Detail || "Patients and families restored",
+    },
+    {
+      icon: ICON_MAP[settings.highlight3Icon?.toLowerCase()] || Stethoscope,
+      value: settings.highlight3Value || "15+",
+      title: settings.highlight3Title || "Dental Procedures",
+      detail: settings.highlight3Detail || "Advanced restorative & aesthetic care",
+    },
+    {
+      icon: ICON_MAP[settings.highlight4Icon?.toLowerCase()] || Star,
+      value: settings.highlight4Value || "4.9★",
+      title: settings.highlight4Title || "Patient Rating",
+      detail: settings.highlight4Detail || "Verified clinic satisfaction in Erode",
+    },
+  ];
+
   return (
     <section className="border-y border-[#dce4e5] bg-[#F5F2EB] py-6 sm:py-8" aria-label="Clinic Highlights">
       <div className="container-x">
         <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-4">
-          {stats.map(({ icon: Icon, value, title, detail, tone }) => (
+          {stats.map(({ icon: Icon, value, title, detail }) => (
             <div
               key={title}
               className="group flex flex-col justify-between rounded-[20px] border border-[#dce4e5] bg-white p-3.5 sm:p-5 shadow-[0_6px_20px_-16px_rgba(31,104,120,0.2)] transition duration-300 hover:-translate-y-0.5 hover:border-[#1F6878]/35 hover:shadow-[0_12px_28px_-16px_rgba(31,104,120,0.28)]"
