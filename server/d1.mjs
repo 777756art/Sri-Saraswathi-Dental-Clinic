@@ -336,6 +336,10 @@ How can I help you today?',
       "ALTER TABLE blocked_dates ADD COLUMN doctor_id INTEGER DEFAULT NULL",
       "ALTER TABLE treatments ADD COLUMN duration_minutes INTEGER DEFAULT 30",
       "ALTER TABLE appointments ADD COLUMN admin_notes TEXT DEFAULT ''",
+      "ALTER TABLE admins ADD COLUMN last_login_at TEXT DEFAULT NULL",
+      "ALTER TABLE admins ADD COLUMN login_count INTEGER DEFAULT 0",
+      "CREATE TABLE IF NOT EXISTS admin_activity_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, admin_id INTEGER, admin_name TEXT NOT NULL, action TEXT NOT NULL, details TEXT, ip_address TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')))",
+      "CREATE INDEX IF NOT EXISTS idx_activity_logs_created ON admin_activity_logs(created_at DESC)",
     ];
     for (const stmt of schemaUpgrades) {
       try {

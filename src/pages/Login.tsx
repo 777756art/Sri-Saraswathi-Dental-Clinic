@@ -35,7 +35,8 @@ export default function LoginPage() {
     try {
       const signedIn = await login(email.trim(), password);
       const destination = safeNext || (signedIn.role === "admin" ? "/dashboard" : "/patient-portal");
-      toast.success(`Welcome back, ${signedIn.firstName}`);
+      const welcomeName = signedIn.role === "admin" ? (signedIn.name || "Dr. Kishore Kumar") : signedIn.firstName;
+      toast.success(`Welcome back, ${welcomeName}`);
       navigate(destination, { replace: true });
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not sign in. Please try again.");

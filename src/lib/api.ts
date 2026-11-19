@@ -4,9 +4,31 @@ export type User = {
   id: number;
   firstName: string;
   lastName: string;
+  name?: string;
   email: string;
   phone: string;
   role: Role;
+};
+
+export type AdminProfile = {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+  status: string;
+  createdAt?: string;
+  lastLoginAt?: string;
+  loginCount?: number;
+};
+
+export type AdminActivityLog = {
+  id: number;
+  admin_id: number | null;
+  admin_name: string;
+  action: string;
+  details: string;
+  ip_address: string;
+  created_at: string;
 };
 
 export type BookingStatus =
@@ -559,6 +581,26 @@ export const api = {
   patch: <T>(path: string, body: unknown) =>
     request<T>(path, { method: "PATCH", body: JSON.stringify(body) }),
   delete: <T>(path: string) => request<T>(path, { method: "DELETE" }),
+  getAdminProfile: () => request<{ profile: AdminProfile }>("/api/admin/profile"),
+  updateAdminProfile: (data: { name?: string; email?: string }) =>
+    request<{ profile: AdminProfile }>("/api/admin/profile", {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+  changeAdminPassword: (data: { currentPassword: string; newPassword: string; confirmPassword?: string }) =>
+    request<{ success: boolean; message: string }>("/api/admin/change-password", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  getAdminActivityLogs: (params?: { limit?: number; offset?: number }) => {
+    const query = new URLSearchParams();
+    if (params?.limit) query.set("limit", String(params.limit));
+    if (params?.offset) query.set("offset", String(params.offset));
+    const qs = query.toString();
+    return request<{ logs: AdminActivityLog[]; total: number; limit: number; offset: number }>(
+      `/api/admin/activity-logs${qs ? `?${qs}` : ""}`
+    );
+  },
   getGoogleReviews: () =>
     request<GoogleReviewsResponse>("/api/google-reviews", { cache: "no-store" }),
   getAdminGoogleReviews: () =>

@@ -120,6 +120,22 @@ function formatRef(id, date) {
 }
 
 let ephemeralSecret = null;
+const loginAttempts = new Map();
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOGIN_ATTEMPT_WINDOW_MS = 15 * 60 * 1000;
+const LOGIN_LOCKOUT_MS = 15 * 60 * 1000;
+
+async function logAdminActivity(d1, adminId, adminName, action, details = "", req = null) {
+  try {
+    const ip = req ? (req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "").split(",")[0].trim() : "";
+    await d1.prepare(
+      "INSERT INTO admin_activity_logs (admin_id, admin_name, action, details, ip_address, created_at) VALUES (?, ?, ?, ?, ?, datetime('now'))"
+    ).bind(adminId || null, String(adminName || "Dr. Kishore Kumar"), String(action), String(details || ""), ip).run();
+  } catch (err) {
+    console.error("Failed to write admin activity log:", err.message);
+  }
+}
+
 export function registerD1Routes(app, d1, sessionSecret = null) {
   const secret = sessionSecret || process.env.SESSION_SECRET || (ephemeralSecret ||= crypto.randomBytes(32).toString("hex"));
   const r2 = getR2Bucket();
@@ -146,12 +162,12 @@ export function registerD1Routes(app, d1, sessionSecret = null) {
     if (session.role === "admin") {
       const admin = await d1.prepare("SELECT id, name, email, role, status FROM admins WHERE id = ?").bind(session.uid).first();
       if (!admin || admin.status === "inactive") return null;
-      const [firstName, ...rest] = String(admin.name || "").trim().split(" ");
+      const fullName = admin.name || "Dr. Kishore Kumar";
       return {
         id: admin.id,
-        firstName: firstName || "Admin",
-        lastName: rest.join(" ") || "",
-        name: admin.name || "Admin",
+        firstName: fullName,
+        lastName: "",
+        name: fullName,
         email: admin.email,
         phone: "",
         role: admin.role || "admin",
@@ -1560,37 +1576,75 @@ export function registerD1Routes(app, d1, sessionSecret = null) {
 
   app.post("/api/auth/login", async (req, res) => {
     try {
+      const clientIp = (req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "").split(",")[0].trim() || "127.0.0.1";
+      const now = Date.now();
+      const ipRecord = loginAttempts.get(clientIp);
+
+      if (ipRecord && ipRecord.lockedUntil && ipRecord.lockedUntil > now) {
+        const remainingMins = Math.ceil((ipRecord.lockedUntil - now) / 60000);
+        return res.status(429).json({
+          error: `Too many failed login attempts. Account access temporarily locked. Please try again in ${remainingMins} minute(s).`
+        });
+      }
+
       const { email, password } = req.body || {};
       const cleanEmail = String(email || "").trim().toLowerCase();
       if (!cleanEmail || !password) {
         return res.status(400).json({ error: "Email and password are required." });
       }
 
+      const recordFailure = () => {
+        let rec = loginAttempts.get(clientIp);
+        if (!rec || rec.resetAt < now) {
+          rec = { count: 1, resetAt: now + LOGIN_ATTEMPT_WINDOW_MS, lockedUntil: 0 };
+        } else {
+          rec.count += 1;
+          if (rec.count >= MAX_LOGIN_ATTEMPTS) {
+            rec.lockedUntil = now + LOGIN_LOCKOUT_MS;
+          }
+        }
+        loginAttempts.set(clientIp, rec);
+      };
+
       const admin = await d1.prepare("SELECT * FROM admins WHERE LOWER(email) = ?").bind(cleanEmail).first();
       if (admin) {
         if (!verifyPassword(password, admin.password_hash)) {
+          recordFailure();
+          await logAdminActivity(d1, admin.id, admin.name || cleanEmail, "LOGIN_FAILED", `Failed attempt from IP: ${clientIp}`, req);
           return res.status(401).json({ error: "Invalid email or password." });
         }
         if (admin.status === "inactive") {
           return res.status(403).json({ error: "Account is inactive. Contact the chief surgeon." });
         }
-        const [firstName, ...rest] = String(admin.name || "").trim().split(" ");
+
+        loginAttempts.delete(clientIp);
+
+        await d1.prepare(
+          "UPDATE admins SET last_login_at = datetime('now'), login_count = COALESCE(login_count, 0) + 1 WHERE id = ?"
+        ).bind(admin.id).run();
+
+        const fullName = admin.name || "Dr. Kishore Kumar";
         const user = {
           id: admin.id,
-          firstName: firstName || "Admin",
-          lastName: rest.join(" ") || "",
+          firstName: fullName,
+          lastName: "",
+          name: fullName,
           email: admin.email,
           phone: "",
           role: admin.role || "admin",
         };
+        await logAdminActivity(d1, admin.id, fullName, "LOGIN_SUCCESS", `Logged in from IP: ${clientIp}`, req);
         setSessionCookie(req, res, user);
         return res.json({ user });
       }
 
       const patient = await d1.prepare("SELECT * FROM users WHERE LOWER(email) = ?").bind(cleanEmail).first();
       if (!patient || !verifyPassword(password, patient.password_hash)) {
+        recordFailure();
         return res.status(401).json({ error: "Invalid email or password." });
       }
+
+      loginAttempts.delete(clientIp);
 
       await d1.prepare(
         "UPDATE users SET last_login_at = datetime('now'), login_count = COALESCE(login_count, 0) + 1 WHERE id = ?"
@@ -1600,6 +1654,7 @@ export function registerD1Routes(app, d1, sessionSecret = null) {
         id: patient.id,
         firstName: patient.first_name,
         lastName: patient.last_name,
+        name: `${patient.first_name} ${patient.last_name}`.trim(),
         email: patient.email,
         phone: patient.phone || "",
         role: patient.role || "patient",
@@ -1620,6 +1675,7 @@ export function registerD1Routes(app, d1, sessionSecret = null) {
           id: user.id,
           firstName: user.firstName,
           lastName: user.lastName,
+          name: user.name || (user.firstName + (user.lastName ? " " + user.lastName : "")).trim(),
           email: user.email,
           phone: user.phone,
           role: user.role,
@@ -1631,8 +1687,144 @@ export function registerD1Routes(app, d1, sessionSecret = null) {
   });
 
   app.post("/api/auth/logout", async (req, res) => {
+    try {
+      const user = await getSessionUser(req);
+      if (user && user.role === "admin") {
+        await logAdminActivity(d1, user.id, user.name || user.firstName, "LOGOUT", "Admin signed out", req);
+      }
+    } catch {}
     clearSessionCookie(req, res);
     res.json({ ok: true });
+  });
+
+  /* ------------------------------------------------------------- 1.1 ADMIN PROFILE & ACTIVITY LOGS */
+
+  app.get("/api/admin/profile", requireAdmin, async (req, res) => {
+    try {
+      const admin = await d1.prepare("SELECT id, name, email, role, status, created_at, last_login_at, login_count FROM admins WHERE id = ?").bind(req.admin.id).first();
+      if (!admin) return res.status(404).json({ error: "Admin profile not found." });
+      res.json({
+        profile: {
+          id: admin.id,
+          name: admin.name || "Dr. Kishore Kumar",
+          email: admin.email,
+          role: admin.role === "admin" ? "Super Admin" : admin.role,
+          status: admin.status || "active",
+          createdAt: admin.created_at,
+          lastLoginAt: admin.last_login_at,
+          loginCount: admin.login_count || 0,
+        }
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.patch("/api/admin/profile", requireAdmin, async (req, res) => {
+    try {
+      const { name, email } = req.body || {};
+      const updates = [];
+      const params = [];
+
+      if (name !== undefined) {
+        const cleanName = String(name || "").trim();
+        if (!cleanName || cleanName.length < 2) {
+          return res.status(400).json({ error: "Please enter a valid display name (min 2 characters)." });
+        }
+        updates.push("name = ?");
+        params.push(cleanName);
+      }
+
+      if (email !== undefined) {
+        const cleanEmail = String(email || "").trim().toLowerCase();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(cleanEmail)) {
+          return res.status(400).json({ error: "Please enter a valid email address." });
+        }
+        const existing = await d1.prepare("SELECT id FROM admins WHERE LOWER(email) = ? AND id != ?").bind(cleanEmail, req.admin.id).first();
+        if (existing) {
+          return res.status(409).json({ error: "Email address is already used by another administrator." });
+        }
+        updates.push("email = ?");
+        params.push(cleanEmail);
+      }
+
+      if (updates.length === 0) {
+        return res.status(400).json({ error: "No fields to update." });
+      }
+
+      params.push(req.admin.id);
+      await d1.prepare(`UPDATE admins SET ${updates.join(", ")} WHERE id = ?`).bind(...params).run();
+
+      const updated = await d1.prepare("SELECT id, name, email, role, status, created_at, last_login_at, login_count FROM admins WHERE id = ?").bind(req.admin.id).first();
+      await logAdminActivity(d1, req.admin.id, updated.name, "PROFILE_UPDATED", `Updated fields: ${updates.map(u => u.split(' =')[0]).join(", ")}`, req);
+
+      res.json({
+        profile: {
+          id: updated.id,
+          name: updated.name,
+          email: updated.email,
+          role: updated.role === "admin" ? "Super Admin" : updated.role,
+          status: updated.status,
+          createdAt: updated.created_at,
+          lastLoginAt: updated.last_login_at,
+          loginCount: updated.login_count || 0,
+        }
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/admin/change-password", requireAdmin, async (req, res) => {
+    try {
+      const { currentPassword, newPassword, confirmPassword } = req.body || {};
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ error: "Current password and new password are required." });
+      }
+      if (confirmPassword && newPassword !== confirmPassword) {
+        return res.status(400).json({ error: "New password and confirmation do not match." });
+      }
+      if (newPassword.length < 8) {
+        return res.status(400).json({ error: "New password must be at least 8 characters long." });
+      }
+
+      const admin = await d1.prepare("SELECT * FROM admins WHERE id = ?").bind(req.admin.id).first();
+      if (!admin || !verifyPassword(currentPassword, admin.password_hash)) {
+        await logAdminActivity(d1, req.admin.id, req.admin.name, "PASSWORD_CHANGE_FAILED", "Incorrect current password", req);
+        return res.status(401).json({ error: "Incorrect current password." });
+      }
+
+      const newHash = hashPassword(newPassword);
+      await d1.prepare("UPDATE admins SET password_hash = ? WHERE id = ?").bind(newHash, req.admin.id).run();
+      await logAdminActivity(d1, req.admin.id, req.admin.name, "PASSWORD_CHANGED", "Administrator changed password", req);
+
+      res.json({ success: true, message: "Password updated successfully." });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/admin/activity-logs", requireAdmin, async (req, res) => {
+    try {
+      const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 50));
+      const offset = Math.max(0, parseInt(req.query.offset, 10) || 0);
+
+      const rows = (await d1.prepare(
+        "SELECT id, admin_id, admin_name, action, details, ip_address, created_at FROM admin_activity_logs ORDER BY id DESC LIMIT ? OFFSET ?"
+      ).bind(limit, offset).all()).results || [];
+
+      const totalRow = await d1.prepare("SELECT COUNT(*) AS total FROM admin_activity_logs").first();
+      const total = totalRow ? Number(totalRow.total || 0) : rows.length;
+
+      res.json({
+        logs: rows,
+        total,
+        limit,
+        offset,
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
   });
 
   /* ------------------------------------------------------------- 2. DOCTORS (with R2 Profile Photo) */
@@ -1928,6 +2120,18 @@ export function registerD1Routes(app, d1, sessionSecret = null) {
         LEFT JOIN doctors d ON b.doctor_id = d.id
         WHERE b.id = ?
       `).bind(info.meta.last_row_id).first();
+
+      if (req.admin) {
+        await logAdminActivity(
+          d1,
+          req.admin.id,
+          req.admin.name || "Dr. Kishore Kumar",
+          "BLOCKED_DATE_ADDED",
+          `Blocked date ${blockDate}${startTime ? ` from ${startTime}` : ""} (Doctor: ${created?.doctor_name || "All"})`,
+          req
+        );
+      }
+
       res.status(201).json({ blockedDate: created });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -1938,6 +2142,16 @@ export function registerD1Routes(app, d1, sessionSecret = null) {
     try {
       const id = Number(req.params.id);
       await d1.prepare("DELETE FROM blocked_dates WHERE id = ?").bind(id).run();
+      if (req.admin) {
+        await logAdminActivity(
+          d1,
+          req.admin.id,
+          req.admin.name || "Dr. Kishore Kumar",
+          "BLOCKED_DATE_REMOVED",
+          `Unblocked date record #${id}`,
+          req
+        );
+      }
       res.json({ ok: true, id });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -2595,6 +2809,17 @@ export function registerD1Routes(app, d1, sessionSecret = null) {
         },
       };
 
+      if (req.admin) {
+        await logAdminActivity(
+          d1,
+          req.admin.id,
+          req.admin.name || "Dr. Kishore Kumar",
+          "APPOINTMENT_UPDATED",
+          `Appointment #${id} (${updated.patient_name || "Patient"}) status: ${existing.status} -> ${newStatus} (${updated.appointment_date} ${updated.appointment_time})`,
+          req
+        );
+      }
+
       res.json({ appointment: formatted, booking: formatted });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -2608,6 +2833,16 @@ export function registerD1Routes(app, d1, sessionSecret = null) {
     try {
       const id = Number(req.params.id);
       await d1.prepare("DELETE FROM appointments WHERE id = ?").bind(id).run();
+      if (req.admin) {
+        await logAdminActivity(
+          d1,
+          req.admin.id,
+          req.admin.name || "Dr. Kishore Kumar",
+          "APPOINTMENT_DELETED",
+          `Appointment #${id} deleted`,
+          req
+        );
+      }
       res.json({ ok: true, id });
     } catch (err) {
       res.status(500).json({ error: err.message });

@@ -82,8 +82,19 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
 
-  const displayName = user ? `${user.firstName} ${user.lastName}` : "Clinic team";
-  const initials = user ? `${user.firstName[0] ?? ""}${user.lastName[0] ?? ""}`.toUpperCase() : "SC";
+  const displayName =
+    user?.role === "admin"
+      ? (user.name || "Dr. Kishore Kumar")
+      : user
+        ? `${user.firstName} ${user.lastName}`.trim()
+        : "Dr. Kishore Kumar";
+
+  const initials =
+    user?.role === "admin"
+      ? "DK"
+      : user
+        ? `${user.firstName[0] ?? ""}${user.lastName[0] ?? ""}`.toUpperCase()
+        : "DK";
 
   const handleSignOut = async () => {
     await logout();
@@ -312,7 +323,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               <div className="min-w-0 flex-1">
                 <p className="truncate dashboard-user-name text-[13px] font-medium text-white">{displayName}</p>
                 <p className="truncate text-[11px] text-[#E4F0F2]/70">
-                  {user?.role === "admin" ? "Clinic administrator" : "Care team"}
+                  {user?.role === "admin" ? "Administrator" : "Care team"}
                 </p>
               </div>
             )}
@@ -394,7 +405,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                     {new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" })}
                   </p>
                   <h1 className="mt-2 font-display text-[clamp(1.8rem,3.1vw,2.8rem)] font-bold leading-[1.08] tracking-[-0.03em] text-[#1F6878]">
-                    Welcome back, {user?.firstName || "Admin"}
+                    Welcome back, {user?.role === "admin" ? (user.name || "Dr. Kishore Kumar") : (user?.firstName || "Admin")}
                   </h1>
                   <p className="mt-2 text-[13px] text-[#707574] sm:text-[14px]">
                     Manage clinic appointments and website content from one calm workspace.
@@ -443,7 +454,9 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                     <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#E4F0F2] text-[12px] font-bold text-[#1F6878]">{initials}</span>
                     <span className="hidden sm:block">
                       <span className="block max-w-36 truncate text-[12px] font-bold leading-tight text-[#1F6878]">{displayName}</span>
-                      <span className="mt-1 block text-[10px] text-[#707574]">Admin</span>
+                      <span className="mt-1 block text-[10px] text-[#707574]">
+                        {user?.role === "admin" ? "Administrator" : "User"}
+                      </span>
                     </span>
                   </button>
                   {profileOpen && (

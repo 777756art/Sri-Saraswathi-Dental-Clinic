@@ -56,10 +56,18 @@ export function Navbar() {
   const { items: offerItems } = useSiteContent("offer");
   const hasAnnouncement = offerItems.length > 0;
 
-  const displayName = user ? `${user.firstName} ${user.lastName}`.trim() : "";
-  const initials = user
-    ? `${user.firstName?.[0] ?? ""}${user.lastName?.[0] ?? ""}`.toUpperCase()
-    : "";
+  const displayName =
+    user?.role === "admin"
+      ? (user.name || "Dr. Kishore Kumar")
+      : user
+        ? `${user.firstName} ${user.lastName}`.trim()
+        : "";
+  const initials =
+    user?.role === "admin"
+      ? "DK"
+      : user
+        ? `${user.firstName?.[0] ?? ""}${user.lastName?.[0] ?? ""}`.toUpperCase()
+        : "";
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 12);
@@ -260,7 +268,9 @@ export function Navbar() {
                 <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#1F6878] text-[11px] font-semibold text-white">
                   {initials}
                 </span>
-                <span className="max-w-[110px] truncate">{user.firstName}</span>
+                <span className="max-w-[120px] truncate">
+                  {user.role === "admin" ? (user.name || "Dr. Kishore Kumar") : user.firstName}
+                </span>
                 <ChevronDown
                   className={cn(
                     "h-3.5 w-3.5 text-muted-foreground transition-transform duration-200",

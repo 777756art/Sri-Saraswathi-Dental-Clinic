@@ -8,10 +8,10 @@ import { Card } from "@/components/ui/Card";
 import { Tabs } from "@/components/ui/Tabs";
 import { Badge } from "@/components/ui/Badge";
 import toast from "react-hot-toast";
-import { Save, Shield, Bell, Palette, Link, MessageSquare, Sliders } from "lucide-react";
+import { Save, Shield, Bell, Palette, Link, MessageSquare, Sliders, Lock, RefreshCw, Key, UserCheck, CheckCircle2, AlertCircle } from "lucide-react";
 import { WhatsAppAutomationSettings } from "@/components/dashboard/WhatsAppAutomationSettings";
 import { WebsiteColoursSettings } from "@/components/dashboard/WebsiteColoursSettings";
-import { api } from "@/lib/api";
+import { api, type AdminProfile, type AdminActivityLog } from "@/lib/api";
 import { useClinicSettings } from "@/lib/clinic-settings";
 
 const initialIntegrations = [
@@ -91,7 +91,117 @@ export default function SettingsPage() {
       });
   }, []);
   const [twoFA, setTwoFA] = useState(false);
-  const [showLogs, setShowLogs] = useState(false);
+  const [showLogs, setShowLogs] = useState(true);
+
+  // Admin Identity & Profile Management
+  const [adminProfile, setAdminProfile] = useState<AdminProfile | null>(null);
+  const [loadingProfile, setLoadingProfile] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [editAdminName, setEditAdminName] = useState("Dr. Kishore Kumar");
+  const [editAdminEmail, setEditAdminEmail] = useState("");
+
+  // Admin Password Management
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [changingPassword, setChangingPassword] = useState(false);
+
+  // Cloudflare D1 Activity Logs
+  const [liveLogs, setLiveLogs] = useState<AdminActivityLog[]>([]);
+  const [loadingLogs, setLoadingLogs] = useState(false);
+
+  const loadAdminProfile = async () => {
+    setLoadingProfile(true);
+    try {
+      const res = await api.getAdminProfile();
+      if (res?.profile) {
+        setAdminProfile(res.profile);
+        setEditAdminName(res.profile.name || "Dr. Kishore Kumar");
+        setEditAdminEmail(res.profile.email || "");
+      }
+    } catch {
+      // fallback
+    } finally {
+      setLoadingProfile(false);
+    }
+  };
+
+  const loadLiveLogs = async () => {
+    setLoadingLogs(true);
+    try {
+      const res = await api.getAdminActivityLogs({ limit: 50 });
+      if (res?.logs) {
+        setLiveLogs(res.logs);
+      }
+    } catch {
+      // fallback
+    } finally {
+      setLoadingLogs(false);
+    }
+  };
+
+  useEffect(() => {
+    loadAdminProfile();
+    loadLiveLogs();
+  }, []);
+
+  const handleSaveProfile = async () => {
+    if (!editAdminName.trim() || editAdminName.trim().length < 2) {
+      toast.error("Please enter a valid display name (min 2 characters).");
+      return;
+    }
+    setSavingProfile(true);
+    try {
+      const res = await api.updateAdminProfile({
+        name: editAdminName.trim(),
+        email: editAdminEmail.trim() || undefined,
+      });
+      if (res?.profile) {
+        setAdminProfile(res.profile);
+        toast.success("Admin identity updated successfully!");
+        setTimeout(() => window.location.reload(), 800);
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to update profile.");
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentPassword || !newPassword) {
+      toast.error("Current password and new password are required.");
+      return;
+    }
+    if (newPassword.length < 8) {
+      toast.error("New password must be at least 8 characters long.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error("New password and confirmation do not match.");
+      return;
+    }
+    setChangingPassword(true);
+    try {
+      await api.changeAdminPassword({
+        currentPassword,
+        newPassword,
+        confirmPassword,
+      });
+      toast.success("Password changed successfully!");
+      setShowPasswordForm(false);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      loadLiveLogs();
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to update password.");
+    } finally {
+      setChangingPassword(false);
+    }
+  };
 
   const saveClinic = async () => {
     if (!clinic.name.trim() || !clinic.phone.trim() || !clinic.email.trim()) {
@@ -210,67 +320,199 @@ export default function SettingsPage() {
               </div>
             )}
             {activeTab === "security" && (
-              <div className="space-y-4">
-                <h2 className="text-lg font-semibold text-[#1F6878]">Security Settings</h2>
-                <div className="space-y-3">
-                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-secondary-100 p-3">
+              <div className="space-y-6">
+                {/* 1. Admin Identity & Profile Management */}
+                <div className="rounded-2xl border border-secondary-100 bg-secondary-50/40 p-5">
+                  <div className="flex flex-wrap items-center justify-between gap-4 border-b border-secondary-200/60 pb-4">
+                    <div className="flex items-center gap-3.5">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#1F6878] text-base font-bold text-white shadow-sm">
+                        DK
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h2 className="text-base font-bold text-[#1F6878]">
+                            {adminProfile?.name || "Dr. Kishore Kumar"}
+                          </h2>
+                          <Badge variant="success">Super Admin</Badge>
+                          <Badge variant="default">Active</Badge>
+                        </div>
+                        <p className="text-[12px] text-muted-foreground">
+                          {adminProfile?.email || "admin@srisaraswathidental.com"}
+                          {adminProfile?.lastLoginAt && (
+                            <> · Last signed in: {new Date(adminProfile.lastLoginAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}</>
+                          )}
+                          {adminProfile?.loginCount ? ` · ${adminProfile.loginCount} logins` : ""}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 space-y-4">
+                    <h3 className="text-sm font-semibold text-[#1F6878]">Update Admin Identity</h3>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <Input
+                        label="Admin Display Name"
+                        required
+                        value={editAdminName}
+                        onChange={(e) => setEditAdminName(e.target.value)}
+                        placeholder="Dr. Kishore Kumar"
+                      />
+                      <Input
+                        label="Verified Admin Email"
+                        type="email"
+                        required
+                        value={editAdminEmail}
+                        onChange={(e) => setEditAdminEmail(e.target.value)}
+                        placeholder="admin@srisaraswathidental.com"
+                      />
+                    </div>
+                    <Button onClick={handleSaveProfile} disabled={savingProfile}>
+                      <Save className="h-4 w-4" /> {savingProfile ? "Saving Profile…" : "Save Admin Profile"}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* 2. Password Security */}
+                <div className="rounded-2xl border border-secondary-100 p-5">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-50 text-[#1F6878]">
+                        <Key className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-foreground">Password & Credential Security</p>
+                        <p className="text-xs text-muted-foreground">Protected by salted scrypt cryptographic hashing. Plaintext passwords are never stored.</p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowPasswordForm((v) => !v)}
+                    >
+                      <Lock className="h-4 w-4" /> {showPasswordForm ? "Cancel" : "Change Password"}
+                    </Button>
+                  </div>
+
+                  {showPasswordForm && (
+                    <form onSubmit={handleChangePassword} className="mt-5 max-w-lg space-y-3.5 rounded-xl border border-secondary-200/80 bg-white p-4">
+                      <h4 className="text-sm font-semibold text-[#1F6878]">Change Administrator Password</h4>
+                      <Input
+                        label="Current Password"
+                        type="password"
+                        required
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        placeholder="Enter current password"
+                      />
+                      <Input
+                        label="New Password (min 8 chars)"
+                        type="password"
+                        required
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="Enter new strong password"
+                      />
+                      <Input
+                        label="Confirm New Password"
+                        type="password"
+                        required
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="Re-enter new password"
+                      />
+                      <div className="flex items-center gap-2 pt-2">
+                        <Button type="submit" disabled={changingPassword}>
+                          {changingPassword ? "Updating Password…" : "Update Password"}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={() => {
+                            setShowPasswordForm(false);
+                            setCurrentPassword("");
+                            setNewPassword("");
+                            setConfirmPassword("");
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </form>
+                  )}
+                </div>
+
+                {/* 3. Authentication & Access Safeguards */}
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="rounded-xl border border-secondary-100 bg-secondary-50/50 p-4">
+                    <p className="text-xs font-semibold text-[#1F6878]">Brute-Force Protection</p>
+                    <p className="mt-1 text-sm font-medium text-foreground">Active · 5 Attempts Lock</p>
+                    <p className="mt-1 text-[11.5px] text-muted-foreground">Sliding window rate-limiter with 15-minute temporary IP lockout.</p>
+                  </div>
+                  <div className="rounded-xl border border-secondary-100 bg-secondary-50/50 p-4">
+                    <p className="text-xs font-semibold text-[#1F6878]">Session Security</p>
+                    <p className="mt-1 text-sm font-medium text-foreground">7 Days · Cryptographic HMAC</p>
+                    <p className="mt-1 text-[11.5px] text-muted-foreground">HttpOnly, SameSite=Lax, and Secure flags applied to sc_session cookie.</p>
+                  </div>
+                  <div className="rounded-xl border border-secondary-100 bg-secondary-50/50 p-4">
+                    <p className="text-xs font-semibold text-[#1F6878]">Server-Side Authorization</p>
+                    <p className="mt-1 text-sm font-medium text-foreground">Active RBAC</p>
+                    <p className="mt-1 text-[11.5px] text-muted-foreground">Strict requireAdmin verification on all Cloudflare D1 mutation endpoints.</p>
+                  </div>
+                </div>
+
+                {/* 4. Live Cloudflare D1 Activity & Security Audit Logs */}
+                <div className="rounded-2xl border border-secondary-100 p-5">
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-secondary-100 pb-3">
                     <div>
-                      <p className="font-medium text-foreground">Two-Factor Authentication</p>
-                      <p className="text-sm text-muted-foreground">Add an extra layer of security</p>
+                      <p className="font-semibold text-foreground">Cloudflare D1 Security & Activity Logs</p>
+                      <p className="text-xs text-muted-foreground">Real-time audit trail of administrator sign-ins, profile changes, and clinic updates.</p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge variant={twoFA ? "success" : "default"}>{twoFA ? "Enabled" : "Disabled"}</Badge>
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => {
-                          setTwoFA((v) => !v);
-                          toast.success(twoFA ? "Two-factor authentication disabled" : "Two-factor authentication enabled");
-                        }}
+                        disabled={loadingLogs}
+                        onClick={loadLiveLogs}
                       >
-                        {twoFA ? "Disable" : "Enable"}
+                        <RefreshCw className={`h-3.5 w-3.5 ${loadingLogs ? "animate-spin" : ""}`} /> Refresh Logs
                       </Button>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-secondary-100 p-3">
-                    <div>
-                      <p className="font-medium text-foreground">Password</p>
-                      <p className="text-sm text-muted-foreground">Last changed 3 months ago</p>
-                    </div>
-                    <Button variant="outline" size="sm" onClick={() => toast.success("Password reset link sent to the registered email")}>
-                      Change
-                    </Button>
-                  </div>
-                  <div className="rounded-lg border border-secondary-100 p-3">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div>
-                        <p className="font-medium text-foreground">Audit Logs</p>
-                        <p className="text-sm text-muted-foreground">Track all user activities</p>
-                      </div>
                       <Button variant="outline" size="sm" onClick={() => setShowLogs((v) => !v)}>
                         {showLogs ? "Hide Logs" : "View Logs"}
                       </Button>
                     </div>
-                    {showLogs && (
-                      <div className="mt-3 space-y-2 border-t border-secondary-100 pt-3">
-                        {auditLogs.map((log) => (
-                          <div key={log.action + log.time} className="flex flex-wrap items-center justify-between gap-2 text-[12px]">
-                            <span className="text-foreground/80">{log.action}</span>
-                            <span className="text-muted-foreground">{log.user} · {log.time}</span>
+                  </div>
+
+                  {showLogs && (
+                    <div className="mt-3 divide-y divide-secondary-100">
+                      {liveLogs.length === 0 ? (
+                        <p className="py-6 text-center text-xs text-muted-foreground">No activity logs recorded yet.</p>
+                      ) : (
+                        liveLogs.map((log) => (
+                          <div key={log.id} className="flex flex-wrap items-center justify-between gap-2 py-3 text-xs">
+                            <div className="space-y-0.5">
+                              <div className="flex items-center gap-2">
+                                <span className={`inline-block rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${
+                                  log.action.includes("FAILED")
+                                    ? "bg-red-100 text-red-700"
+                                    : log.action.includes("LOGIN") || log.action.includes("SUCCESS")
+                                    ? "bg-green-100 text-green-700"
+                                    : "bg-blue-100 text-blue-700"
+                                }`}>
+                                  {log.action}
+                                </span>
+                                <span className="font-semibold text-foreground">{log.admin_name || "Dr. Kishore Kumar"}</span>
+                              </div>
+                              <p className="text-[11.5px] text-muted-foreground">{log.details}</p>
+                            </div>
+                            <div className="text-right text-[11px] text-muted-foreground">
+                              <p>{new Date(log.created_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}</p>
+                              {log.ip_address && <p className="font-mono text-[10px] text-secondary-500">IP: {log.ip_address}</p>}
+                            </div>
                           </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-secondary-100 p-3">
-                    <div>
-                      <p className="font-medium text-foreground">Data Retention</p>
-                      <p className="text-sm text-muted-foreground">Auto-delete records after 7 years</p>
+                        ))
+                      )}
                     </div>
-                    <Button variant="outline" size="sm" onClick={() => toast.success("Retention policy confirmed for 7 years")}>
-                      Configure
-                    </Button>
-                  </div>
+                  )}
                 </div>
               </div>
             )}
