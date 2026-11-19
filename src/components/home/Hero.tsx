@@ -125,18 +125,9 @@ export function Hero() {
       <div className="container-x relative z-10 grid w-full items-center gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:gap-10 xl:gap-12">
         {/* Left Side – Hero Content with Staggered Entrance Animations */}
         <div className="max-w-[600px] pt-1 flex flex-col items-start">
-          {/* 1. Small introductory badge */}
-          {visibility.showBadge && settings.badgeText && (
-            <span className="inline-flex items-center gap-2 rounded-full border border-[#E95A35] bg-[#E95A35] px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white shadow-[0_10px_22px_-8px_rgba(233,90,53,0.6)] animate-hero-fade-in select-none">
-              <span className="h-2 w-2 rounded-full bg-white" />
-              {settings.badgeText}
-            </span>
-          )}
-
-          {/* 2. Clinic Name and Tagline – Positioned cleanly ABOVE the main hero headline.
-              Clean typography, NO orange border, NO rectangular container, NO background card */}
+          {/* 1. Clinic Name and Tagline – Positioned cleanly ABOVE the orange container badge with consistent brand font */}
           {(visibility.showClinicName || visibility.showTagline) && (
-            <div className="mt-3 sm:mt-3.5 text-left animate-hero-fade-in">
+            <div className="text-left animate-hero-fade-in">
               {visibility.showClinicName && (
                 <p className="font-sans text-[20px] sm:text-[23px] lg:text-[25px] font-bold tracking-tight text-[#073B43] leading-snug">
                   {settings.clinicName || "Sri Saraswathi Dental Clinic"}
@@ -147,6 +138,16 @@ export function Hero() {
                   {settings.clinicTagline || "Creating Healthy Smiles, Changing Lives."}
                 </p>
               )}
+            </div>
+          )}
+
+          {/* 2. Small introductory badge (Orange Container) */}
+          {visibility.showBadge && settings.badgeText && (
+            <div className="mt-3 sm:mt-3.5">
+              <span className="inline-flex items-center gap-2 rounded-full border border-[#E95A35] bg-[#E95A35] px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white shadow-[0_10px_22px_-8px_rgba(233,90,53,0.6)] animate-hero-fade-in select-none">
+                <span className="h-2 w-2 rounded-full bg-white" />
+                {settings.badgeText}
+              </span>
             </div>
           )}
 

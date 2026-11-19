@@ -430,7 +430,7 @@ export default function HeroBannersPage() {
                     onChange={(e) => updateField("badgeText", e.target.value)}
                     placeholder="e.g. COMPLETE DENTAL CARE FOR EVERY GENERATION"
                   />
-                  <p className="mt-1 text-[11px] text-[#707574]">Displayed in an orange pill badge above the hero titles.</p>
+                  <p className="mt-1 text-[11px] text-[#707574]">Displayed in an orange pill badge below the clinic name and above the main headline.</p>
                 </div>
 
                 <div>
@@ -1053,15 +1053,7 @@ export default function HeroBannersPage() {
 
               {/* Preview Content Area */}
               <div className="relative z-10 p-5 space-y-3.5">
-                {/* 1. Badge */}
-                {form.visibility.showBadge && form.badgeText && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-[#E95A35] bg-[#E95A35] px-2.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-white shadow-xs">
-                    <span className="h-1.5 w-1.5 rounded-full bg-white" />
-                    {form.badgeText}
-                  </span>
-                )}
-
-                {/* 2. Clinic Name and Tagline: NO orange border, NO rectangular container! */}
+                {/* 1. Clinic Name and Tagline: Positioned cleanly ABOVE the orange badge container */}
                 {(form.visibility.showClinicName || form.visibility.showTagline) && (
                   <div className="text-left">
                     {form.visibility.showClinicName && (
@@ -1074,6 +1066,16 @@ export default function HeroBannersPage() {
                         {form.clinicTagline || "Creating Healthy Smiles, Changing Lives."}
                       </p>
                     )}
+                  </div>
+                )}
+
+                {/* 2. Badge (Orange Container) */}
+                {form.visibility.showBadge && form.badgeText && (
+                  <div>
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-[#E95A35] bg-[#E95A35] px-2.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-white shadow-xs">
+                      <span className="h-1.5 w-1.5 rounded-full bg-white" />
+                      {form.badgeText}
+                    </span>
                   </div>
                 )}
 
