@@ -560,13 +560,15 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
     }
   };
 
-  const getServerGoogleApiKey = () =>
-    String(
+  const getServerGoogleApiKey = () => {
+    const key = String(
       process.env.GOOGLE_PLACES_API_KEY ||
         process.env.GOOGLE_MAPS_API_KEY ||
         process.env.GOOGLE_API_KEY ||
         ""
     ).trim();
+    return (key && key.toLowerCase() !== "none" && key.toLowerCase() !== "placeholder") ? key : "";
+  };
 
   const getGooglePlacesV1Origin = () =>
     String(process.env.GOOGLE_PLACES_API_BASE_URL || "https://places.googleapis.com")
@@ -605,7 +607,8 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
 
   const deriveEffectiveWriteReviewUrl = (cfg) => {
     if (isValidHttpUrl(cfg.writeReviewUrl)) return cfg.writeReviewUrl.trim();
-    const pid = String(cfg.placeId || process.env.GOOGLE_PLACE_ID || "").trim();
+    const envPid = String(process.env.GOOGLE_PLACE_ID || "").trim();
+    const pid = String(cfg.placeId || (envPid && envPid.toLowerCase() !== "none" && envPid.toLowerCase() !== "placeholder" ? envPid : "")).trim();
     if (pid) return `https://search.google.com/local/writereview?placeid=${encodeURIComponent(pid)}`;
     if (isValidHttpUrl(cfg.googleMapsUri)) return cfg.googleMapsUri.trim();
     return isValidHttpUrl(cfg.googleReviewsUrl) ? cfg.googleReviewsUrl.trim() : DEFAULT_GOOGLE_REVIEWS_URL;
@@ -634,7 +637,9 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
       parsed = {};
     }
 
-    const placeId = String(process.env.GOOGLE_PLACE_ID || parsed.placeId || "").trim();
+    const envPlaceId = String(process.env.GOOGLE_PLACE_ID || "").trim();
+    const cleanEnvPlaceId = (envPlaceId && envPlaceId.toLowerCase() !== "none" && envPlaceId.toLowerCase() !== "placeholder") ? envPlaceId : "";
+    const placeId = String(cleanEnvPlaceId || parsed.placeId || "").trim();
     const googleReviewsUrl = isValidHttpUrl(parsed.googleReviewsUrl)
       ? parsed.googleReviewsUrl.trim()
       : DEFAULT_GOOGLE_REVIEWS_URL;

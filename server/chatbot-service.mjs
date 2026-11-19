@@ -158,7 +158,7 @@ setInterval(() => {
  */
 export function getOpenAIClient() {
   const apiKey = process.env.OPENAI_API_KEY ? process.env.OPENAI_API_KEY.trim() : "";
-  if (!apiKey) return null;
+  if (!apiKey || apiKey.toLowerCase() === "none" || apiKey.toLowerCase() === "placeholder" || !apiKey.startsWith("sk-")) return null;
   return new OpenAI({ apiKey });
 }
 
@@ -167,7 +167,7 @@ export function getOpenAIClient() {
  */
 export async function testOpenAIConnection(modelName) {
   const apiKey = process.env.OPENAI_API_KEY ? process.env.OPENAI_API_KEY.trim() : "";
-  if (!apiKey) {
+  if (!apiKey || apiKey.toLowerCase() === "none" || apiKey.toLowerCase() === "placeholder" || !apiKey.startsWith("sk-")) {
     return {
       ok: false,
       error: "OPENAI_API_KEY is not configured in server environment.",
