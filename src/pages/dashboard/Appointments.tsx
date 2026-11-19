@@ -369,6 +369,12 @@ export default function AppointmentsPage() {
   const [detailsBooking, setDetailsBooking] = useState<Booking | null>(null);
   const [rejectReason, setRejectReason] = useState("Schedule conflict");
   const [rejectMessage, setRejectMessage] = useState("");
+  const [decisionSuccess, setDecisionSuccess] = useState<{
+    booking: Booking;
+    action: "confirm" | "reject";
+    whatsappLink: string;
+    messageText: string;
+  } | null>(null);
   const [calendarBlockRequest, setCalendarBlockRequest] = useState<"full" | "range" | null>(null);
   const [rescheduleBooking, setRescheduleBooking] = useState<Booking | null>(null);
   const [rescheduleDate, setRescheduleDate] = useState("");
@@ -566,8 +572,6 @@ export default function AppointmentsPage() {
   const completeRequestDecision = async () => {
     if (!statusDialog) return;
     const { booking, action } = statusDialog;
-    const whatsappTab = window.open("about:blank", "_blank");
-    if (whatsappTab) whatsappTab.opener = null;
     setBusyId(booking.id);
     try {
       const status: BookingStatus = action === "confirm" ? "confirmed" : "cancelled";
@@ -578,21 +582,39 @@ export default function AppointmentsPage() {
       setBookings((previous) => previous.map((item) => item.id === booking.id ? data.booking : item));
       setStatusDialog(null);
       setRejectMessage("");
-      toast.success(action === "confirm" ? "Appointment confirmed — automated patient WhatsApp sent!" : "Appointment rejected — automated patient WhatsApp sent!");
+
       const patientFirstName = data.booking.patientName.split(" ")[0] || "there";
       const patientDigits = data.booking.patientPhone.replace(/\D/g, "");
       const whatsappNumber = patientDigits.length === 10 ? `91${patientDigits}` : patientDigits;
+
       const rejectionText = [
         `Hi ${patientFirstName}, we could not confirm your ${data.booking.serviceLabel} appointment request for ${data.booking.dateLabel} at ${data.booking.time}.`,
         `Reason: ${rejectReason}.`,
         rejectMessage.trim(),
         "Please contact Sri Saraswathi Dental Clinic so we can help find another time.",
       ].filter(Boolean).join("\n");
+
+      const confirmMsgText = `✅ APPOINTMENT CONFIRMED!\n\nDear ${patientFirstName},\nYour appointment at Sri Saraswathi Dental Clinic is confirmed.\n\n• Token Ref: ${data.booking.ref}\n• Treatment: ${data.booking.serviceLabel}\n• Date: ${data.booking.dateLabel}\n• Time: ${data.booking.time}\n• Doctor: ${data.booking.dentist || "Dr. Kishore Kumar"}\n• Address: 866, Soli Complex, Surampatti Four Rd, Erode - 638009\n• Contact: 0424 427 2494 / 9345743409.`;
+
+      const messageText = action === "reject" ? rejectionText : confirmMsgText;
       const messageLink = action === "reject" && whatsappNumber
         ? `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(rejectionText)}`
-        : data.booking.whatsapp?.patient;
-      if (messageLink && whatsappTab) whatsappTab.location.href = messageLink;
-      else whatsappTab?.close();
+        : (data.booking.whatsapp?.patient || (whatsappNumber ? `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(confirmMsgText)}` : ""));
+
+      // 1. Show confirmation toast on the portal
+      toast.success(
+        action === "confirm"
+          ? `✅ ${data.booking.patientName}'s appointment confirmed on portal!`
+          : `Appointment request rejected on portal.`
+      );
+
+      // 2. Open Portal Notification Dialog with explicit "Open WhatsApp Web" action button
+      setDecisionSuccess({
+        booking: data.booking,
+        action,
+        whatsappLink: messageLink,
+        messageText,
+      });
     } catch (error) {
       toast.error(error instanceof ApiError ? error.message : "Could not update the appointment.");
     } finally {
@@ -928,8 +950,8 @@ export default function AppointmentsPage() {
         size="md"
         title={statusDialog?.action === "reject" ? "Reject appointment request?" : "Confirm appointment?"}
         description={statusDialog?.action === "reject"
-          ? "The request will be marked as cancelled. A prepared WhatsApp message will open for you to review and send."
-          : "The appointment will be confirmed. A prepared WhatsApp message will open for you to review and send."}
+          ? "The request will be marked as cancelled on the portal. You can review and send a WhatsApp notification message to the patient after confirming."
+          : "The appointment will be confirmed in the clinic portal. You can review and send a WhatsApp confirmation message to the patient after confirming."}
       >
         {statusDialog && <div className="space-y-4">
           <div className={`rounded-2xl border p-4 ${statusDialog.action === "reject" ? "border-rose-100 bg-rose-50/50" : "border-[#1F6878]/20 bg-[#E4F0F2]/70"}`}>
@@ -954,8 +976,65 @@ export default function AppointmentsPage() {
           <div className="flex flex-col-reverse gap-2 border-t border-[#1F6878]/10 pt-4 sm:flex-row sm:justify-end">
             <Button type="button" variant="outline" onClick={() => setStatusDialog(null)} disabled={busyId === statusDialog.booking.id}>Cancel</Button>
             <Button type="button" loading={busyId === statusDialog.booking.id} onClick={() => void completeRequestDecision()} className={statusDialog.action === "reject" ? "bg-rose-700 hover:bg-rose-800" : ""}>
-              {statusDialog.action === "reject" ? <><X className="h-4 w-4" /> Reject & open WhatsApp</> : <><CheckCircle2 className="h-4 w-4" /> Confirm & open WhatsApp</>}
+              {statusDialog.action === "reject" ? <><X className="h-4 w-4" /> Reject Request</> : <><CheckCircle2 className="h-4 w-4" /> Confirm Appointment</>}
             </Button>
+          </div>
+        </div>}
+      </Modal>
+
+      {/* Portal Notification Dialog: Confirmed/Rejected on portal, with explicit WhatsApp Web action */}
+      <Modal
+        isOpen={Boolean(decisionSuccess)}
+        onClose={() => setDecisionSuccess(null)}
+        size="md"
+        title={decisionSuccess?.action === "confirm" ? "✅ Appointment Confirmed on Portal" : "Appointment Request Rejected"}
+        description={decisionSuccess?.action === "confirm"
+          ? "The appointment has been successfully confirmed in the clinic database. You can now click below to open WhatsApp Web and send the confirmation to the patient."
+          : "The appointment has been cancelled in the clinic database. You can now click below to open WhatsApp Web and notify the patient."}
+      >
+        {decisionSuccess && <div className="space-y-4">
+          <div className={`rounded-2xl border p-4 ${decisionSuccess.action === "confirm" ? "border-[#19B987]/30 bg-[#E4F0F2]/75" : "border-rose-100 bg-rose-50/60"}`}>
+            <div className="flex items-start gap-3">
+              <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-full ${decisionSuccess.action === "confirm" ? "bg-[#19B987] text-white" : "bg-rose-100 text-rose-700"}`}>
+                {decisionSuccess.action === "confirm" ? <CheckCircle2 className="h-5 w-5" /> : <CircleAlert className="h-5 w-5" />}
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-semibold text-[#1F6878]">{decisionSuccess.booking.patientName}</p>
+                  <Badge variant={statusTone[decisionSuccess.booking.status]} size="sm">{decisionSuccess.booking.statusLabel}</Badge>
+                </div>
+                <p className="mt-1 text-xs text-[#707574]">{decisionSuccess.booking.serviceLabel}</p>
+                <p className="mt-2 text-xs font-medium text-[#1F6878]">{decisionSuccess.booking.dateLabel} · {decisionSuccess.booking.time}</p>
+                <p className="mt-1 text-xs text-[#707574]">{decisionSuccess.booking.dentist || "First available dentist"} · Ref {decisionSuccess.booking.ref}</p>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-[#1F6878]">Prepared WhatsApp Message:</label>
+            <div className="mt-1.5 max-h-36 overflow-y-auto whitespace-pre-wrap rounded-xl border border-[#1F6878]/15 bg-white p-3 text-xs leading-relaxed text-[#707574]">
+              {decisionSuccess.messageText}
+            </div>
+          </div>
+
+          <div className="flex flex-col-reverse gap-2 border-t border-[#1F6878]/10 pt-4 sm:flex-row sm:justify-end">
+            <Button type="button" variant="outline" onClick={() => setDecisionSuccess(null)}>
+              Done / Stay on Portal
+            </Button>
+            {decisionSuccess.whatsappLink && (
+              <Button
+                type="button"
+                className="bg-[#19B987] text-white hover:bg-[#139A70]"
+                onClick={() => {
+                  window.open(decisionSuccess.whatsappLink, "_blank", "noopener,noreferrer");
+                  setDecisionSuccess(null);
+                }}
+              >
+                <MessageCircle className="h-4 w-4" />
+                <span>Open WhatsApp Web</span>
+                <ExternalLink className="h-3.5 w-3.5 opacity-80" />
+              </Button>
+            )}
           </div>
         </div>}
       </Modal>
