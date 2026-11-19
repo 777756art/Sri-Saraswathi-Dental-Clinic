@@ -1,0 +1,1 @@
+import{n as e}from"./createLucideIcon-CQ9Xv7tu.js";import{rt as t}from"./index-ClvwkmoN.js";var n=e();function r({className:e,hover:r=!1,children:i,...a}){return(0,n.jsx)(`div`,{className:t(`rounded-2xl border border-border/80 bg-card p-6 shadow-soft`,r&&`card-hover cursor-pointer`,e),...a,children:i})}export{r as t};

@@ -1,0 +1,30 @@
+# Robots.txt for Sreesaraswathi Dental Clinic
+# Official Website: https://drkishoredentist.com
+# Physical Location: 866, Soli Complex, Surampatti Four Rd, Erode, Tamil Nadu 638009
+
+User-agent: *
+Allow: /
+Allow: /treatments/
+Allow: /our-dentists/
+Allow: /blogs/
+Allow: /blog/
+Allow: /contact
+Allow: /booking
+Allow: /emergency
+Allow: /reviews
+Allow: /faq
+Allow: /clinic-gallery
+Allow: /gallery/before-after
+
+# Disallow private dashboards, authentication, and patient portal
+Disallow: /admin
+Disallow: /admin/
+Disallow: /dashboard
+Disallow: /dashboard/
+Disallow: /auth/
+Disallow: /patient/
+Disallow: /patient-portal/
+Disallow: /api/
+
+# Official XML Sitemap
+Sitemap: https://drkishoredentist.com/sitemap.xml
