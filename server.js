@@ -3,6 +3,7 @@
 // Express Application on Node.js 22
 
 import express from "express";
+import crypto from "node:crypto";
 import path from "node:path";
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -39,7 +40,15 @@ for (const envName of [".env", ".env.local", ".env.api", ".env.production"]) {
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
-const SESSION_SECRET = process.env.SESSION_SECRET || "clinic-d1-secure-secret-key-2026";
+// Resolve cryptographically secure session secret
+let resolvedSessionSecret = process.env.SESSION_SECRET;
+if (!resolvedSessionSecret || resolvedSessionSecret === "clinic-d1-secure-secret-key-2026" || resolvedSessionSecret.includes("replace-with")) {
+  if (process.env.NODE_ENV === "production" && !resolvedSessionSecret) {
+    console.warn("WARNING: SESSION_SECRET is not configured in production environment variables. Generating an ephemeral cryptographic session secret for this process.");
+  }
+  resolvedSessionSecret = crypto.randomBytes(32).toString("hex");
+}
+const SESSION_SECRET = resolvedSessionSecret;
 
 // 2. Middleware
 app.use(express.json({ limit: "25mb" }));

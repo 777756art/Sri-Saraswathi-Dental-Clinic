@@ -119,7 +119,9 @@ function formatRef(id, date) {
   return `SC-${d}-${hex}`;
 }
 
-export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secret-key-2026") {
+let ephemeralSecret = null;
+export function registerD1Routes(app, d1, sessionSecret = null) {
+  const secret = sessionSecret || process.env.SESSION_SECRET || (ephemeralSecret ||= crypto.randomBytes(32).toString("hex"));
   const r2 = getR2Bucket();
 
   const cookieAttrs = (req) => {
@@ -128,7 +130,7 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
   };
 
   const setSessionCookie = (req, res, user) => {
-    const token = signSession(user, sessionSecret);
+    const token = signSession(user, secret);
     res.setHeader("Set-Cookie", `${COOKIE_NAME}=${token}; HttpOnly${cookieAttrs(req)}; Path=/; Max-Age=${SESSION_DAYS * 86400}`);
   };
 
@@ -138,7 +140,7 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
 
   const getSessionUser = async (req) => {
     const token = parseCookies(req.headers.cookie)[COOKIE_NAME];
-    const session = verifySession(token, sessionSecret);
+    const session = verifySession(token, secret);
     if (!session) return null;
 
     if (session.role === "admin") {
@@ -359,12 +361,19 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
     return { ok: true, storage };
   };
 
+  let cachedReelsSettings = null;
+  let cachedReelsSettingsExpiry = 0;
+
   const getReelsSectionSettings = async () => {
+    const now = Date.now();
+    if (cachedReelsSettings && now < cachedReelsSettingsExpiry) {
+      return cachedReelsSettings;
+    }
     try {
       const row = await d1.prepare("SELECT value FROM d1_meta WHERE key = 'reels_section_settings'").first();
       if (!row?.value) return { ...DEFAULT_REELS_SECTION_SETTINGS };
       const parsed = JSON.parse(row.value);
-      return {
+      const result = {
         enabled: parsed.enabled !== undefined ? Boolean(parsed.enabled) : true,
         heading:
           typeof parsed.heading === "string" && parsed.heading.trim()
@@ -375,12 +384,16 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
             ? parsed.subtitle.trim()
             : DEFAULT_REELS_SECTION_SETTINGS.subtitle,
       };
+      cachedReelsSettings = result;
+      cachedReelsSettingsExpiry = now + 60000; // 60-second TTL
+      return result;
     } catch {
       return { ...DEFAULT_REELS_SECTION_SETTINGS };
     }
   };
 
   const saveReelsSectionSettings = async (patch = {}) => {
+    cachedReelsSettingsExpiry = 0; // Invalidate cache immediately on edit
     const current = await getReelsSectionSettings();
     const next = {
       enabled: patch.enabled !== undefined ? Boolean(patch.enabled) : current.enabled,
@@ -465,12 +478,19 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
     return next;
   };
 
+  let cachedBeforeAfterSettings = null;
+  let cachedBeforeAfterSettingsExpiry = 0;
+
   const getBeforeAfterSectionSettings = async () => {
+    const now = Date.now();
+    if (cachedBeforeAfterSettings && now < cachedBeforeAfterSettingsExpiry) {
+      return cachedBeforeAfterSettings;
+    }
     try {
       const row = await d1.prepare("SELECT value FROM d1_meta WHERE key = 'before_after_settings'").first();
       if (!row?.value) return { ...DEFAULT_BEFORE_AFTER_SETTINGS };
       const parsed = JSON.parse(row.value);
-      return {
+      const result = {
         enabled: parsed.enabled !== undefined ? Boolean(parsed.enabled) : DEFAULT_BEFORE_AFTER_SETTINGS.enabled,
         heading:
           typeof parsed.heading === "string" && parsed.heading.trim()
@@ -489,12 +509,16 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
         displayPosition: "below_promotional_container",
         displayStatus: parsed.displayStatus === "draft" ? "draft" : "published",
       };
+      cachedBeforeAfterSettings = result;
+      cachedBeforeAfterSettingsExpiry = now + 60000; // 60-second TTL
+      return result;
     } catch {
       return { ...DEFAULT_BEFORE_AFTER_SETTINGS };
     }
   };
 
   const saveBeforeAfterSectionSettings = async (patch = {}) => {
+    cachedBeforeAfterSettingsExpiry = 0; // Invalidate cache immediately on edit
     const current = await getBeforeAfterSectionSettings();
     const next = {
       enabled: patch.enabled !== undefined ? Boolean(patch.enabled) : current.enabled,
@@ -1873,12 +1897,27 @@ export function registerD1Routes(app, d1, sessionSecret = "clinic-d1-secure-secr
         if (doc) doctorId = doc.id;
       }
 
+      const blockDate = String(b.block_date).trim();
+      const startTime = b.start_time ? String(b.start_time).trim() : null;
+
+      // Duplicate prevention check
+      const existing = await d1.prepare(`
+        SELECT id FROM blocked_dates
+        WHERE block_date = ?
+          AND COALESCE(doctor_id, 0) = COALESCE(?, 0)
+          AND COALESCE(start_time, '') = COALESCE(?, '')
+      `).bind(blockDate, doctorId, startTime).first();
+
+      if (existing) {
+        return res.status(409).json({ error: "This date and time slot is already marked as blocked." });
+      }
+
       const info = await d1.prepare(`
         INSERT INTO blocked_dates (block_date, start_time, end_time, reason, doctor_id, created_at)
         VALUES (?, ?, ?, ?, ?, datetime('now'))
       `).bind(
-        String(b.block_date).trim(),
-        b.start_time ? String(b.start_time).trim() : null,
+        blockDate,
+        startTime,
         b.end_time ? String(b.end_time).trim() : null,
         String(b.reason || "Doctor unavailable / Holiday").trim(),
         doctorId
