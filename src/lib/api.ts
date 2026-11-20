@@ -8,8 +8,6 @@ export type User = {
   email: string;
   phone: string;
   role: Role;
-  picture?: string | null;
-  authProvider?: string;
 };
 
 export type AdminProfile = {

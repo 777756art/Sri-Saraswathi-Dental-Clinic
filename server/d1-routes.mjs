@@ -174,7 +174,7 @@ export function registerD1Routes(app, d1, sessionSecret = null) {
       };
     }
 
-    const patient = await d1.prepare("SELECT id, first_name, last_name, email, phone, role, profile_picture, auth_provider FROM users WHERE id = ?").bind(session.uid).first();
+    const patient = await d1.prepare("SELECT id, first_name, last_name, email, phone, role FROM users WHERE id = ?").bind(session.uid).first();
     if (!patient) return null;
     return {
       id: patient.id,
@@ -184,8 +184,6 @@ export function registerD1Routes(app, d1, sessionSecret = null) {
       email: patient.email,
       phone: patient.phone || "",
       role: patient.role || "patient",
-      picture: patient.profile_picture || null,
-      authProvider: patient.auth_provider || "local",
     };
   };
 
@@ -1681,8 +1679,6 @@ export function registerD1Routes(app, d1, sessionSecret = null) {
           email: user.email,
           phone: user.phone,
           role: user.role,
-          picture: user.picture || null,
-          authProvider: user.authProvider || "local",
         },
       });
     } catch (err) {
@@ -1699,261 +1695,6 @@ export function registerD1Routes(app, d1, sessionSecret = null) {
     } catch {}
     clearSessionCookie(req, res);
     res.json({ ok: true });
-  });
-
-  /* ------------------------------------------------------------- 1.05 GOOGLE OAUTH 2.0 / OPENID CONNECT */
-
-  const getOAuthRedirectUri = (req) => {
-    if (process.env.GOOGLE_REDIRECT_URI) return process.env.GOOGLE_REDIRECT_URI;
-    const host = String(req.headers["x-forwarded-host"] || req.headers.host || "").toLowerCase();
-    const origin = String(req.headers.origin || req.headers.referer || "").toLowerCase();
-    if (host.includes("localhost") || host.includes("127.0.0.1") || origin.includes("localhost:5173") || origin.includes("127.0.0.1:5173")) {
-      return "http://localhost:5173/api/auth/google/callback";
-    }
-    return "https://drkishoredentist.com/api/auth/google/callback";
-  };
-
-  app.get("/api/auth/google/status", (_req, res) => {
-    const clientId = process.env.GOOGLE_CLIENT_ID || "";
-    const isConfigured = Boolean(clientId && !clientId.includes("replace-with") && clientId !== "none");
-    res.json({
-      enabled: isConfigured,
-      clientId: isConfigured ? clientId : null,
-    });
-  });
-
-  const handleGoogleAuthInit = (req, res, isJson = false) => {
-    try {
-      const clientId = process.env.GOOGLE_CLIENT_ID;
-      const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-      if (!clientId || !clientSecret || clientId.includes("replace-with") || clientSecret.includes("replace-with") || clientId === "none") {
-        const errorMsg = "Google Sign-In is not currently configured on the server. Please sign in using your email and password.";
-        if (isJson) {
-          return res.status(400).json({ error: errorMsg });
-        }
-        return res.redirect(`/auth/login?error=${encodeURIComponent(errorMsg)}`);
-      }
-
-      const rawNext = String(req.query.next || "").trim();
-      const safeNext = (rawNext.startsWith("/") && !rawNext.startsWith("//")) ? rawNext : "/patient-portal";
-
-      const redirectUri = getOAuthRedirectUri(req);
-
-      const randomState = crypto.randomBytes(24).toString("hex");
-      const nonce = crypto.randomBytes(16).toString("hex");
-      const statePayload = b64url(JSON.stringify({
-        s: randomState,
-        next: safeNext,
-        exp: Date.now() + 10 * 60 * 1000,
-      }));
-      const stateSig = crypto.createHmac("sha256", secret).update(statePayload).digest("base64url");
-      const fullState = `${statePayload}.${stateSig}`;
-
-      res.setHeader("Set-Cookie", `clinic_oauth_state=${fullState}; HttpOnly${cookieAttrs(req)}; Path=/; Max-Age=600`);
-
-      const authUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
-      authUrl.searchParams.set("client_id", clientId);
-      authUrl.searchParams.set("redirect_uri", redirectUri);
-      authUrl.searchParams.set("response_type", "code");
-      authUrl.searchParams.set("scope", "openid email profile");
-      authUrl.searchParams.set("state", fullState);
-      authUrl.searchParams.set("nonce", nonce);
-      authUrl.searchParams.set("prompt", "select_account");
-      authUrl.searchParams.set("access_type", "online");
-
-      if (isJson) {
-        return res.json({ ok: true, url: authUrl.toString() });
-      }
-
-      res.redirect(authUrl.toString());
-    } catch (err) {
-      console.error("[Google OAuth Init Error]:", err);
-      if (isJson) {
-        return res.status(500).json({ error: "Could not initiate Google Sign-In. Please try again." });
-      }
-      res.redirect(`/auth/login?error=${encodeURIComponent("Could not initiate Google Sign-In. Please try again.")}`);
-    }
-  };
-
-  app.get("/api/auth/google/url", (req, res) => handleGoogleAuthInit(req, res, true));
-  app.get("/api/auth/google", (req, res) => {
-    const isJson = req.query.format === "json" || req.headers.accept?.includes("application/json");
-    handleGoogleAuthInit(req, res, isJson);
-  });
-
-  app.get("/api/auth/google/callback", async (req, res) => {
-    try {
-      const { code, state, error: googleError } = req.query || {};
-
-      if (googleError) {
-        const errorMsg = googleError === "access_denied"
-          ? "Google sign-in was cancelled."
-          : `Google authentication failed: ${googleError}`;
-        return res.redirect(`/auth/login?error=${encodeURIComponent(errorMsg)}`);
-      }
-
-      if (!code || !state || typeof state !== "string" || !state.includes(".")) {
-        return res.redirect(`/auth/login?error=${encodeURIComponent("Authorization code or security state was missing.")}`);
-      }
-
-      const cookies = parseCookies(req.headers.cookie);
-      const stateCookie = cookies["clinic_oauth_state"];
-      if (!stateCookie || stateCookie !== state) {
-        return res.redirect(`/auth/login?error=${encodeURIComponent("Invalid or expired OAuth session state. Please try again.")}`);
-      }
-
-      const [statePayload, stateSig] = state.split(".");
-      const expectedStateSig = crypto.createHmac("sha256", secret).update(statePayload).digest("base64url");
-      if (stateSig !== expectedStateSig) {
-        return res.redirect(`/auth/login?error=${encodeURIComponent("Security validation failed for OAuth session.")}`);
-      }
-
-      let stateData = null;
-      try {
-        stateData = JSON.parse(Buffer.from(statePayload, "base64url").toString());
-      } catch {
-        return res.redirect(`/auth/login?error=${encodeURIComponent("Corrupted OAuth session state.")}`);
-      }
-
-      if (!stateData || !stateData.exp || stateData.exp < Date.now()) {
-        return res.redirect(`/auth/login?error=${encodeURIComponent("Login request expired. Please try again.")}`);
-      }
-
-      const destination = (stateData.next && stateData.next.startsWith("/") && !stateData.next.startsWith("//"))
-        ? stateData.next
-        : "/patient-portal";
-
-      const clientId = process.env.GOOGLE_CLIENT_ID;
-      const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-      const redirectUri = getOAuthRedirectUri(req);
-
-      const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          code: String(code),
-          client_id: clientId,
-          client_secret: clientSecret,
-          redirect_uri: redirectUri,
-          grant_type: "authorization_code",
-        }),
-      });
-
-      if (!tokenRes.ok) {
-        const errBody = await tokenRes.text().catch(() => "");
-        console.error("[Google OAuth] Token exchange error:", tokenRes.status, errBody);
-        return res.redirect(`/auth/login?error=${encodeURIComponent("Failed to exchange authentication code with Google.")}`);
-      }
-
-      const tokens = await tokenRes.json();
-      const { id_token, access_token } = tokens;
-
-      if (!id_token && !access_token) {
-        return res.redirect(`/auth/login?error=${encodeURIComponent("Google did not return an identity token.")}`);
-      }
-
-      const tokenInfoUrl = id_token
-        ? `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(id_token)}`
-        : `https://openidconnect.googleapis.com/v1/userinfo`;
-
-      const verifyRes = await fetch(tokenInfoUrl, {
-        headers: access_token ? { Authorization: `Bearer ${access_token}` } : {},
-      });
-
-      if (!verifyRes.ok) {
-        return res.redirect(`/auth/login?error=${encodeURIComponent("Google ID token verification failed.")}`);
-      }
-
-      const googleProfile = await verifyRes.json();
-      const sub = String(googleProfile.sub || "");
-      const email = String(googleProfile.email || "").trim().toLowerCase();
-      const emailVerified = googleProfile.email_verified === true || googleProfile.email_verified === "true";
-
-      if (!sub || !email) {
-        return res.redirect(`/auth/login?error=${encodeURIComponent("Google account identifier or email was not provided.")}`);
-      }
-      if (!emailVerified) {
-        return res.redirect(`/auth/login?error=${encodeURIComponent("Your Google account email is not verified. Please verify your email with Google first.")}`);
-      }
-
-      // STRICT ADMIN ISOLATION (Phase 6 & 7):
-      // Super Admin and clinic admin accounts MUST authenticate with secure credentials.
-      // Google Sign-In must NEVER grant, escalate, or link Super Admin privileges.
-      const existingAdmin = await d1.prepare("SELECT id, name, email FROM admins WHERE LOWER(email) = ?").bind(email).first();
-      if (existingAdmin) {
-        return res.redirect(`/auth/login?error=${encodeURIComponent("This email is registered as clinic administration. Please sign in using your administrator credentials below.")}`);
-      }
-
-      // Check users table:
-      // A. Match by permanent Google subject ID (sub)
-      let patient = await d1.prepare("SELECT * FROM users WHERE google_id = ?").bind(sub).first();
-
-      if (!patient) {
-        // B. Match by verified email (existing email/password patient account)
-        patient = await d1.prepare("SELECT * FROM users WHERE LOWER(email) = ?").bind(email).first();
-
-        if (patient) {
-          // Safe linking: update google_id, auth_provider, email_verified
-          const pic = googleProfile.picture || patient.profile_picture || "";
-          await d1.prepare(
-            "UPDATE users SET google_id = ?, auth_provider = 'google', email_verified = 1, profile_picture = COALESCE(profile_picture, ?), last_login_at = datetime('now'), login_count = COALESCE(login_count, 0) + 1 WHERE id = ?"
-          ).bind(sub, pic, patient.id).run();
-        } else {
-          // C. New patient registration via Google
-          const fullName = String(googleProfile.name || "").trim();
-          const givenName = String(googleProfile.given_name || "").trim();
-          const familyName = String(googleProfile.family_name || "").trim();
-          const firstName = givenName || (fullName ? fullName.split(" ")[0] : "Patient");
-          const lastName = familyName || (fullName ? fullName.split(" ").slice(1).join(" ") : "");
-          const pic = googleProfile.picture || "";
-
-          const info = await d1.prepare(
-            "INSERT INTO users (first_name, last_name, email, phone, password_hash, role, google_id, profile_picture, auth_provider, email_verified, created_at, last_login_at, login_count) VALUES (?, ?, ?, '', 'google_oauth', 'patient', ?, ?, 'google', 1, datetime('now'), datetime('now'), 1)"
-          ).bind(firstName, lastName, email, sub, pic).run();
-
-          const newId = Number(info.meta?.last_row_id || 0);
-          patient = {
-            id: newId,
-            first_name: firstName,
-            last_name: lastName,
-            email,
-            phone: "",
-            role: "patient",
-            google_id: sub,
-            profile_picture: pic,
-          };
-        }
-      } else {
-        // Existing Google user login
-        await d1.prepare(
-          "UPDATE users SET last_login_at = datetime('now'), login_count = COALESCE(login_count, 0) + 1 WHERE id = ?"
-        ).bind(patient.id).run();
-      }
-
-      const sessionUser = {
-        id: patient.id,
-        firstName: patient.first_name,
-        lastName: patient.last_name,
-        name: `${patient.first_name} ${patient.last_name}`.trim(),
-        email: patient.email,
-        phone: patient.phone || "",
-        role: "patient",
-        picture: patient.profile_picture || googleProfile.picture || null,
-        authProvider: "google",
-      };
-
-      const sessionToken = signSession(sessionUser, secret);
-      res.setHeader("Set-Cookie", [
-        `${COOKIE_NAME}=${sessionToken}; HttpOnly${cookieAttrs(req)}; Path=/; Max-Age=${SESSION_DAYS * 86400}`,
-        `clinic_oauth_state=; HttpOnly${cookieAttrs(req)}; Path=/; Max-Age=0`,
-        `clinic_oauth_state=; HttpOnly${cookieAttrs(req)}; Path=/api/auth/google; Max-Age=0`,
-      ]);
-
-      res.redirect(destination);
-    } catch (err) {
-      console.error("[Google OAuth Callback Error]:", err);
-      res.redirect(`/auth/login?error=${encodeURIComponent("An unexpected error occurred during Google sign-in. Please try again.")}`);
-    }
   });
 
   /* ------------------------------------------------------------- 1.1 ADMIN PROFILE & ACTIVITY LOGS */

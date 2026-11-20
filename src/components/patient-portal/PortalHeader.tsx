@@ -46,19 +46,6 @@ export function PortalHeader({
           )}
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          {user?.picture && (
-            <div className="flex items-center gap-2 rounded-full border border-border/70 bg-card py-1 pl-1 pr-3 shadow-2xs">
-              <img
-                src={user.picture}
-                alt={user.name || user.firstName}
-                className="h-8 w-8 rounded-full border border-border/80 object-cover"
-                referrerPolicy="no-referrer"
-              />
-              <span className="text-[12.5px] font-medium text-foreground">
-                {user.firstName}
-              </span>
-            </div>
-          )}
           {actions}
         </div>
       </div>

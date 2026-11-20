@@ -265,18 +265,9 @@ export function Navbar() {
                 aria-haspopup="menu"
                 className="flex items-center gap-2 rounded-full border border-[#dce4e5] bg-white py-1 pl-1 pr-2.5 text-[13px] font-medium text-[#1F6878] transition-colors hover:bg-[#E4F0F2]/50"
               >
-                {user.picture ? (
-                  <img
-                    src={user.picture}
-                    alt=""
-                    className="h-7 w-7 rounded-full object-cover"
-                    referrerPolicy="no-referrer"
-                  />
-                ) : (
-                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#1F6878] text-[11px] font-semibold text-white">
-                    {initials}
-                  </span>
-                )}
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#1F6878] text-[11px] font-semibold text-white">
+                  {initials}
+                </span>
                 <span className="max-w-[120px] truncate">
                   {user.role === "admin" ? (user.name || "Dr. Kishore Kumar") : user.firstName}
                 </span>
@@ -395,18 +386,9 @@ export function Navbar() {
             <div className="container-x flex min-h-full flex-col py-5">
               {user && (
                 <div className="mb-4 flex items-center gap-3 rounded-2xl border border-border/70 bg-card/70 px-4 py-3">
-                  {user.picture ? (
-                    <img
-                      src={user.picture}
-                      alt=""
-                      className="h-10 w-10 shrink-0 rounded-full object-cover"
-                      referrerPolicy="no-referrer"
-                    />
-                  ) : (
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ink-950 text-[13px] font-semibold text-white">
-                      {initials}
-                    </span>
-                  )}
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ink-950 text-[13px] font-semibold text-white">
+                    {initials}
+                  </span>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[14px] font-semibold text-foreground">{displayName}</p>
                     <p className="truncate text-[11.5px] text-muted-foreground">
