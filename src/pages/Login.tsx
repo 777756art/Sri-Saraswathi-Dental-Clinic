@@ -35,9 +35,25 @@ export default function LoginPage() {
     }
   }, [user, safeNext, navigate]);
 
-  const handleGoogleSignIn = () => {
+  const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
+    setError("");
     const targetNext = safeNext ? `?next=${encodeURIComponent(safeNext)}` : "";
+    try {
+      const res = await fetch(`/api/auth/google/url${targetNext}`);
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+        return;
+      }
+      if (data.error) {
+        setError(data.error);
+        setGoogleLoading(false);
+        return;
+      }
+    } catch {
+      // Fallback to direct navigation
+    }
     window.location.href = `/api/auth/google${targetNext}`;
   };
 

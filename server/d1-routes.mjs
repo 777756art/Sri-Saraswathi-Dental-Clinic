@@ -1722,12 +1722,16 @@ export function registerD1Routes(app, d1, sessionSecret = null) {
     });
   });
 
-  app.get("/api/auth/google", async (req, res) => {
+  const handleGoogleAuthInit = (req, res, isJson = false) => {
     try {
       const clientId = process.env.GOOGLE_CLIENT_ID;
       const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
       if (!clientId || !clientSecret || clientId.includes("replace-with") || clientSecret.includes("replace-with") || clientId === "none") {
-        return res.redirect(`/auth/login?error=${encodeURIComponent("Google Sign-In is not currently configured on the server. Please sign in using your email and password.")}`);
+        const errorMsg = "Google Sign-In is not currently configured on the server. Please sign in using your email and password.";
+        if (isJson) {
+          return res.status(400).json({ error: errorMsg });
+        }
+        return res.redirect(`/auth/login?error=${encodeURIComponent(errorMsg)}`);
       }
 
       const rawNext = String(req.query.next || "").trim();
@@ -1745,7 +1749,7 @@ export function registerD1Routes(app, d1, sessionSecret = null) {
       const stateSig = crypto.createHmac("sha256", secret).update(statePayload).digest("base64url");
       const fullState = `${statePayload}.${stateSig}`;
 
-      res.setHeader("Set-Cookie", `clinic_oauth_state=${fullState}; HttpOnly${cookieAttrs(req)}; Path=/api/auth/google; Max-Age=600`);
+      res.setHeader("Set-Cookie", `clinic_oauth_state=${fullState}; HttpOnly${cookieAttrs(req)}; Path=/; Max-Age=600`);
 
       const authUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
       authUrl.searchParams.set("client_id", clientId);
@@ -1757,11 +1761,24 @@ export function registerD1Routes(app, d1, sessionSecret = null) {
       authUrl.searchParams.set("prompt", "select_account");
       authUrl.searchParams.set("access_type", "online");
 
+      if (isJson) {
+        return res.json({ ok: true, url: authUrl.toString() });
+      }
+
       res.redirect(authUrl.toString());
     } catch (err) {
       console.error("[Google OAuth Init Error]:", err);
+      if (isJson) {
+        return res.status(500).json({ error: "Could not initiate Google Sign-In. Please try again." });
+      }
       res.redirect(`/auth/login?error=${encodeURIComponent("Could not initiate Google Sign-In. Please try again.")}`);
     }
+  };
+
+  app.get("/api/auth/google/url", (req, res) => handleGoogleAuthInit(req, res, true));
+  app.get("/api/auth/google", (req, res) => {
+    const isJson = req.query.format === "json" || req.headers.accept?.includes("application/json");
+    handleGoogleAuthInit(req, res, isJson);
   });
 
   app.get("/api/auth/google/callback", async (req, res) => {
@@ -1928,6 +1945,7 @@ export function registerD1Routes(app, d1, sessionSecret = null) {
       const sessionToken = signSession(sessionUser, secret);
       res.setHeader("Set-Cookie", [
         `${COOKIE_NAME}=${sessionToken}; HttpOnly${cookieAttrs(req)}; Path=/; Max-Age=${SESSION_DAYS * 86400}`,
+        `clinic_oauth_state=; HttpOnly${cookieAttrs(req)}; Path=/; Max-Age=0`,
         `clinic_oauth_state=; HttpOnly${cookieAttrs(req)}; Path=/api/auth/google; Max-Age=0`,
       ]);
 
