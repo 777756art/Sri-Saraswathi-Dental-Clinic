@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/use-auth";
 
 interface PortalHeaderProps {
   title: ReactNode;
@@ -22,6 +23,7 @@ export function PortalHeader({
   actions,
 }: PortalHeaderProps) {
   const { pathname } = useLocation();
+  const { user } = useAuth();
 
   return (
     <header className="relative overflow-hidden border-b border-border/60 bg-[#F5F2EB] pb-6 pt-28 md:pb-8 md:pt-32">
@@ -43,7 +45,22 @@ export function PortalHeader({
             </p>
           )}
         </div>
-        {actions && <div className="flex flex-wrap items-center gap-3">{actions}</div>}
+        <div className="flex flex-wrap items-center gap-3">
+          {user?.picture && (
+            <div className="flex items-center gap-2 rounded-full border border-border/70 bg-card py-1 pl-1 pr-3 shadow-2xs">
+              <img
+                src={user.picture}
+                alt={user.name || user.firstName}
+                className="h-8 w-8 rounded-full border border-border/80 object-cover"
+                referrerPolicy="no-referrer"
+              />
+              <span className="text-[12.5px] font-medium text-foreground">
+                {user.firstName}
+              </span>
+            </div>
+          )}
+          {actions}
+        </div>
       </div>
 
       <nav className="container-x relative mt-7" aria-label="Patient portal sections">
