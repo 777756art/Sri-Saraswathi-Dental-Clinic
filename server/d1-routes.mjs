@@ -1703,6 +1703,16 @@ export function registerD1Routes(app, d1, sessionSecret = null) {
 
   /* ------------------------------------------------------------- 1.05 GOOGLE OAUTH 2.0 / OPENID CONNECT */
 
+  const getOAuthRedirectUri = (req) => {
+    if (process.env.GOOGLE_REDIRECT_URI) return process.env.GOOGLE_REDIRECT_URI;
+    const host = String(req.headers["x-forwarded-host"] || req.headers.host || "").toLowerCase();
+    const origin = String(req.headers.origin || req.headers.referer || "").toLowerCase();
+    if (host.includes("localhost") || host.includes("127.0.0.1") || origin.includes("localhost:5173") || origin.includes("127.0.0.1:5173")) {
+      return "http://localhost:5173/api/auth/google/callback";
+    }
+    return "https://drkishoredentist.com/api/auth/google/callback";
+  };
+
   app.get("/api/auth/google/status", (_req, res) => {
     const clientId = process.env.GOOGLE_CLIENT_ID || "";
     const isConfigured = Boolean(clientId && !clientId.includes("replace-with") && clientId !== "none");
@@ -1723,9 +1733,7 @@ export function registerD1Routes(app, d1, sessionSecret = null) {
       const rawNext = String(req.query.next || "").trim();
       const safeNext = (rawNext.startsWith("/") && !rawNext.startsWith("//")) ? rawNext : "/patient-portal";
 
-      const isHttps = req.secure || req.headers["x-forwarded-proto"] === "https" || process.env.NODE_ENV === "production";
-      const host = req.headers["x-forwarded-host"] || req.headers.host || "drkishoredentist.com";
-      const redirectUri = process.env.GOOGLE_REDIRECT_URI || `${isHttps ? "https" : "http"}://${host}/api/auth/google/callback`;
+      const redirectUri = getOAuthRedirectUri(req);
 
       const randomState = crypto.randomBytes(24).toString("hex");
       const nonce = crypto.randomBytes(16).toString("hex");
@@ -1800,9 +1808,7 @@ export function registerD1Routes(app, d1, sessionSecret = null) {
 
       const clientId = process.env.GOOGLE_CLIENT_ID;
       const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-      const isHttps = req.secure || req.headers["x-forwarded-proto"] === "https" || process.env.NODE_ENV === "production";
-      const host = req.headers["x-forwarded-host"] || req.headers.host || "drkishoredentist.com";
-      const redirectUri = process.env.GOOGLE_REDIRECT_URI || `${isHttps ? "https" : "http"}://${host}/api/auth/google/callback`;
+      const redirectUri = getOAuthRedirectUri(req);
 
       const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
         method: "POST",
