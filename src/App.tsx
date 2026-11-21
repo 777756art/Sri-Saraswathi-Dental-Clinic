@@ -30,6 +30,7 @@ const Reviews = lazy(() => import("@/pages/Reviews"));
 const TeleDentistry = lazy(() => import("@/pages/TeleDentistry"));
 const ServiceDetail = lazy(() => import("@/pages/ServiceDetail"));
 const PrivacyPolicy = lazy(() => import("@/pages/PrivacyPolicy"));
+const TermsOfService = lazy(() => import("@/pages/TermsOfService"));
 const Dashboard = lazy(() => import("@/pages/dashboard/Dashboard"));
 const DashboardAiAssistant = lazy(() => import("@/pages/dashboard/AiAssistant"));
 const DashboardAnalytics = lazy(() => import("@/pages/dashboard/Analytics"));
@@ -97,6 +98,8 @@ function AppRoutes() {
         <Route path="/services/:slug" element={<ServiceDetail />} />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="/privacy" element={<Navigate to="/privacy-policy" replace />} />
+        <Route path="/terms-of-service" element={<TermsOfService />} />
+        <Route path="/terms" element={<Navigate to="/terms-of-service" replace />} />
 
         <Route element={<RequireRole role="admin" />}>
           <Route path="/admin" element={<Navigate to="/dashboard" replace />} />
