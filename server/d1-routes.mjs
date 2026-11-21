@@ -2819,7 +2819,7 @@ export function registerD1Routes(app, d1, sessionSecret = null) {
         `• Location: 866, Soli Complex, Surampatti Four Rd, Erode - 638009`,
         `• Google Maps: https://maps.google.com/?q=Sri+Saraswathi+Dental+Clinic+Erode`,
         ``,
-        `We look forward to seeing you! Contact: 0424 427 2494 / 9345743409.`,
+        `We look forward to seeing you! Contact: 0424 427 2494 / 9865753494.`,
       ].join("\n");
 
       const bookingRecord = {
@@ -2841,7 +2841,7 @@ export function registerD1Routes(app, d1, sessionSecret = null) {
         updatedAt: new Date().toISOString(),
         whatsapp: {
           patient: formatWhatsAppLink(phone, waMsg),
-          clinic: formatWhatsAppLink("9345743409", `🔔 New Booking Alert: ${patientName} (${phone}) - ${serviceLabel} on ${date} at ${time}`),
+          clinic: formatWhatsAppLink("9865753494", `🔔 New Booking Alert: ${patientName} (${phone}) - ${serviceLabel} on ${date} at ${time}`),
         },
       };
 
@@ -2882,7 +2882,7 @@ export function registerD1Routes(app, d1, sessionSecret = null) {
       createdAt: r.created_at,
       updatedAt: r.updated_at || r.created_at,
       whatsapp: {
-        clinic: formatWhatsAppLink("9345743409", clinicMsg),
+        clinic: formatWhatsAppLink("9865753494", clinicMsg),
       },
     };
   };
@@ -2990,7 +2990,7 @@ export function registerD1Routes(app, d1, sessionSecret = null) {
         const ref = formatRef(r.id, r.appointment_date);
         const first = r.patient_name.split(" ")[0] || "there";
         const serviceLabel = r.treatment_label || "Dental Care & Checkup";
-        const confirmMsg = `✅ APPOINTMENT CONFIRMED!\n\nDear ${first},\nYour appointment at Sri Saraswathi Dental Clinic is confirmed.\n\n• Token Ref: ${ref}\n• Treatment: ${serviceLabel}\n• Date: ${r.appointment_date}\n• Time: ${r.appointment_time}\n• Doctor: ${r.doctor_name || "Dr. Kishore Kumar"}\n• Address: 866, Soli Complex, Surampatti Four Rd, Erode - 638009\n• Map: https://maps.google.com/?q=Sri+Saraswathi+Dental+Clinic+Erode\n\nContact: 0424 427 2494 / 9345743409.`;
+        const confirmMsg = `✅ APPOINTMENT CONFIRMED!\n\nDear ${first},\nYour appointment at Sri Saraswathi Dental Clinic is confirmed.\n\n• Token Ref: ${ref}\n• Treatment: ${serviceLabel}\n• Date: ${r.appointment_date}\n• Time: ${r.appointment_time}\n• Doctor: ${r.doctor_name || "Dr. Kishore Kumar"}\n• Address: 866, Soli Complex, Surampatti Four Rd, Erode - 638009\n• Map: https://maps.google.com/?q=Sri+Saraswathi+Dental+Clinic+Erode\n\nContact: 0424 427 2494 / 9865753494.`;
 
         const normalizedStatus = String(r.status || "Pending").toLowerCase();
 
@@ -3075,7 +3075,7 @@ export function registerD1Routes(app, d1, sessionSecret = null) {
       const ref = formatRef(updated.id, updated.appointment_date);
       const first = updated.patient_name.split(" ")[0] || "there";
       const serviceLabel = updated.treatment_label || "Dental Care & Checkup";
-      const statusMsg = `Hi ${first}, update on your appointment (${ref}) at Sri Saraswathi Dental Clinic: ${newStatus.toUpperCase()}.\nDate: ${updated.appointment_date} at ${updated.appointment_time}.\nDoctor: ${updated.doctor_name || "Dr. Kishore Kumar"}.\nContact 9345743409 for queries.`;
+      const statusMsg = `Hi ${first}, update on your appointment (${ref}) at Sri Saraswathi Dental Clinic: ${newStatus.toUpperCase()}.\nDate: ${updated.appointment_date} at ${updated.appointment_time}.\nDoctor: ${updated.doctor_name || "Dr. Kishore Kumar"}.\nContact 9865753494 for queries.`;
 
       const normalizedStatus = String(updated.status || "Pending").toLowerCase();
 
@@ -4271,7 +4271,7 @@ export function registerD1Routes(app, d1, sessionSecret = null) {
     if (!s) {
       await d1.prepare(`
         INSERT INTO clinic_settings (id, clinic_name, phone, email, whatsapp_number, address, opening_hours, logo_key, logo_url, updated_at)
-        VALUES (1, 'Sri Saraswathi Dental Clinic', '0424 427 2494', 'info@srisaraswathidental.com', '919345743409', '866, Soli Complex, Surampatti Four Rd, Erode, Tamil Nadu 638009', 'Mon–Sat: 9:00 AM – 8:45 PM', 'clinic/logo.webp', '/api/media/clinic/logo.webp', datetime('now'))
+        VALUES (1, 'Sri Saraswathi Dental Clinic', '0424 427 2494', 'info@srisaraswathidental.com', '919865753494', '866, Soli Complex, Surampatti Four Rd, Erode, Tamil Nadu 638009', 'Mon–Sat: 9:00 AM – 8:45 PM', 'clinic/logo.webp', '/api/media/clinic/logo.webp', datetime('now'))
       `).run();
       s = await d1.prepare("SELECT * FROM clinic_settings WHERE id = 1").first();
     }
@@ -4810,7 +4810,7 @@ export function registerD1Routes(app, d1, sessionSecret = null) {
         doctors: visibleDoctors,
         treatments,
         slots: SLOTS,
-        clinicWhatsapp: "+919345743409",
+        clinicWhatsapp: "+919865753494",
       });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -4893,7 +4893,7 @@ export function registerD1Routes(app, d1, sessionSecret = null) {
         const ref = formatRef(r.id, r.appointment_date);
         const first = (r.patient_name || "").split(" ")[0] || "there";
         const serviceLabel = r.treatment_label || "Dental Care & Checkup";
-        const confirmMsg = `✅ APPOINTMENT CONFIRMED!\n\nDear ${first},\nYour appointment at Sri Saraswathi Dental Clinic is confirmed.\n\n• Token Ref: ${ref}\n• Treatment: ${serviceLabel}\n• Date: ${r.appointment_date}\n• Time: ${r.appointment_time}\n• Doctor: ${r.doctor_name || "Dr. Kishore Kumar"}\n• Address: 866, Soli Complex, Surampatti Four Rd, Erode - 638009\n• Map: https://maps.google.com/?q=Sri+Saraswathi+Dental+Clinic+Erode\n\nContact: 0424 427 2494 / 9345743409.`;
+        const confirmMsg = `✅ APPOINTMENT CONFIRMED!\n\nDear ${first},\nYour appointment at Sri Saraswathi Dental Clinic is confirmed.\n\n• Token Ref: ${ref}\n• Treatment: ${serviceLabel}\n• Date: ${r.appointment_date}\n• Time: ${r.appointment_time}\n• Doctor: ${r.doctor_name || "Dr. Kishore Kumar"}\n• Address: 866, Soli Complex, Surampatti Four Rd, Erode - 638009\n• Map: https://maps.google.com/?q=Sri+Saraswathi+Dental+Clinic+Erode\n\nContact: 0424 427 2494 / 9865753494.`;
         const normalizedStatus = String(r.status || "Pending").toLowerCase();
 
         return {

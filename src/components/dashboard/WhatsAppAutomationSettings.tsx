@@ -25,8 +25,8 @@ import { api, ApiError, type WhatsAppSettings, type WhatsAppLogItem } from "@/li
 
 const defaultSettingsState: WhatsAppSettings = {
   enabled: true,
-  clinicPhone: "9345743409",
-  clinicInternational: "+919345743409",
+  clinicPhone: "9865753494",
+  clinicInternational: "+919865753494",
   clinicName: "Sri Saraswathi Dental Clinic",
   provider: "green_api",
   greenApiInstanceId: "",
@@ -48,10 +48,10 @@ const defaultSettingsState: WhatsAppSettings = {
   notifyCustomReply: true,
   templates: {
     newBookingClinic: "🔔 NEW APPOINTMENT RECEIVED!\n\nSri Saraswathi Dental Clinic\n\nAppointment ID: {appointment_id}\nPatient Name: {patient_name}\nPhone: {patient_phone}\nTreatment: {treatment_name}\nRequested Date: {appointment_date}\nRequested Time: {appointment_time}\n\nPlease check your availability and approve this appointment through the Admin Dashboard.\n\nStatus: PENDING",
-    patientConfirmed: "✅ APPOINTMENT CONFIRMED!\n\nDear {patient_name},\n\nYour appointment at Sri Saraswathi Dental Clinic has been confirmed.\n\nAppointment ID: {appointment_id}\nTreatment: {treatment_name}\nDate: {appointment_date}\nTime: {appointment_time}\nDoctor: {doctor_name}\nLocation: Sri Saraswathi Dental Clinic, 47, Perundurai Road, Erode - 638011\n\nNeed directions or rescheduling? Contact us at +919345743409.\nSee you soon!",
-    patientRejected: "❌ APPOINTMENT UPDATE\n\nDear {patient_name},\n\nWe regret to inform you that your requested appointment could not be confirmed.\n\nAppointment ID: {appointment_id}\nRequested Date: {appointment_date}\nReason: {rejection_reason}\n\nPlease call us at +919345743409 or book another time slot online.\n— Sri Saraswathi Dental Clinic",
-    patientRescheduled: "🗓️ APPOINTMENT RESCHEDULED\n\nDear {patient_name},\n\nYour appointment at Sri Saraswathi Dental Clinic has been rescheduled.\n\nAppointment ID: {appointment_id}\nTreatment: {treatment_name}\nNew Date: {appointment_date}\nNew Time: {appointment_time}\nDoctor: {doctor_name}\nLocation: Sri Saraswathi Dental Clinic, 47, Perundurai Road, Erode - 638011\n\nIf this timing does not suit you, please call us at +919345743409.",
-    patientReminder: "⏰ APPOINTMENT REMINDER\n\nDear {patient_name},\n\nThis is a friendly reminder for your upcoming dental visit tomorrow at Sri Saraswathi Dental Clinic.\n\nAppointment ID: {appointment_id}\nTreatment: {treatment_name}\nDate: {appointment_date}\nTime: {appointment_time}\nDoctor: {doctor_name}\nAddress: 47, Perundurai Road, Erode - 638011\n\nWe look forward to seeing you! For queries, contact +919345743409."
+    patientConfirmed: "✅ APPOINTMENT CONFIRMED!\n\nDear {patient_name},\n\nYour appointment at Sri Saraswathi Dental Clinic has been confirmed.\n\nAppointment ID: {appointment_id}\nTreatment: {treatment_name}\nDate: {appointment_date}\nTime: {appointment_time}\nDoctor: {doctor_name}\nLocation: Sri Saraswathi Dental Clinic, 47, Perundurai Road, Erode - 638011\n\nNeed directions or rescheduling? Contact us at +919865753494.\nSee you soon!",
+    patientRejected: "❌ APPOINTMENT UPDATE\n\nDear {patient_name},\n\nWe regret to inform you that your requested appointment could not be confirmed.\n\nAppointment ID: {appointment_id}\nRequested Date: {appointment_date}\nReason: {rejection_reason}\n\nPlease call us at +919865753494 or book another time slot online.\n— Sri Saraswathi Dental Clinic",
+    patientRescheduled: "🗓️ APPOINTMENT RESCHEDULED\n\nDear {patient_name},\n\nYour appointment at Sri Saraswathi Dental Clinic has been rescheduled.\n\nAppointment ID: {appointment_id}\nTreatment: {treatment_name}\nNew Date: {appointment_date}\nNew Time: {appointment_time}\nDoctor: {doctor_name}\nLocation: Sri Saraswathi Dental Clinic, 47, Perundurai Road, Erode - 638011\n\nIf this timing does not suit you, please call us at +919865753494.",
+    patientReminder: "⏰ APPOINTMENT REMINDER\n\nDear {patient_name},\n\nThis is a friendly reminder for your upcoming dental visit tomorrow at Sri Saraswathi Dental Clinic.\n\nAppointment ID: {appointment_id}\nTreatment: {treatment_name}\nDate: {appointment_date}\nTime: {appointment_time}\nDoctor: {doctor_name}\nAddress: 47, Perundurai Road, Erode - 638011\n\nWe look forward to seeing you! For queries, contact +919865753494."
   }
 };
 
@@ -62,7 +62,7 @@ export function WhatsAppAutomationSettings() {
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testModalOpen, setTestModalOpen] = useState(false);
-  const [testPhone, setTestPhone] = useState("9345743409");
+  const [testPhone, setTestPhone] = useState("9865753494");
   const [testEvent, setTestEvent] = useState("booking.created");
   const [testResult, setTestResult] = useState<Record<string, unknown> | null>(null);
   const [guideExpanded, setGuideExpanded] = useState(false);
@@ -257,10 +257,10 @@ export function WhatsAppAutomationSettings() {
           <div className="mt-4 space-y-3 border-t border-secondary-100 pt-4 text-xs leading-relaxed text-muted-foreground">
             <div className="rounded-xl bg-amber-500/10 p-3.5 text-amber-900">
               <p className="font-semibold text-amber-950 flex items-center gap-1.5">
-                <Info className="h-4 w-4 text-amber-600" /> WhatsApp Number Architecture Note for +919345743409:
+                <Info className="h-4 w-4 text-amber-600" /> WhatsApp Number Architecture Note for +919865753494:
               </p>
               <p className="mt-1">
-                Your clinic number <strong>+919345743409</strong> is set as the <strong>Clinic Recipient Number</strong>. It will receive instant WhatsApp notifications whenever a patient books an appointment online.
+                Your clinic number <strong>+919865753494</strong> is set as the <strong>Clinic Recipient Number</strong>. It will receive instant WhatsApp notifications whenever a patient books an appointment online.
               </p>
             </div>
 
@@ -270,7 +270,7 @@ export function WhatsAppAutomationSettings() {
                 <p className="mt-1">
                   1. Deploy your n8n workflow using the template provided at <code className="rounded bg-secondary-200 px-1 py-0.5 text-[11px]">n8n/whatsapp-appointment-automation.json</code>.<br />
                   2. Paste your n8n Webhook URL below.<br />
-                  3. New booking events are automatically posted to n8n, which delivers the WhatsApp alert to +919345743409.
+                  3. New booking events are automatically posted to n8n, which delivers the WhatsApp alert to +919865753494.
                 </p>
               </div>
 
@@ -501,7 +501,7 @@ export function WhatsAppAutomationSettings() {
 
                 <div className="space-y-3">
                   <div>
-                    <label className="font-semibold text-foreground block mb-1">New Booking Notification (Sent to Clinic +919345743409)</label>
+                    <label className="font-semibold text-foreground block mb-1">New Booking Notification (Sent to Clinic +919865753494)</label>
                     <textarea
                       rows={5}
                       className="w-full font-mono text-[11px] rounded-xl border border-secondary-200 p-3 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
@@ -563,7 +563,7 @@ export function WhatsAppAutomationSettings() {
 
             <div className="space-y-3">
               {[
-                { key: "notifyNewBooking", label: "🔔 New Booking Alert", sub: "Sent to clinic (+919345743409)" },
+                { key: "notifyNewBooking", label: "🔔 New Booking Alert", sub: "Sent to clinic (+919865753494)" },
                 { key: "notifyConfirmed", label: "✅ Appointment Confirmed", sub: "Sent to patient" },
                 { key: "notifyRejected", label: "❌ Appointment Rejection", sub: "Sent to patient" },
                 { key: "notifyRescheduled", label: "🗓️ Appointment Rescheduled", sub: "Sent to patient" },
@@ -720,7 +720,7 @@ export function WhatsAppAutomationSettings() {
               label="Recipient Phone Number"
               value={testPhone}
               onChange={(e) => setTestPhone(e.target.value)}
-              helperText="Defaults to clinic number: 9345743409"
+              helperText="Defaults to clinic number: 9865753494"
             />
           </div>
 

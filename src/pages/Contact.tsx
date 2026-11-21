@@ -18,7 +18,7 @@ const values = [
 
 export default function ContactPage() {
   const { settings } = useClinicSettings();
-  const whatsappNumber = (settings.whatsapp_number || "919345743409").replace(/\D/g, "");
+  const whatsappNumber = (settings.whatsapp_number || "919865753494").replace(/\D/g, "");
   const details = [
     { icon: Phone, label: "Phone", value: settings.phone || "0424 427 2494", href: `tel:${(settings.phone || "04244272494").replace(/\s+/g, "")}` },
     { icon: Mail, label: "Email", value: settings.email || "info@srisaraswathidental.com", href: `mailto:${settings.email || "info@srisaraswathidental.com"}` },

@@ -141,7 +141,7 @@ export function BeforeAfterShowcaseSection() {
                     Compare Closer
                   </button>
                   <a
-                    href={`https://wa.me/919345743409?text=${encodeURIComponent(`Hello Sri Saraswathi Dental Clinic, I am interested in ${item.treatment}.`)}`}
+                    href={`https://wa.me/919865753494?text=${encodeURIComponent(`Hello Sri Saraswathi Dental Clinic, I am interested in ${item.treatment}.`)}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 rounded-full bg-[#19B987] px-3 py-1.5 text-[10px] font-bold text-white transition hover:bg-[#139A70]"

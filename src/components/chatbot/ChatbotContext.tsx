@@ -37,7 +37,7 @@ function generateClientDentalAssistantReply(userQuery: string): string {
   // 1. Severe Pain / Emergency / Urgent symptoms
   if (/(severe\s+pain|emergency|bleeding|swelling|fever|swollen|broken\s+tooth|accident|urgent|extreme\s+pain)/i.test(msg)) {
     return (
-      `I'm sorry to hear you're experiencing pain or discomfort. For urgent dental concerns or severe pain, please call our clinic desk immediately at **0424 427 2494** or WhatsApp **+91 93457 43409**.\n\n` +
+      `I'm sorry to hear you're experiencing pain or discomfort. For urgent dental concerns or severe pain, please call our clinic desk immediately at **0424 427 2494** or WhatsApp **+91 98657 53494**.\n\n` +
       `Our team will prioritize an emergency evaluation with Dr. Kishore Kumar. In the meantime, gently rinse your mouth with warm salt water and avoid chewing on that side. If you experience difficulty breathing or swallowing, please visit the nearest hospital emergency department right away.`
     );
   }
@@ -108,7 +108,7 @@ function generateClientDentalAssistantReply(userQuery: string): string {
       `1. **Rinse**: Swish gently with lukewarm salt water to reduce bacteria and swelling.\n` +
       `2. **Avoid**: Steer clear of very hot, cold, or sugary drinks, and do not chew hard foods on the painful side.\n` +
       `3. **Clinic Checkup**: A toothache usually signals deep decay, enamel breakdown, or pulp inflammation that requires chairside care.\n\n` +
-      `Please call our clinic desk at **0424 427 2494** or WhatsApp **+91 93457 43409** to schedule a gentle examination with Dr. Kishore Kumar.`
+      `Please call our clinic desk at **0424 427 2494** or WhatsApp **+91 98657 53494** to schedule a gentle examination with Dr. Kishore Kumar.`
     );
   }
 
@@ -140,7 +140,7 @@ function generateClientDentalAssistantReply(userQuery: string): string {
       `You can book your visit in three convenient ways:\n` +
       `1. **Online**: Visit our booking page (/booking) to pick your treatment, doctor, date, and live 30-minute time slot.\n` +
       `2. **Phone**: Call our front desk directly at **0424 427 2494**.\n` +
-      `3. **WhatsApp**: Message us anytime at **+91 93457 43409**.\n\n` +
+      `3. **WhatsApp**: Message us anytime at **+91 98657 53494**.\n\n` +
       `What date or treatment would you prefer for your visit?`
     );
   }
@@ -170,7 +170,7 @@ function generateClientDentalAssistantReply(userQuery: string): string {
     `• **Treatments** (Root Canal, Implants, Braces, Teeth Cleaning, Whitening)\n` +
     `• **Clinic Hours & Location** at Surampatti Four Rd\n` +
     `• **Booking an Appointment** with Dr. Kishore Kumar\n\n` +
-    `For immediate assistance, you can also reach our clinic desk at **0424 427 2494** or WhatsApp **+91 93457 43409**!`
+    `For immediate assistance, you can also reach our clinic desk at **0424 427 2494** or WhatsApp **+91 98657 53494**!`
   );
 }
 

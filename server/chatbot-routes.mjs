@@ -325,7 +325,7 @@ export function registerChatbotRoutes(app, d1, requireAdmin) {
           ok: true,
           sessionId: sessionId || `sess_${Date.now()}`,
           reply:
-            "The AI Dental Assistant is currently resting. Please call our clinic directly at **0424 427 2494** or message us on WhatsApp at **+91 93457 43409** for immediate assistance.",
+            "The AI Dental Assistant is currently resting. Please call our clinic directly at **0424 427 2494** or message us on WhatsApp at **+91 98657 53494** for immediate assistance.",
         });
       }
 

@@ -40,7 +40,7 @@ function renderFormattedText(text: string) {
 
 function formatInline(str: string): React.ReactNode[] {
   // Regex to split on bold **text** or phone numbers
-  const parts = str.split(/(\*\*[^*]+\*\*|0424\s*427\s*2494|\+91\s*93457\s*43409)/g);
+  const parts = str.split(/(\*\*[^*]+\*\*|0424\s*427\s*2494|\+91\s*98657\s*53494)/g);
   return parts.map((part, i) => {
     if (part.startsWith("**") && part.endsWith("**")) {
       return (
@@ -60,11 +60,11 @@ function formatInline(str: string): React.ReactNode[] {
         </a>
       );
     }
-    if (/\+91\s*93457\s*43409/.test(part)) {
+    if (/\+91\s*98657\s*53494/.test(part)) {
       return (
         <a
           key={i}
-          href="https://wa.me/919345743409"
+          href="https://wa.me/919865753494"
           target="_blank"
           rel="noopener noreferrer"
           className="font-bold text-[#139A70] underline underline-offset-2 hover:text-[#0E8A5E]"

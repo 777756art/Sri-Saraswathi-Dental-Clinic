@@ -178,7 +178,7 @@ export default function PatientPortalPage() {
 
             <Button asChild fullWidth size="sm" className="mt-6 bg-[#19B987] text-white hover:bg-[#139A70]">
               <a
-                href={`https://wa.me/919345743409?text=${encodeURIComponent("Hi Sri Saraswathi Dental Clinic, I need help with my appointment.")}`}
+                href={`https://wa.me/919865753494?text=${encodeURIComponent("Hi Sri Saraswathi Dental Clinic, I need help with my appointment.")}`}
                 target="_blank"
                 rel="noopener noreferrer"
               >

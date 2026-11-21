@@ -8,7 +8,7 @@ export const CLINIC_FALLBACK = {
   name: "Sri Saraswathi Dental Clinic",
   address: "866, Soli Complex, Surampatti Four Rd, Erode, Tamil Nadu 638009",
   phone: "0424 427 2494",
-  whatsapp: "+91 93457 43409",
+  whatsapp: "+91 98657 53494",
   hours: "Mon–Sat: 9:00 AM – 8:45 PM | Sunday: Emergency Only",
 };
 
@@ -103,7 +103,7 @@ export const DEFAULT_CLINIC_FAQS = [
   },
   {
     question: "How can I book an appointment?",
-    answer: "You can easily book online by choosing your preferred treatment, doctor, date, and live time slot through our booking page (/booking), or call our clinic desk directly at 0424 427 2494 or WhatsApp +91 93457 43409.",
+    answer: "You can easily book online by choosing your preferred treatment, doctor, date, and live time slot through our booking page (/booking), or call our clinic desk directly at 0424 427 2494 or WhatsApp +91 98657 53494.",
     category: "Appointments",
   },
   {

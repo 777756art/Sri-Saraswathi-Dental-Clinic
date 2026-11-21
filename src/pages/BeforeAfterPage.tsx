@@ -7,7 +7,7 @@ import { resolveApiAsset, type SiteContent } from "@/lib/api";
 import { SEOHead } from "@/components/seo/SEOHead";
 import { getBreadcrumbSchema } from "@/components/seo/schemas";
 
-const whatsappNumber = (import.meta.env.VITE_CLINIC_WHATSAPP || "919345743409").replace(/\D/g, "");
+const whatsappNumber = (import.meta.env.VITE_CLINIC_WHATSAPP || "919865753494").replace(/\D/g, "");
 function dmLink(item: SiteContent) {
   const message = `Hello Sri Saraswathi Dental Clinic, I saw your Before & After smile transformation showcase for ${item.badgeText || item.title}. I would like to know more about this treatment.`;
   return `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;

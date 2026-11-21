@@ -857,7 +857,7 @@ export default function DashboardSeoManagement() {
                 <div className="rounded-xl border border-[#dce4e5] bg-[#F5F2EB]/60 p-4">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-[#707574]">Phone & WhatsApp</span>
                   <p className="mt-1 text-xs font-semibold text-[#1F6878]">0424 427 2494</p>
-                  <p className="text-[11px] text-[#707574]">+91 93457 43409 (WhatsApp)</p>
+                  <p className="text-[11px] text-[#707574]">+91 98657 53494 (WhatsApp)</p>
                 </div>
 
                 <div className="rounded-xl border border-[#dce4e5] bg-[#F5F2EB]/60 p-4">

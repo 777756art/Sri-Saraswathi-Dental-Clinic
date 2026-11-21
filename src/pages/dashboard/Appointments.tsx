@@ -421,17 +421,17 @@ export default function AppointmentsPage() {
     switch (type) {
       case "confirmed":
         setCustomWaMessage(
-          `✅ APPOINTMENT CONFIRMED!\n\nDear ${first},\nYour appointment at Sri Saraswathi Dental Clinic has been confirmed.\n\n• Token Ref: ${booking.ref}\n• Treatment: ${booking.serviceLabel}\n• Date: ${booking.dateLabel}\n• Time: ${booking.time}\n• Doctor: ${booking.dentist || "Dr. Kishore Kumar"}\n• Address: 866, Soli Complex, Surampatti Four Rd, Erode - 638009\n• Map: https://maps.google.com/?q=Sri+Saraswathi+Dental+Clinic+Erode\n\nFor any questions, contact us at 0424 427 2494 / 9345743409.\nSee you soon!`
+          `✅ APPOINTMENT CONFIRMED!\n\nDear ${first},\nYour appointment at Sri Saraswathi Dental Clinic has been confirmed.\n\n• Token Ref: ${booking.ref}\n• Treatment: ${booking.serviceLabel}\n• Date: ${booking.dateLabel}\n• Time: ${booking.time}\n• Doctor: ${booking.dentist || "Dr. Kishore Kumar"}\n• Address: 866, Soli Complex, Surampatti Four Rd, Erode - 638009\n• Map: https://maps.google.com/?q=Sri+Saraswathi+Dental+Clinic+Erode\n\nFor any questions, contact us at 0424 427 2494 / 9865753494.\nSee you soon!`
         );
         break;
       case "reminder":
         setCustomWaMessage(
-          `⏰ APPOINTMENT REMINDER\n\nHi ${first}, this is a gentle reminder for your dental appointment tomorrow (${booking.dateLabel}) at ${booking.time} at Sri Saraswathi Dental Clinic.\n\nPlease arrive 10 minutes early. Contact +919345743409 if you need to reschedule or get directions.`
+          `⏰ APPOINTMENT REMINDER\n\nHi ${first}, this is a gentle reminder for your dental appointment tomorrow (${booking.dateLabel}) at ${booking.time} at Sri Saraswathi Dental Clinic.\n\nPlease arrive 10 minutes early. Contact +919865753494 if you need to reschedule or get directions.`
         );
         break;
       case "rescheduled":
         setCustomWaMessage(
-          `🗓️ APPOINTMENT RESCHEDULED\n\nDear ${first}, your appointment at Sri Saraswathi Dental Clinic has been updated:\n\n• New Date: ${booking.dateLabel}\n• New Time: ${booking.time}\n• Doctor: ${booking.dentist || "Dr. Kishore Kumar"}\n\nLocation: 866, Soli Complex, Surampatti Four Rd, Erode.\nReply or call +919345743409 for assistance.`
+          `🗓️ APPOINTMENT RESCHEDULED\n\nDear ${first}, your appointment at Sri Saraswathi Dental Clinic has been updated:\n\n• New Date: ${booking.dateLabel}\n• New Time: ${booking.time}\n• Doctor: ${booking.dentist || "Dr. Kishore Kumar"}\n\nLocation: 866, Soli Complex, Surampatti Four Rd, Erode.\nReply or call +919865753494 for assistance.`
         );
         break;
       case "pre_op":
@@ -507,7 +507,7 @@ export default function AppointmentsPage() {
 
   const handleSendReminder = (booking: Booking) => {
     const first = booking.patientName.split(" ")[0] || "there";
-    const text = `⏰ APPOINTMENT REMINDER\n\nHi ${first}, this is a gentle reminder for your dental appointment tomorrow (${booking.dateLabel}) at ${booking.time} at Sri Saraswathi Dental Clinic.\n\nPlease arrive 10 minutes prior to your slot. For any directions or changes, please reply here or call +919345743409.\nSee you soon!`;
+    const text = `⏰ APPOINTMENT REMINDER\n\nHi ${first}, this is a gentle reminder for your dental appointment tomorrow (${booking.dateLabel}) at ${booking.time} at Sri Saraswathi Dental Clinic.\n\nPlease arrive 10 minutes prior to your slot. For any directions or changes, please reply here or call +919865753494.\nSee you soon!`;
     const phone = cleanPhoneForWa(booking.patientPhone);
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
     toast.success(`Opening WhatsApp Web with reminder for ${booking.patientName}...`);
@@ -594,7 +594,7 @@ export default function AppointmentsPage() {
         "Please contact Sri Saraswathi Dental Clinic so we can help find another time.",
       ].filter(Boolean).join("\n");
 
-      const confirmMsgText = `✅ APPOINTMENT CONFIRMED!\n\nDear ${patientFirstName},\nYour appointment at Sri Saraswathi Dental Clinic is confirmed.\n\n• Token Ref: ${data.booking.ref}\n• Treatment: ${data.booking.serviceLabel}\n• Date: ${data.booking.dateLabel}\n• Time: ${data.booking.time}\n• Doctor: ${data.booking.dentist || "Dr. Kishore Kumar"}\n• Address: 866, Soli Complex, Surampatti Four Rd, Erode - 638009\n• Contact: 0424 427 2494 / 9345743409.`;
+      const confirmMsgText = `✅ APPOINTMENT CONFIRMED!\n\nDear ${patientFirstName},\nYour appointment at Sri Saraswathi Dental Clinic is confirmed.\n\n• Token Ref: ${data.booking.ref}\n• Treatment: ${data.booking.serviceLabel}\n• Date: ${data.booking.dateLabel}\n• Time: ${data.booking.time}\n• Doctor: ${data.booking.dentist || "Dr. Kishore Kumar"}\n• Address: 866, Soli Complex, Surampatti Four Rd, Erode - 638009\n• Contact: 0424 427 2494 / 9865753494.`;
 
       const messageText = action === "reject" ? rejectionText : confirmMsgText;
       const messageLink = action === "reject" && whatsappNumber
@@ -752,7 +752,7 @@ export default function AppointmentsPage() {
             <div className="flex items-center justify-between rounded-xl bg-[#E4F0F2] border border-[#19B987]/35 px-3.5 py-2.5 text-xs text-[#15191B]">
               <span className="flex items-center gap-2 font-medium">
                 <span className="h-2.5 w-2.5 rounded-full bg-[#19B987] animate-pulse" />
-                <span><strong>100% Free WhatsApp Web</strong> · Sends directly from Clinic WhatsApp (<strong>9345743409</strong>)</span>
+                <span><strong>100% Free WhatsApp Web</strong> · Sends directly from Clinic WhatsApp (<strong>9865753494</strong>)</span>
               </span>
               <span className="rounded-full bg-[#19B987]/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#139A70]">
                 Zero Fees

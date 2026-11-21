@@ -1009,8 +1009,8 @@ export default function BookingPage() {
                 0424 427 2494
               </a>{" "}
               or WhatsApp{" "}
-              <a href="https://wa.me/919345743409" className="font-bold text-[#1F6878] hover:underline">
-                +91 93457 43409
+              <a href="https://wa.me/919865753494" className="font-bold text-[#1F6878] hover:underline">
+                +91 98657 53494
               </a>
               .
             </p>

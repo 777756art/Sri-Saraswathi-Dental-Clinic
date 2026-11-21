@@ -16,7 +16,7 @@ export const CLINIC_NAP = {
   postalCode: "638009",
   addressCountry: "IN",
   telephone: "+91-0424-427-2494",
-  whatsapp: "+91-93457-43409",
+  whatsapp: "+91-98657-53494",
   email: "info@srisaraswathidental.com",
   geo: {
     latitude: 11.3283,

@@ -82,7 +82,7 @@ export function FloatingActions() {
         {/* 3. Primary WhatsApp Action Button (Green) - Always easily accessible */}
         <div className="pointer-events-auto">
           <a
-            href="https://wa.me/919345743409?text=Hello%20Sri%20Saraswathi%20Dental%20Clinic%2C%20I%20have%20a%20question%20about%20a%20visit."
+            href="https://wa.me/919865753494?text=Hello%20Sri%20Saraswathi%20Dental%20Clinic%2C%20I%20have%20a%20question%20about%20a%20visit."
             target="_blank"
             rel="noopener noreferrer"
             className="group flex h-12 w-12 sm:h-auto sm:w-auto items-center justify-center sm:gap-2.5 rounded-full bg-[#19B987] sm:px-4 sm:py-2.5 text-white shadow-[0_12px_28px_-10px_rgba(25,185,135,0.6)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#139A70] hover:shadow-[0_16px_32px_-8px_rgba(25,185,135,0.7)] active:translate-y-0"

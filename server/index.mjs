@@ -37,11 +37,11 @@ const CLINIC = {
   shortName: "Sri Saraswathi",
   address: "866, Soli Complex, Surampatti Four Rd, Erode, Tamil Nadu 638009",
   phone: "0424 427 2494",
-  whatsapp: "+91 93457 43409",
+  whatsapp: "+91 98657 53494",
   maps: "https://share.google/Izecs47hnhjCpmBBs",
 };
 
-const CLINIC_WHATSAPP = process.env.CLINIC_WHATSAPP || "919345743409";
+const CLINIC_WHATSAPP = process.env.CLINIC_WHATSAPP || "919865753494";
 const DATA_DIR = path.join(__dirname, "data");
 const UPLOADS_DIR = path.join(DATA_DIR, "uploads");
 const COOKIE_NAME = "sc_session";
@@ -278,8 +278,8 @@ function patientText(booking, kind) {
 function defaultWhatsAppSettings() {
   return {
     enabled: true,
-    clinicPhone: "9345743409",
-    clinicInternational: "+919345743409",
+    clinicPhone: "9865753494",
+    clinicInternational: "+919865753494",
     clinicName: "Sri Saraswathi Dental Clinic",
     provider: "green_api", // "green_api" | "ultramsg" | "n8n" | "meta" | "both" | "simulated"
     greenApiInstanceId: process.env.GREEN_API_INSTANCE_ID || "",
@@ -299,10 +299,10 @@ function defaultWhatsAppSettings() {
     notifyCustomReply: true,
     templates: {
       newBookingClinic: "🔔 NEW APPOINTMENT RECEIVED!\n\nSri Saraswathi Dental Clinic\n\nAppointment ID: {appointment_id}\nPatient Name: {patient_name}\nPhone: {patient_phone}\nTreatment: {treatment_name}\nRequested Date: {appointment_date}\nRequested Time: {appointment_time}\n\nPlease check clinic availability and manage this booking in your Admin Dashboard:\n{admin_link}\n\nStatus: PENDING",
-      patientConfirmed: "✅ APPOINTMENT CONFIRMED!\n\nDear {patient_name},\n\nYour appointment at Sri Saraswathi Dental Clinic has been confirmed.\n\nAppointment ID: {appointment_id}\nTreatment: {treatment_name}\nDate: {appointment_date}\nTime: {appointment_time}\nDoctor: {doctor_name}\nLocation: Sri Saraswathi Dental Clinic, 47, Perundurai Road, Erode - 638011\n\nNeed directions or rescheduling? Contact us at +919345743409.\nSee you soon!",
-      patientRejected: "❌ APPOINTMENT UPDATE\n\nDear {patient_name},\n\nWe regret to inform you that your requested appointment could not be confirmed.\n\nAppointment ID: {appointment_id}\nRequested Date: {appointment_date}\nReason: {rejection_reason}\n\nPlease call us at +919345743409 or book another time slot online.\n— Sri Saraswathi Dental Clinic",
-      patientRescheduled: "🗓️ APPOINTMENT RESCHEDULED\n\nDear {patient_name},\n\nYour appointment at Sri Saraswathi Dental Clinic has been rescheduled.\n\nAppointment ID: {appointment_id}\nTreatment: {treatment_name}\nNew Date: {appointment_date}\nNew Time: {appointment_time}\nDoctor: {doctor_name}\nLocation: Sri Saraswathi Dental Clinic, 47, Perundurai Road, Erode - 638011\n\nIf this timing does not suit you, please call us at +919345743409.",
-      patientReminder: "⏰ APPOINTMENT REMINDER\n\nDear {patient_name},\n\nThis is a friendly reminder for your upcoming dental visit tomorrow at Sri Saraswathi Dental Clinic.\n\nAppointment ID: {appointment_id}\nTreatment: {treatment_name}\nDate: {appointment_date}\nTime: {appointment_time}\nDoctor: {doctor_name}\nAddress: 47, Perundurai Road, Erode - 638011\n\nWe look forward to seeing you! For queries, contact +919345743409."
+      patientConfirmed: "✅ APPOINTMENT CONFIRMED!\n\nDear {patient_name},\n\nYour appointment at Sri Saraswathi Dental Clinic has been confirmed.\n\nAppointment ID: {appointment_id}\nTreatment: {treatment_name}\nDate: {appointment_date}\nTime: {appointment_time}\nDoctor: {doctor_name}\nLocation: Sri Saraswathi Dental Clinic, 47, Perundurai Road, Erode - 638011\n\nNeed directions or rescheduling? Contact us at +919865753494.\nSee you soon!",
+      patientRejected: "❌ APPOINTMENT UPDATE\n\nDear {patient_name},\n\nWe regret to inform you that your requested appointment could not be confirmed.\n\nAppointment ID: {appointment_id}\nRequested Date: {appointment_date}\nReason: {rejection_reason}\n\nPlease call us at +919865753494 or book another time slot online.\n— Sri Saraswathi Dental Clinic",
+      patientRescheduled: "🗓️ APPOINTMENT RESCHEDULED\n\nDear {patient_name},\n\nYour appointment at Sri Saraswathi Dental Clinic has been rescheduled.\n\nAppointment ID: {appointment_id}\nTreatment: {treatment_name}\nNew Date: {appointment_date}\nNew Time: {appointment_time}\nDoctor: {doctor_name}\nLocation: Sri Saraswathi Dental Clinic, 47, Perundurai Road, Erode - 638011\n\nIf this timing does not suit you, please call us at +919865753494.",
+      patientReminder: "⏰ APPOINTMENT REMINDER\n\nDear {patient_name},\n\nThis is a friendly reminder for your upcoming dental visit tomorrow at Sri Saraswathi Dental Clinic.\n\nAppointment ID: {appointment_id}\nTreatment: {treatment_name}\nDate: {appointment_date}\nTime: {appointment_time}\nDoctor: {doctor_name}\nAddress: 47, Perundurai Road, Erode - 638011\n\nWe look forward to seeing you! For queries, contact +919865753494."
     }
   };
 }
@@ -362,7 +362,7 @@ async function dispatchWhatsAppAutomation({ event, booking, extra = {} }) {
 
   const isClinicRecipient = event === "booking.created";
   const recipient = isClinicRecipient
-    ? (settings.clinicInternational || "+919345743409")
+    ? (settings.clinicInternational || "+919865753494")
     : waNumber(booking.patient_phone);
 
   const cleanRecipientDigits = String(recipient || "").replace(/\D/g, "");
@@ -1659,7 +1659,7 @@ app.post("/api/admin/whatsapp/test", requireAdmin, async (req, res, next) => {
       id: 999999,
       ref: "SC-TEST-" + crypto.randomBytes(2).toString("hex").toUpperCase(),
       patient_name: "Test Patient (WhatsApp Automation)",
-      patient_phone: body.phone || settings.clinicPhone || "9345743409",
+      patient_phone: body.phone || settings.clinicPhone || "9865753494",
       patient_email: "test@srisaraswathidental.com",
       service_label: "Comprehensive Oral Health Checkup & Cleaning",
       date: todayISO(),
@@ -2032,8 +2032,8 @@ app.patch("/api/admin/bookings/:id", requireAdmin, async (req, res, next) => {
           event: "booking.rescheduled",
           booking: updated
         });
-        // Also send copy to clinic admin WhatsApp (+919345743409)
-        const clinicAdminNum = (await readWhatsAppSettings()).clinicInternational || "+919345743409";
+        // Also send copy to clinic admin WhatsApp (+919865753494)
+        const clinicAdminNum = (await readWhatsAppSettings()).clinicInternational || "+919865753494";
         const cleanAdminDigits = clinicAdminNum.replace(/\D/g, "");
         const adminRescheduleMsg = `🗓️ APPOINTMENT RESCHEDULED\n\nSri Saraswathi Dental Clinic\n\nAppointment ID: ${updated.ref}\nPatient: ${updated.patient_name} (${updated.patient_phone})\nTreatment: ${updated.service_label}\nNew Date: ${formatDate(updated.date)}\nNew Time: ${updated.time}\nDoctor: ${updated.dentist || "Dr. Kishore Kumar"}\n\nView in Admin Dashboard:\n${process.env.SITE_ORIGIN || "http://localhost:5173"}/dashboard/appointments`;
         
