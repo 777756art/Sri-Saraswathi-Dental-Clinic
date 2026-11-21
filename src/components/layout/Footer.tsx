@@ -169,7 +169,10 @@ export function Footer() {
           <p className="text-xs text-white/55">
             &copy; {new Date().getFullYear()} Sri Saraswathi Dental Clinic. All rights reserved.
           </p>
-          <Link to="/contact" className="text-xs text-white/60 transition-colors hover:text-[#E4F0F2]">Contact the clinic</Link>
+          <div className="flex items-center gap-4">
+            <Link to="/privacy-policy" className="text-xs text-white/60 transition-colors hover:text-[#E4F0F2]">Privacy Policy</Link>
+            <Link to="/contact" className="text-xs text-white/60 transition-colors hover:text-[#E4F0F2]">Contact the clinic</Link>
+          </div>
         </div>
       </div>
     </footer>

@@ -29,6 +29,7 @@ const DoctorProfilePage = lazy(() => import("@/pages/DoctorProfile"));
 const Reviews = lazy(() => import("@/pages/Reviews"));
 const TeleDentistry = lazy(() => import("@/pages/TeleDentistry"));
 const ServiceDetail = lazy(() => import("@/pages/ServiceDetail"));
+const PrivacyPolicy = lazy(() => import("@/pages/PrivacyPolicy"));
 const Dashboard = lazy(() => import("@/pages/dashboard/Dashboard"));
 const DashboardAiAssistant = lazy(() => import("@/pages/dashboard/AiAssistant"));
 const DashboardAnalytics = lazy(() => import("@/pages/dashboard/Analytics"));
@@ -94,6 +95,8 @@ function AppRoutes() {
         <Route path="/reviews" element={<Reviews />} />
         <Route path="/tele-dentistry" element={<TeleDentistry />} />
         <Route path="/services/:slug" element={<ServiceDetail />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="/privacy" element={<Navigate to="/privacy-policy" replace />} />
 
         <Route element={<RequireRole role="admin" />}>
           <Route path="/admin" element={<Navigate to="/dashboard" replace />} />
