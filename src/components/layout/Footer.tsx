@@ -165,7 +165,13 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="mt-14 flex flex-col items-center justify-between gap-4 border-t border-white/15 pt-6 md:flex-row">
+        <div className="mt-10 border-t border-white/10 pt-4">
+          <p className="text-[11.5px] leading-relaxed text-white/50">
+            Sri Saraswathi Dental Clinic uses secure Google authentication exclusively to identify patients and clinical staff, manage appointment schedules, and provide access to dental records. Personal data is never sold, leased, or disclosed to third-party marketing networks.
+          </p>
+        </div>
+
+        <div className="mt-6 flex flex-col items-center justify-between gap-4 border-t border-white/15 pt-6 md:flex-row">
           <p className="text-xs text-white/55">
             &copy; {new Date().getFullYear()} Sri Saraswathi Dental Clinic. All rights reserved.
           </p>
