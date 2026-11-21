@@ -73,6 +73,7 @@ function AppRoutes() {
     <Suspense fallback={<RouteLoading />}>
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/home" element={<Home />} />
         <Route path="/about" element={<Navigate to="/contact" replace />} />
         <Route path="/ai-features" element={<AiFeatures />} />
         <Route path="/auth/login" element={<Login />} />
